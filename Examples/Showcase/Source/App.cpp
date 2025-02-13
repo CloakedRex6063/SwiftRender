@@ -33,9 +33,9 @@ int main()
     Swift::UploadToBuffer(cameraBuffer, &cameraData, 0, sizeof(CameraData));
 
     Scene scene;
-    Parser::LoadMeshes(scene, "../Resources/Helmet/DamagedHelmet.gltf");
+    Parser::LoadMeshes(scene, "Resources/Helmet/DamagedHelmet.gltf");
     Scene cubeScene;
-    const auto cubeIndex = Parser::LoadMeshes(cubeScene, "../Resources/Cube/Cube.gltf");
+    const auto cubeIndex = Parser::LoadMeshes(cubeScene, "Resources/Cube/Cube.gltf");
     const auto cubeVertexSize = cubeScene.vertices.size() * sizeof(Vertex);
     const auto cubeVertexBuffer =
         Swift::CreateBuffer(Swift::BufferType::eStorage, cubeVertexSize, "Vertex Buffer");
@@ -75,15 +75,15 @@ int main()
         Swift::CreateBuffer(Swift::BufferType::eStorage, sizeof(Light) * 10, "Light Buffer");
     Swift::UploadToBuffer(lightBuffer, lights.data(), 0, lights.size() * sizeof(Light));
 
-    auto skybox = Swift::LoadCubemapFromFile("../Resources/HDRI/Footprint/Footprint.dds", "HDRI");
+    auto skybox = Swift::LoadCubemapFromFile("Resources/HDRI/Footprint/Footprint.dds", "HDRI");
     auto irradiance = Swift::LoadCubemapFromFile(
-        "../Resources/HDRI/Footprint/Footprint_Diffuse.dds",
+        "Resources/HDRI/Footprint/Footprint_Diffuse.dds",
         "Irradiance");
     auto specular = Swift::LoadCubemapFromFile(
-        "../Resources/HDRI/Footprint/Footprint_Specular.dds",
+        "Resources/HDRI/Footprint/Footprint_Specular.dds",
         "Specular");
     auto lut =
-        Swift::LoadImageFromFile("../Resources/HDRI/Footprint/Footprint_LUT.dds", 0, false, "Lut");
+        Swift::LoadImageFromFile("Resources/HDRI/Footprint/Footprint_LUT.dds", 0, false, "Lut");
 
     scene.pushConstant = ModelPushConstant{
         .cameraBufferAddress = Swift::GetBufferAddress(cameraBuffer),
@@ -139,24 +139,24 @@ int main()
     // ------------------------------Creating all required shaders----------------------------------
 
     const auto skyboxShader = Swift::CreateGraphicsShader(
-        "../Shaders/skybox.vert.spv",
-        "../Shaders/skybox.frag.spv",
+        "Shaders/skybox.vert.spv",
+        "Shaders/skybox.frag.spv",
         "Skybox Shader");
 
     const auto graphicsShader = Swift::CreateGraphicsShader(
-        "../Shaders/model.vert.spv",
-        "../Shaders/model.frag.spv",
+        "Shaders/model.vert.spv",
+        "Shaders/model.frag.spv",
         "Model Shader");
 
     const auto indirectDrawShader = Swift::CreateGraphicsShader(
-        "../Shaders/indirect_model.vert.spv",
-        "../Shaders/indirect_model.frag.spv",
+        "Shaders/indirect_model.vert.spv",
+        "Shaders/indirect_model.frag.spv",
         "Indirect Model Shader");
 
     const auto indirectFillShader =
-        Swift::CreateComputeShader("../Shaders/indirect.comp.spv", "Indirect Shader");
+        Swift::CreateComputeShader("Shaders/indirect.comp.spv", "Indirect Shader");
     const auto indirectCullShader =
-        Swift::CreateComputeShader("../Shaders/indirectCull.comp.spv", "Cull Shader");
+        Swift::CreateComputeShader("Shaders/indirectCull.comp.spv", "Cull Shader");
 
     // ---------------------Creating and uploading data for indirect drawing------------------------
 

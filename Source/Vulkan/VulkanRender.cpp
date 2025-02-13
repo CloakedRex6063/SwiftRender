@@ -11,7 +11,7 @@ namespace Swift::Vulkan
         const vk::Semaphore semaphore,
         const vk::Extent2D extent)
     {
-        const auto acquireInfo = vk::AcquireNextImageInfoKHR()
+        auto acquireInfo = vk::AcquireNextImageInfoKHR()
                                      .setDeviceMask(1)
                                      .setSemaphore(semaphore)
                                      .setSwapchain(swapchain)
@@ -22,7 +22,17 @@ namespace Swift::Vulkan
             return image;
 
         Util::HandleSubOptimalSwapchain(queue.index, context, swapchain, extent);
-        return std::numeric_limits<u32>::max();
+        acquireInfo = vk::AcquireNextImageInfoKHR()
+                             .setDeviceMask(1)
+                             .setSemaphore(semaphore)
+                             .setSwapchain(swapchain)
+                             .setTimeout(std::numeric_limits<u64>::max());
+        std::tie(result, image) = context.device.acquireNextImage2KHR(acquireInfo);
+
+        if (result == vk::Result::eSuccess)
+            return image;
+        
+        throw std::runtime_error("Failed to acquire image after 2 tries!");
     }
 
     void Render::Present(

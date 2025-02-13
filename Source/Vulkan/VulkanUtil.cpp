@@ -1,5 +1,4 @@
 #include "Vulkan/VulkanUtil.hpp"
-#include "SwiftStructs.hpp"
 #include "Vulkan/VulkanConstants.hpp"
 #include "Vulkan/VulkanInit.hpp"
 #include "Vulkan/VulkanStructs.hpp"
@@ -88,6 +87,7 @@ namespace Swift::Vulkan
         swapchain.SetSwapchain(Init::CreateSwapchain(context, extent, graphicsFamily))
             .SetDepthImage(depthImage)
             .SetImages(Init::CreateSwapchainImages(context, swapchain))
+            .SetIndex(0)
             .SetExtent(extent);
     }
 
@@ -280,13 +280,7 @@ namespace Swift::Vulkan
         file.read(static_cast<char*>(mapped), imageSize);
         UnmapBuffer(context, buffer);
 
-        CopyBufferToImage(
-            commandBuffer,
-            buffer,
-            ddsImage,
-            mipLevel,
-            loadAllMips,
-            image);
+        CopyBufferToImage(commandBuffer, buffer, ddsImage, mipLevel, loadAllMips, image);
         return buffer;
     }
 

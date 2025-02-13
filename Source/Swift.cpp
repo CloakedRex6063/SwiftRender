@@ -87,10 +87,20 @@ void Swift::Init(const InitInfo& initInfo)
     const auto indices = Util::GetQueueFamilyIndices(gContext.gpu, gContext.surface);
     const auto graphicsQueue = Init::GetQueue(gContext, indices[0], 0, "Graphics Queue");
     gGraphicsQueue.SetIndex(indices[0]).SetQueue(graphicsQueue);
-    const auto computeQueue = Init::GetQueue(gContext, indices[1], 0, "Compute Queue");
-    gComputeQueue.SetIndex(indices[1]).SetQueue(computeQueue);
-    const auto transferQueue = Init::GetQueue(gContext, indices[2], 0, "Transfer Queue");
-    gTransferQueue.SetIndex(indices[2]).SetQueue(transferQueue);
+    if (indices.size() > 1)
+    {
+        const auto computeQueue = Init::GetQueue(gContext, indices[1], 0, "Compute Queue");
+        gComputeQueue.SetIndex(indices[1]).SetQueue(computeQueue);
+        const auto transferQueue = Init::GetQueue(gContext, indices[2], 0, "Transfer Queue");
+        gTransferQueue.SetIndex(indices[2]).SetQueue(transferQueue);
+    }
+    else
+    {
+        const auto computeQueue = Init::GetQueue(gContext, indices[0], 0, "Compute Queue");
+        gComputeQueue.SetIndex(indices[1]).SetQueue(computeQueue);
+        const auto transferQueue = Init::GetQueue(gContext, indices[0], 0, "Transfer Queue");
+        gTransferQueue.SetIndex(indices[2]).SetQueue(transferQueue);
+    }
 
     constexpr auto depthFormat = vk::Format::eD32Sfloat;
     const auto depthImage = Init::CreateImage(
@@ -108,6 +118,7 @@ void Swift::Init(const InitInfo& initInfo)
     gSwapchain.SetSwapchain(swapchain)
         .SetDepthImage(depthImage)
         .SetImages(Init::CreateSwapchainImages(gContext, gSwapchain))
+        .SetIndex(0)
         .SetExtent(Util::To2D(initInfo.extent));
 
     gFrameData.resize(gSwapchain.images.size());
@@ -456,7 +467,7 @@ ImageHandle Swift::CreateImage(
             arrayElement,
             gContext);
         return PackImageType(arrayElement, ImageUsage::eSampledReadWrite);
-        
+
     case ImageUsage::eReadWrite:
         arrayElement = static_cast<u32>(gWriteableImages.size() - 1);
         Util::UpdateDescriptorImage(
@@ -1003,7 +1014,8 @@ void Swift::EndTransfer(const ThreadHandle threadHandle)
 
 ThreadHandle Swift::CreateGraphicsThreadContext()
 {
-    if (!SupportsGraphicsMultithreading()) assert(false);
+    if (!SupportsGraphicsMultithreading())
+        assert(false);
     const u32 size = static_cast<u32>(gThreadDatas.size());
     const auto queue = Init::GetQueue(gContext, gGraphicsQueue.index, 1, "Thread Queue");
     const auto threadQueue = Queue().SetQueue(queue).SetIndex(gGraphicsQueue.index);
@@ -1023,7 +1035,8 @@ ThreadHandle Swift::CreateGraphicsThreadContext()
 
 void Swift::DestroyGraphicsThreadContext(const ThreadHandle threadHandle)
 {
-    if (!SupportsGraphicsMultithreading()) assert(false);
+    if (!SupportsGraphicsMultithreading())
+        assert(false);
     gThreadDatas[threadHandle].Destroy(gContext);
     gThreadDatas.erase(gThreadDatas.begin() + threadHandle);
 }

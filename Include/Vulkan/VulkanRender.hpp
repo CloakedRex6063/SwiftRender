@@ -246,6 +246,7 @@ namespace Swift::Vulkan::Render
         commandBuffer.setDepthCompareOp(vk::CompareOp::eLess);
         commandBuffer.setDepthWriteEnable(true);
         commandBuffer.setStencilTestEnable(false);
+        commandBuffer.setDepthBounds(0, 1);
     }
 
     inline void DisableDepth(const vk::CommandBuffer commandBuffer)

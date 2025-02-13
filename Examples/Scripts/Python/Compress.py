@@ -2,6 +2,7 @@ import os
 import platform
 import subprocess
 import sys
+from os import mkdir
 
 DefaultFormat = "BC7_UNORM"
 NormalFormat = "BC7_UNORM" 
@@ -11,7 +12,6 @@ TexConvPath = os.path.join(os.path.dirname(__file__), "../TexConv/texconv.exe")
 NvCompressPath = os.path.join(os.path.dirname(__file__), "../TexConv/nvcompress")
 
 def compress(compressionFormat: str) -> str:
-    
     if platform.system() == "Windows":
         command = [
             TexConvPath,

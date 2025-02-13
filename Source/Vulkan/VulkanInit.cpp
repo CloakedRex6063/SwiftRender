@@ -191,13 +191,12 @@ namespace
             }
 
             std::vector extensions{
-                VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+                VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+            VK_EXT_SHADER_OBJECT_EXTENSION_NAME};
             if (initInfo.bUsePipelines)
             {
                 extensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
             }
-
-            std::vector optionalExtensions{VK_EXT_SHADER_OBJECT_EXTENSION_NAME};
 
             bool extensionSupported = true;
             auto [result, extensionProps] = device.enumerateDeviceExtensionProperties();
@@ -216,27 +215,28 @@ namespace
                 }
             }
 
+            //std::vector optionalExtensions{VK_EXT_SHADER_OBJECT_EXTENSION_NAME};
             DeviceChecker deviceChecker;
             deviceChecker.device = device;
-            deviceChecker.optionalExtensionsSupport.reserve(extensionSupported);
-            for (const auto& extension : optionalExtensions)
-            {
-                auto iterator = std::ranges::find_if(
-                    extensionProps,
-                    [&](const vk::ExtensionProperties& supported)
-                    {
-                        return std::strcmp(supported.extensionName.data(), extension) == 0;
-                    });
-
-                if (iterator == extensionProps.end())
-                {
-                    deviceChecker.optionalExtensionsSupport.emplace_back(false);
-                }
-                else
-                {
-                    deviceChecker.optionalExtensionsSupport.emplace_back(true);
-                }
-            }
+            // deviceChecker.optionalExtensionsSupport.reserve(extensionSupported);
+            // for (const auto& extension : optionalExtensions)
+            // {
+            //     auto iterator = std::ranges::find_if(
+            //         extensionProps,
+            //         [&](const vk::ExtensionProperties& supported)
+            //         {
+            //             return std::strcmp(supported.extensionName.data(), extension) == 0;
+            //         });
+            //
+            //     if (iterator == extensionProps.end())
+            //     {
+            //         deviceChecker.optionalExtensionsSupport.emplace_back(false);
+            //     }
+            //     else
+            //     {
+            //         deviceChecker.optionalExtensionsSupport.emplace_back(true);
+            //     }
+            // }
 
             if (!extensionSupported)
                 continue;
@@ -279,7 +279,8 @@ namespace
         const Swift::InitInfo& initInfo)
     {
         std::vector extensionNames{
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_EXT_SHADER_OBJECT_EXTENSION_NAME};
 
         std::vector<const char*> layerNames;
 
@@ -289,14 +290,14 @@ namespace
         }
         else
         {
-            if (chosenOptionalExtensionsSupport[0])
-            {
-                extensionNames.emplace_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
-            }
-            else
-            {
-                layerNames.emplace_back("VK_LAYER_KHRONOS_shader_object");
-            }
+            // if (chosenOptionalExtensionsSupport[0])
+            // {
+            //     extensionNames.emplace_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
+            // }
+            // else
+            // {
+            //     layerNames.emplace_back("VK_LAYER_KHRONOS_shader_object");
+            // }
         }
 
         using ShaderVariant = vk::StructureChain<

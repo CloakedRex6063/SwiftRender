@@ -33,11 +33,10 @@ target_sources(imgui PRIVATE ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp 
 target_link_libraries(imgui PRIVATE glfw)
 
 set(SOURCE_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/Resources")
-set(DESTINATION_FOLDER "${CMAKE_CURRENT_BINARY_DIR}/Resources")
 
-add_subdirectory(Shaders)
 add_subdirectory(Showcase)
 add_subdirectory(Utility)
+add_subdirectory(Shaders)
 
 add_custom_target(CopyResources)
 add_custom_command(
@@ -50,7 +49,7 @@ set(CompressScript ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Python/Compress.py)
 add_custom_target(CompressTextures)
 add_custom_command(
         TARGET CompressTextures POST_BUILD
-        COMMAND python ${CompressScript} "${CMAKE_CURRENT_BINARY_DIR}/Resources"
+        COMMAND python ${CompressScript} ${DESTINATION_FOLDER}
         COMMENT "Running Texture Compression"
 )
 
@@ -58,7 +57,7 @@ set(UseDDSScript ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Python/UseDDS.py)
 add_custom_target(UseDDS)
 add_custom_command(
         TARGET UseDDS POST_BUILD
-        COMMAND python ${UseDDSScript} "${CMAKE_CURRENT_BINARY_DIR}/Resources"
+        COMMAND python ${UseDDSScript} ${DESTINATION_FOLDER}
         COMMENT "Updating GLTF's to use DDS"
 )
 
