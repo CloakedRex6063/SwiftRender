@@ -14,5 +14,5 @@ enum class ParserError
 namespace Parser
 {
     void Init();
-    std::expected<std::vector<int>, ParserError> LoadMeshes(Scene& scene, std::filesystem::path filePath);
+    std::expected<std::vector<int>, ParserError> LoadMeshes(Scene& scene, const std::filesystem::path& filePath);
 };  // namespace Parser

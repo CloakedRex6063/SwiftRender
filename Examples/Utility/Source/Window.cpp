@@ -1,8 +1,6 @@
 #include "Window.hpp"
 #include "Input.hpp"
 #include "GLFW/glfw3.h"
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include "GLFW/glfw3native.h"
 
 
 namespace
@@ -23,7 +21,9 @@ namespace Window
 {
     void Init()
     {
-        glfwInit();
+        glfwInitHint(GLFW_PLATFORM, GLFW_ANY_PLATFORM);
+        if (!glfwInit()) assert(false);
+            
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         gWindow.window = glfwCreateWindow(1280, 720, "Example", nullptr, nullptr);
         glfwGetWindowSize(gWindow, reinterpret_cast<int*>(&gWindow.size.x), reinterpret_cast<int*>(&gWindow.size.y));
@@ -53,8 +53,6 @@ namespace Window
     {
         return gWindow.window;
     }
-
-    HWND GetHandle() { return glfwGetWin32Window(gWindow); }
 
     bool IsRunning() { return !glfwWindowShouldClose(gWindow); }
 } // namespace Utility

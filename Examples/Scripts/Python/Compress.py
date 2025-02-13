@@ -1,4 +1,5 @@
 import os
+import platform
 import subprocess
 import sys
 
@@ -7,6 +8,36 @@ NormalFormat = "BC7_UNORM"
 HdrFormat = "BC6H_UF16"
 AoFormat = "BC4_UNORM"
 TexConvPath = os.path.join(os.path.dirname(__file__), "../TexConv/texconv.exe")
+NvCompressPath = os.path.join(os.path.dirname(__file__), "../TexConv/nvcompress")
+
+def compress(compressionFormat: str) -> str:
+    
+    if platform.system() == "Windows":
+        command = [
+            TexConvPath,
+            "-f", compressionFormat,  # Set the format
+            "-m", "0",                # Generate mipmaps
+            FilePath,                 # Input File
+            "-o", os.path.dirname(FilePath)
+        ]
+    else:
+        match compressionFormat:
+            case "BC7_UNORM":
+                texFormat = "-bc7"
+            case "BC6H_UF16":
+                texFormat = "-bc6"
+            case "BC4_UNORM":
+                texFormat = "-bc4"
+            case _:
+                raise NameError("Wrong Format")
+        
+        command = [
+            NvCompressPath,
+            FilePath,
+            texFormat,
+            "-min-mip-size", "4"
+        ]
+    return command
 
 if len(sys.argv) < 2:
     print("Usage: python convert_textures.py <input_directory>")
@@ -38,14 +69,7 @@ for root, _, Files in os.walk(InputDirectory):
             if os.path.exists(os.path.splitext(FilePath)[0] + ".dds"):
                 print(f"{RelativePath} already compressed")
             else:
-                command = [
-                TexConvPath, 
-                "-f", CompressionFormat,  # Set the format
-                "-m", "0",                # Generate mipmaps
-                FilePath,                 # Input File
-		        "-o", os.path.dirname(FilePath)
-                ]
-
+                command = compress(CompressionFormat)
                 print(f"Processing: {RelativePath} with format {CompressionFormat}")
                 subprocess.run(command, check=True)
 

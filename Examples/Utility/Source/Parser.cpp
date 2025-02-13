@@ -139,9 +139,10 @@ namespace
                         vertices[index].position = position;
                     });
 
-                auto positions = vertices | std::views::transform(&Vertex::position);
-                auto subrange = std::ranges::to<std::vector>(positions);
-                auto boundingSphere = Swift::Visibility::CreateBoundingSphereFromVertices(subrange);
+                std::vector<glm::vec3> positions;
+                std::ranges::copy(vertices | std::views::transform(&Vertex::position), 
+                                  std::back_inserter(positions));
+                auto boundingSphere = Swift::Visibility::CreateBoundingSphereFromVertices(positions);
                 scene.boundingSpheres.emplace_back(boundingSphere);
 
                 assert(primitive.findAttribute("NORMAL")->accessorIndex);
@@ -166,7 +167,7 @@ namespace
                         vertices[index].uvX = uv.x;
                         vertices[index].uvY = uv.y;
                     });
-                scene.vertices.insert_range(scene.vertices.end(), vertices);
+                scene.vertices.insert(scene.vertices.end(), vertices.begin(), vertices.end());
             }
         }
     }
@@ -201,7 +202,7 @@ namespace
 
 namespace Parser
 {
-    void Parser::Init()
+    void Init()
     {
         constexpr auto extensions = fastgltf::Extensions::KHR_materials_transmission |
                                     fastgltf::Extensions::KHR_materials_volume |
@@ -216,9 +217,9 @@ namespace Parser
     std::expected<
         std::vector<int>,
         ParserError>
-    Parser::LoadMeshes(
+    LoadMeshes(
         Scene& scene,
-        std::filesystem::path filePath)
+        const std::filesystem::path& filePath)
     {
         auto expectedMappedFile = fastgltf::MappedGltfFile::FromPath(filePath);
         if (!expectedMappedFile)
