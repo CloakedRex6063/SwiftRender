@@ -80,8 +80,8 @@ namespace Swift::Vulkan
         VmaAllocation imageAllocation{};
         vk::ImageLayout currentLayout = vk::ImageLayout::eUndefined;
         vk::Extent3D extent{};
-        int minLod = 0.0f;
-        int maxLod = 0.0f;
+        int minLod = 0;
+        int maxLod = 0;
         std::string uri;
 
         operator vk::Image() const { return image; }

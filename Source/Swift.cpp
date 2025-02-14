@@ -308,7 +308,34 @@ void Swift::BeginRendering()
 void Swift::EndRendering()
 {
     const auto& commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
-    commandBuffer.endRendering();
+    Render::EndRendering(commandBuffer);
+}
+
+void Swift::BeginRendering(
+    const glm::uvec2& extent,
+    const std::vector<ImageHandle>& colorImages,
+    const ImageHandle& depthImage)
+{
+    const auto& commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
+
+    std::vector<Image> realColorImages;
+    realColorImages.reserve(colorImages.size());
+    for (const auto& imageHandle : colorImages)
+    {
+        const auto& realImage = GetRealImage(imageHandle);
+        realColorImages.emplace_back(realImage);
+    }
+
+    Image realDepthImage{};
+    bool enableDepth = false;
+    if (depthImage != 0 || depthImage != InvalidHandle)
+    {
+        realDepthImage = GetRealImage(depthImage);
+        enableDepth = true;
+    }
+
+    Render::BeginRendering(commandBuffer, Util::To2D(extent), realColorImages, realDepthImage, enableDepth);
+    Render::SetPipelineDefault(gContext, commandBuffer, gSwapchain.extent, gInitInfo.bUsePipelines);
 }
 
 void Swift::SetCullMode(const CullMode& cullMode)
@@ -426,20 +453,36 @@ void Swift::DrawIndexedIndirectCount(
 
 ImageHandle Swift::CreateImage(
     const ImageUsage usage,
+    const ImageFormat format,
     const glm::uvec2 size,
     const std::string_view debugName)
 {
-    constexpr auto imageUsage = vk::ImageUsageFlagBits::eColorAttachment |
-                                vk::ImageUsageFlagBits::eTransferSrc |
+    auto imageUsage = vk::ImageUsageFlagBits::eTransferSrc |
                                 vk::ImageUsageFlagBits::eTransferDst |
                                 vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled;
-
-    constexpr auto format = vk::Format::eR16G16B16A16Sfloat;
+    
+    auto vkFormat = vk::Format::eR16G16B16A16Sfloat;
+    switch (format)
+    {
+    case ImageFormat::eR16G16B16A16_SRGB:
+        vkFormat = vk::Format::eR16G16B16A16Sfloat;
+        imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+        break;
+    case ImageFormat::eR32G32B32A32_SRGB:
+        vkFormat = vk::Format::eR32G32B32A32Sfloat;
+        imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+        break;
+    case ImageFormat::eD32:
+        vkFormat = vk::Format::eD32Sfloat;
+        imageUsage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
+        break;
+    }
+    
     const auto image = Init::CreateImage(
         gContext,
         vk::ImageType::e2D,
         Util::To3D(size),
-        format,
+        vkFormat,
         imageUsage,
         1,
         {},
@@ -616,6 +659,12 @@ int Swift::GetMaxLod(const ImageHandle image)
 u32 Swift::GetImageArrayIndex(const ImageHandle imageHandle)
 {
     return GetImageIndex(imageHandle);
+}
+
+glm::uvec2 Swift::GetImageSize(ImageHandle imageHandle)
+{
+    const auto& image = GetRealImage(imageHandle);
+    return glm::uvec2(image.extent.width, image.extent.height);
 }
 
 std::string_view Swift::GetURI(const ImageHandle imageHandle)

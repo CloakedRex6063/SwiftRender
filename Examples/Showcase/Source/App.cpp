@@ -3,10 +3,10 @@
 #include "Parser.hpp"
 #include "Structs.hpp"
 #include "Swift.hpp"
+#include "SwiftImgui.hpp"
 #include "SwiftUtil.hpp"
 #include "Window.hpp"
 #include "future"
-#include "SwiftImgui.hpp"
 #include "imgui.h"
 
 int main()
@@ -33,7 +33,7 @@ int main()
     Swift::UploadToBuffer(cameraBuffer, &cameraData, 0, sizeof(CameraData));
 
     Scene scene;
-    Parser::LoadMeshes(scene, "Resources/Helmet/DamagedHelmet.gltf");
+    const auto result = Parser::LoadMeshes(scene, "Resources/Helmet/DamagedHelmet.gltf");
     Scene cubeScene;
     const auto cubeIndex = Parser::LoadMeshes(cubeScene, "Resources/Cube/Cube.gltf");
     const auto cubeVertexSize = cubeScene.vertices.size() * sizeof(Vertex);
@@ -76,12 +76,10 @@ int main()
     Swift::UploadToBuffer(lightBuffer, lights.data(), 0, lights.size() * sizeof(Light));
 
     auto skybox = Swift::LoadCubemapFromFile("Resources/HDRI/Footprint/Footprint.dds", "HDRI");
-    auto irradiance = Swift::LoadCubemapFromFile(
-        "Resources/HDRI/Footprint/Footprint_Diffuse.dds",
-        "Irradiance");
-    auto specular = Swift::LoadCubemapFromFile(
-        "Resources/HDRI/Footprint/Footprint_Specular.dds",
-        "Specular");
+    auto irradiance =
+        Swift::LoadCubemapFromFile("Resources/HDRI/Footprint/Footprint_Diffuse.dds", "Irradiance");
+    auto specular =
+        Swift::LoadCubemapFromFile("Resources/HDRI/Footprint/Footprint_Specular.dds", "Specular");
     auto lut =
         Swift::LoadImageFromFile("Resources/HDRI/Footprint/Footprint_LUT.dds", 0, false, "Lut");
 
@@ -91,9 +89,9 @@ int main()
         .transformBufferAddress = Swift::GetBufferAddress(transformBuffer),
         .materialBufferAddress = Swift::GetBufferAddress(materialBuffer),
         .lightBufferAddress = Swift::GetBufferAddress(lightBuffer),
-        .irradianceIndex = int(Swift::GetImageArrayIndex(irradiance)),
-        .specularIndex = int(Swift::GetImageArrayIndex(specular)),
-        .lutIndex = int(Swift::GetImageArrayIndex(lut)),
+        .irradianceIndex = static_cast<int>(Swift::GetImageArrayIndex(irradiance)),
+        .specularIndex = static_cast<int>(Swift::GetImageArrayIndex(specular)),
+        .lutIndex = static_cast<int>(Swift::GetImageArrayIndex(lut)),
     };
 
     // -----------------------------Creating and uploading images in bulk--------------------------
@@ -263,6 +261,18 @@ int main()
     float maxLodDistance = 100.f;
     bool bShowLod = false;
 
+    const auto extent = Window::GetSize();
+    const auto renderImage = Swift::CreateImage(
+        Swift::ImageUsage::eSampled,
+        Swift::ImageFormat::eR16G16B16A16_SRGB,
+        extent,
+        "Render Image");
+    const auto depthImage = Swift::CreateImage(
+        Swift::ImageUsage::eSampled,
+        Swift::ImageFormat::eD32,
+        extent,
+        "Depth Image");
+
     // For tracking delta-time
     std::chrono::high_resolution_clock::time_point lastTime =
         std::chrono::high_resolution_clock::now();
@@ -313,8 +323,7 @@ int main()
             Swift::DispatchCompute(totalMeshes / 256 + 1, 1, 1);
         }
 
-        Swift::ClearSwapchainImage(glm::vec4(1, 0, 0, 0));
-        Swift::BeginRendering();
+        Swift::BeginRendering(Swift::GetImageSize(renderImage), {renderImage}, depthImage);
 
         Swift::BindIndexBuffer(indexBuffer);
 
@@ -369,6 +378,8 @@ int main()
         Swift::DrawIndexed(cube.indexCount, 1, cube.firstIndex, cube.vertexOffset, 0);
 
         Swift::EndRendering();
+
+        Swift::BlitToSwapchain(renderImage, Swift::GetImageSize(renderImage));
 
         Swift::ImGUI::ShowDebugStats();
 

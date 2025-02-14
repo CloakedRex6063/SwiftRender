@@ -47,61 +47,25 @@ namespace Swift::Vulkan::Render
         return frameData.renderCommand.commandPool;
     }
 
-    inline void BeginRendering(
+    void BeginRendering(
         const vk::CommandBuffer commandBuffer,
         Swapchain& swapchain,
-        const bool enableDepth)
-    {
-        const auto colorAttachment = vk::RenderingAttachmentInfo()
-                                         .setImageView(GetSwapchainImage(swapchain).imageView)
-                                         .setClearValue(vk::ClearColorValue().setFloat32({0.f}))
-                                         .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
-                                         .setLoadOp(vk::AttachmentLoadOp::eLoad)
-                                         .setStoreOp(vk::AttachmentStoreOp::eStore);
-        const auto depthAttachment = vk::RenderingAttachmentInfo()
-                                         .setImageView(swapchain.depthImage.imageView)
-                                         .setClearValue(vk::ClearColorValue().setFloat32({1.f}))
-                                         .setImageLayout(vk::ImageLayout::eDepthAttachmentOptimal)
-                                         .setLoadOp(vk::AttachmentLoadOp::eClear)
-                                         .setStoreOp(vk::AttachmentStoreOp::eStore);
-        const auto renderingInfo =
-            vk::RenderingInfo()
-                .setColorAttachments(colorAttachment)
-                .setPDepthAttachment(enableDepth ? &depthAttachment : nullptr)
-                .setLayerCount(1)
-                .setRenderArea(vk::Rect2D().setExtent(swapchain.extent));
-        commandBuffer.beginRendering(renderingInfo);
-    }
+        const bool enableDepth);
 
-    inline void BeginRendering(
+    void BeginRendering(
+        vk::CommandBuffer commandBuffer,
+        vk::Extent2D extent,
+        const std::span<Image>& colorImage,
+        const Image& depthImage,
+        bool enableDepth);
+
+    void BeginRendering(
         const vk::CommandBuffer commandBuffer,
         const vk::ImageView& renderImageView,
         const vk::ImageView& depthImageView,
         const vk::Extent2D extent,
         const u32 viewMask = 0,
-        const int layerCount = 1)
-    {
-        const auto colorAttachment = vk::RenderingAttachmentInfo()
-                                         .setImageView(renderImageView)
-                                         .setClearValue(vk::ClearColorValue().setFloat32({0.f}))
-                                         .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
-                                         .setLoadOp(vk::AttachmentLoadOp::eLoad)
-                                         .setStoreOp(vk::AttachmentStoreOp::eStore);
-        const auto depthAttachment = vk::RenderingAttachmentInfo()
-                                         .setImageView(depthImageView)
-                                         .setClearValue(vk::ClearColorValue().setFloat32({0.f}))
-                                         .setImageLayout(vk::ImageLayout::eDepthAttachmentOptimal)
-                                         .setLoadOp(vk::AttachmentLoadOp::eClear)
-                                         .setStoreOp(vk::AttachmentStoreOp::eStore);
-        const auto renderingInfo =
-            vk::RenderingInfo()
-                .setColorAttachments(colorAttachment)
-                .setPDepthAttachment(depthImageView ? &depthAttachment : nullptr)
-                .setLayerCount(layerCount)
-                .setRenderArea(vk::Rect2D().setExtent(extent))
-                .setViewMask(viewMask);
-        commandBuffer.beginRendering(renderingInfo);
-    }
+        const int layerCount = 1);
 
     inline void EndRendering(const vk::CommandBuffer commandBuffer)
     {
@@ -166,13 +130,13 @@ namespace Swift::Vulkan::Render
         bool colorBlendEnabled = false;
 
         constexpr auto colorBlendEquation =
-    vk::ColorBlendEquationEXT()
-        .setAlphaBlendOp(vk::BlendOp::eAdd)
-        .setSrcAlphaBlendFactor(vk::BlendFactor::eOne)
-        .setDstAlphaBlendFactor(vk::BlendFactor::eZero)
-        .setColorBlendOp(vk::BlendOp::eAdd)
-        .setSrcColorBlendFactor(vk::BlendFactor::eSrcAlpha)
-        .setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha);
+            vk::ColorBlendEquationEXT()
+                .setAlphaBlendOp(vk::BlendOp::eAdd)
+                .setSrcAlphaBlendFactor(vk::BlendFactor::eOne)
+                .setDstAlphaBlendFactor(vk::BlendFactor::eZero)
+                .setColorBlendOp(vk::BlendOp::eAdd)
+                .setSrcColorBlendFactor(vk::BlendFactor::eSrcAlpha)
+                .setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha);
         commandBuffer.setColorBlendEquationEXT(0, colorBlendEquation, context.dynamicLoader);
         commandBuffer.setColorBlendEnableEXT(0, colorBlendEnabled, context.dynamicLoader);
     }

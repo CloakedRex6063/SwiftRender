@@ -30,7 +30,10 @@ namespace Swift
     void BeginRendering();
     void EndRendering();
 
-    void BeginRendering(ImageHandle image);
+    void BeginRendering(
+        const glm::uvec2& extent,
+        const std::vector<ImageHandle>& colorImages,
+        const ImageHandle& depthImage);
     void EndRendering(ImageHandle image);
 
     void SetCullMode(const CullMode& cullMode);
@@ -89,6 +92,7 @@ namespace Swift
 
     ImageHandle CreateImage(
         ImageUsage usage,
+        ImageFormat format,
         glm::uvec2 size,
         std::string_view debugName);
     void DestroyImage(ImageHandle imageHandle);
@@ -113,6 +117,7 @@ namespace Swift
     int GetMinLod(ImageHandle image);
     int GetMaxLod(ImageHandle image);
     u32 GetImageArrayIndex(ImageHandle imageHandle);
+    glm::uvec2 GetImageSize(ImageHandle imageHandle);
     std::string_view GetURI(ImageHandle imageHandle);
     ImageHandle ReadOnlyImageFromIndex(int imageIndex);
     void UpdateImage(

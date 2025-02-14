@@ -6,6 +6,7 @@ namespace Swift
     {
         eR16G16B16A16_SRGB,
         eR32G32B32A32_SRGB,
+        eD32
     };
 
     enum class ImageUsage : uint8_t
