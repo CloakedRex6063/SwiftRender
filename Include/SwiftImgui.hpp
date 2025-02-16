@@ -60,7 +60,7 @@ namespace Swift::ImGUI
 
     inline void Render()
     {
-        Swift::BeginRendering();
+        Swift::BeginRendering(true);
         ImGui::Render();
         ImGui_ImplVulkan_RenderDrawData(
             ImGui::GetDrawData(),

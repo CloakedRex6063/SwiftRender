@@ -58,13 +58,14 @@ namespace Swift::Vulkan
     void Render::BeginRendering(
         const vk::CommandBuffer commandBuffer,
         Swapchain& swapchain,
-        const bool enableDepth)
+        const bool enableDepth,
+        const bool loadPreviousData)
     {
         const auto colorAttachment = vk::RenderingAttachmentInfo()
                                          .setImageView(GetSwapchainImage(swapchain).imageView)
                                          .setClearValue(vk::ClearColorValue().setFloat32({0.f}))
                                          .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
-                                         .setLoadOp(vk::AttachmentLoadOp::eClear)
+                                         .setLoadOp(loadPreviousData ? vk::AttachmentLoadOp::eLoad: vk::AttachmentLoadOp::eClear)
                                          .setStoreOp(vk::AttachmentStoreOp::eStore);
         const auto depthAttachment = vk::RenderingAttachmentInfo()
                                          .setImageView(swapchain.depthImage.imageView)

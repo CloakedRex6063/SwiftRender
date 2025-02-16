@@ -28,6 +28,7 @@ namespace Swift
     void EndFrame(const DynamicInfo& dynamicInfo);
 
     void BeginRendering();
+    void BeginRendering(bool bLoadPreviousData);
     void EndRendering();
 
     void BeginRendering(

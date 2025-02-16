@@ -48,9 +48,10 @@ namespace Swift::Vulkan::Render
     }
 
     void BeginRendering(
-        const vk::CommandBuffer commandBuffer,
+        vk::CommandBuffer commandBuffer,
         Swapchain& swapchain,
-        const bool enableDepth);
+        bool enableDepth,
+        bool loadPreviousData = false);
 
     void BeginRendering(
         vk::CommandBuffer commandBuffer,
@@ -60,12 +61,12 @@ namespace Swift::Vulkan::Render
         bool enableDepth);
 
     void BeginRendering(
-        const vk::CommandBuffer commandBuffer,
+        vk::CommandBuffer commandBuffer,
         const vk::ImageView& renderImageView,
         const vk::ImageView& depthImageView,
-        const vk::Extent2D extent,
-        const u32 viewMask = 0,
-        const int layerCount = 1);
+        vk::Extent2D extent,
+        u32 viewMask = 0,
+        int layerCount = 1);
 
     inline void EndRendering(const vk::CommandBuffer commandBuffer)
     {

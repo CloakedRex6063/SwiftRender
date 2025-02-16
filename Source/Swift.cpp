@@ -305,6 +305,13 @@ void Swift::BeginRendering()
     Render::SetPipelineDefault(gContext, commandBuffer, gSwapchain.extent, gInitInfo.bUsePipelines);
 }
 
+void Swift::BeginRendering(const bool bLoadPreviousData)
+{
+    const auto& commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
+    Render::BeginRendering(commandBuffer, gSwapchain, true, bLoadPreviousData);
+    Render::SetPipelineDefault(gContext, commandBuffer, gSwapchain.extent, gInitInfo.bUsePipelines);
+}
+
 void Swift::EndRendering()
 {
     const auto& commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
@@ -466,15 +473,15 @@ ImageHandle Swift::CreateImage(
     {
     case ImageFormat::eR16G16B16A16_SRGB:
         vkFormat = vk::Format::eR16G16B16A16Sfloat;
-        imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+        imageUsage |= vk::ImageUsageFlagBits::eColorAttachment;
         break;
     case ImageFormat::eR32G32B32A32_SRGB:
         vkFormat = vk::Format::eR32G32B32A32Sfloat;
-        imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+        imageUsage |= vk::ImageUsageFlagBits::eColorAttachment;
         break;
     case ImageFormat::eD32:
         vkFormat = vk::Format::eD32Sfloat;
-        imageUsage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
+        imageUsage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
         break;
     }
     
