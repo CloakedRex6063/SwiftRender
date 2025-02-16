@@ -683,6 +683,11 @@ std::string_view Swift::GetURI(const ImageHandle imageHandle)
 {
     return GetRealImage(imageHandle).uri;
 }
+vk::ImageView Swift::GetImageView(ImageHandle imageHandle)
+{
+    const auto& realImage = GetRealImage(imageHandle);
+    return realImage.imageView;
+}
 
 ImageHandle Swift::ReadOnlyImageFromIndex(const int imageIndex)
 {

@@ -121,6 +121,7 @@ namespace Swift
     u32 GetImageArrayIndex(ImageHandle imageHandle);
     glm::uvec2 GetImageSize(ImageHandle imageHandle);
     std::string_view GetURI(ImageHandle imageHandle);
+    vk::ImageView GetImageView(ImageHandle imageHandle);
     ImageHandle ReadOnlyImageFromIndex(int imageIndex);
     void UpdateImage(
         ImageHandle baseImage,
