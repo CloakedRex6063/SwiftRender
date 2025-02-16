@@ -54,7 +54,12 @@ namespace Swift::ImGUI
         ImGui::NewFrame();
     }
 
-    inline void RenderImGUI()
+    inline void BuildFonts()
+    {
+        ImGui_ImplVulkan_CreateFontsTexture();
+    }
+
+    inline void Render()
     {
         Swift::BeginRendering();
         ImGui::Render();

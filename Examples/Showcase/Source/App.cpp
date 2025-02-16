@@ -23,6 +23,7 @@ int main()
                                    .SetWindowHandle(Window::GetWindow());
     Swift::Init(swiftInitInfo);
     Swift::ImGUI::Init();
+    Swift::ImGUI::BuildFonts();
     Parser::Init();
 
     // --------------------------Initialising scene data and uploading to GPU-----------------------
@@ -408,7 +409,7 @@ int main()
         ImGui::Text("FPS: %f", 1.f / deltaTime);
 
         ImGui::End();
-        Swift::ImGUI::RenderImGUI();
+        Swift::ImGUI::Render();
         Swift::EndFrame(dynamicInfo);
         Swift::ImGUI::EndFrame();
     }
