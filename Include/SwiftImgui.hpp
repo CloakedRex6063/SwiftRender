@@ -39,7 +39,6 @@ namespace Swift::ImGUI
                 .depthAttachmentFormat = VK_FORMAT_D32_SFLOAT,
             }};
         ImGui_ImplVulkan_Init(&vulkanInitInfo);
-        ImGui_ImplVulkan_CreateFontsTexture();
 
         if (std::holds_alternative<GLFWwindow*>(initInfo.windowHandle))
         {
