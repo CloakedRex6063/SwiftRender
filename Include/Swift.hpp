@@ -14,6 +14,7 @@ namespace Swift
     Vulkan::Queue GetTransferQueue();
     Vulkan::Queue GetComputeQueue();
     Vulkan::Command GetGraphicsCommand();
+    vk::Sampler GetDefaultSampler();
 
     void WaitIdle();
 

@@ -234,6 +234,11 @@ Vulkan::Command Swift::GetGraphicsCommand()
     return gCurrentFrameData.renderCommand;
 }
 
+vk::Sampler Swift::GetDefaultSampler()
+{
+    return gLinearSampler;
+}
+
 void Swift::WaitIdle()
 {
     [[maybe_unused]]
