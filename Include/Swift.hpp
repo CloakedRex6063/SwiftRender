@@ -44,6 +44,7 @@ namespace Swift
     void SetPolygonMode(PolygonMode polygonMode);
     void SetLineWidth(float lineWidth);
     void SetTopology(Topology topology);
+    void SetViewportAndScissor(const glm::uvec2& viewport);
 
     void Draw(
         u32 vertexCount,

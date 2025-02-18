@@ -386,6 +386,12 @@ void Swift::SetTopology(Topology topology)
     Render::SetPrimitiveTopology(commandBuffer, static_cast<vk::PrimitiveTopology>(topology));
 }
 
+void Swift::SetViewportAndScissor(const glm::uvec2& viewport)
+{
+    const auto& commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
+    Render::SetViewportAndScissor(commandBuffer, Util::To2D(viewport));
+}
+
 ShaderHandle Swift::CreateGraphicsShader(
     const std::string_view vertexPath,
     const std::string_view fragmentPath,
