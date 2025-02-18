@@ -340,7 +340,7 @@ void Swift::BeginRendering(
 
     Image realDepthImage{};
     bool enableDepth = false;
-    if (depthImage != 0 || depthImage != InvalidHandle)
+    if (depthImage != 0 && depthImage != InvalidHandle)
     {
         realDepthImage = GetRealImage(depthImage);
         enableDepth = true;
