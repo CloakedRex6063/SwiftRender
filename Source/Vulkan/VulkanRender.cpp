@@ -12,10 +12,10 @@ namespace Swift::Vulkan
         const vk::Extent2D extent)
     {
         auto acquireInfo = vk::AcquireNextImageInfoKHR()
-                                     .setDeviceMask(1)
-                                     .setSemaphore(semaphore)
-                                     .setSwapchain(swapchain)
-                                     .setTimeout(std::numeric_limits<u64>::max());
+                               .setDeviceMask(1)
+                               .setSemaphore(semaphore)
+                               .setSwapchain(swapchain)
+                               .setTimeout(std::numeric_limits<u64>::max());
         auto [result, image] = context.device.acquireNextImage2KHR(acquireInfo);
 
         if (result == vk::Result::eSuccess)
@@ -23,15 +23,15 @@ namespace Swift::Vulkan
 
         Util::HandleSubOptimalSwapchain(queue.index, context, swapchain, extent);
         acquireInfo = vk::AcquireNextImageInfoKHR()
-                             .setDeviceMask(1)
-                             .setSemaphore(semaphore)
-                             .setSwapchain(swapchain)
-                             .setTimeout(std::numeric_limits<u64>::max());
+                          .setDeviceMask(1)
+                          .setSemaphore(semaphore)
+                          .setSwapchain(swapchain)
+                          .setTimeout(std::numeric_limits<u64>::max());
         std::tie(result, image) = context.device.acquireNextImage2KHR(acquireInfo);
 
         if (result == vk::Result::eSuccess)
             return image;
-        
+
         throw std::runtime_error("Failed to acquire image after 2 tries!");
     }
 
@@ -54,19 +54,21 @@ namespace Swift::Vulkan
             Util::HandleSubOptimalSwapchain(queue.index, context, swapchain, extent);
         }
     }
-    
+
     void Render::BeginRendering(
         const vk::CommandBuffer commandBuffer,
         Swapchain& swapchain,
         const bool enableDepth,
         const bool loadPreviousData)
     {
-        const auto colorAttachment = vk::RenderingAttachmentInfo()
-                                         .setImageView(GetSwapchainImage(swapchain).imageView)
-                                         .setClearValue(vk::ClearColorValue().setFloat32({0.f}))
-                                         .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
-                                         .setLoadOp(loadPreviousData ? vk::AttachmentLoadOp::eLoad: vk::AttachmentLoadOp::eClear)
-                                         .setStoreOp(vk::AttachmentStoreOp::eStore);
+        const auto colorAttachment =
+            vk::RenderingAttachmentInfo()
+                .setImageView(GetSwapchainImage(swapchain).imageView)
+                .setClearValue(vk::ClearColorValue().setFloat32({0.f}))
+                .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
+                .setLoadOp(
+                    loadPreviousData ? vk::AttachmentLoadOp::eLoad : vk::AttachmentLoadOp::eClear)
+                .setStoreOp(vk::AttachmentStoreOp::eStore);
         const auto depthAttachment = vk::RenderingAttachmentInfo()
                                          .setImageView(swapchain.depthImage.imageView)
                                          .setClearValue(vk::ClearColorValue().setFloat32({1.f}))
@@ -81,13 +83,14 @@ namespace Swift::Vulkan
                 .setRenderArea(vk::Rect2D().setExtent(swapchain.extent));
         commandBuffer.beginRendering(renderingInfo);
     }
-    
+
     void Render::BeginRendering(
         const vk::CommandBuffer commandBuffer,
         const vk::Extent2D extent,
         const std::span<Image>& colorImage,
         const Image& depthImage,
-        const bool enableDepth)
+        const bool enableDepth,
+        const bool loadPreviousData)
     {
         std::vector<vk::RenderingAttachmentInfo> colorAttachments;
         colorAttachments.reserve(colorImage.size());
@@ -103,12 +106,14 @@ namespace Swift::Vulkan
             colorAttachments.emplace_back(colorAttachment);
         }
 
-        const auto depthAttachment = vk::RenderingAttachmentInfo()
-                                         .setImageView(depthImage.imageView)
-                                         .setClearValue(vk::ClearColorValue().setFloat32({1.f}))
-                                         .setImageLayout(vk::ImageLayout::eDepthAttachmentOptimal)
-                                         .setLoadOp(vk::AttachmentLoadOp::eClear)
-                                         .setStoreOp(vk::AttachmentStoreOp::eStore);
+        const auto depthAttachment =
+            vk::RenderingAttachmentInfo()
+                .setImageView(depthImage.imageView)
+                .setClearValue(vk::ClearColorValue().setFloat32({1.f}))
+                .setImageLayout(vk::ImageLayout::eDepthAttachmentOptimal)
+                .setLoadOp(
+                    loadPreviousData ? vk::AttachmentLoadOp::eLoad : vk::AttachmentLoadOp::eClear)
+                .setStoreOp(vk::AttachmentStoreOp::eStore);
         const auto renderingInfo =
             vk::RenderingInfo()
                 .setColorAttachments(colorAttachments)
@@ -117,7 +122,7 @@ namespace Swift::Vulkan
                 .setRenderArea(vk::Rect2D().setExtent(extent));
         commandBuffer.beginRendering(renderingInfo);
     }
-    
+
     void Render::BeginRendering(
         const vk::CommandBuffer commandBuffer,
         const vk::ImageView& renderImageView,

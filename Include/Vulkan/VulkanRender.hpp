@@ -58,7 +58,8 @@ namespace Swift::Vulkan::Render
         vk::Extent2D extent,
         const std::span<Image>& colorImage,
         const Image& depthImage,
-        bool enableDepth);
+        bool enableDepth,
+        bool loadPreviousData = false);
 
     void BeginRendering(
         vk::CommandBuffer commandBuffer,

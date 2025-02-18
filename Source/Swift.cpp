@@ -326,7 +326,8 @@ void Swift::EndRendering()
 void Swift::BeginRendering(
     const glm::uvec2& extent,
     const std::vector<ImageHandle>& colorImages,
-    const ImageHandle& depthImage)
+    const ImageHandle& depthImage,
+    const bool bLoadPreviousData)
 {
     const auto& commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
 
@@ -351,7 +352,8 @@ void Swift::BeginRendering(
         Util::To2D(extent),
         realColorImages,
         realDepthImage,
-        enableDepth);
+        enableDepth,
+        bLoadPreviousData);
     Render::SetPipelineDefault(gContext, commandBuffer, gSwapchain.extent, gInitInfo.bUsePipelines);
 }
 

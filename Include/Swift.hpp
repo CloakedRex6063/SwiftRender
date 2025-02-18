@@ -35,7 +35,8 @@ namespace Swift
     void BeginRendering(
         const glm::uvec2& extent,
         const std::vector<ImageHandle>& colorImages,
-        const ImageHandle& depthImage);
+        const ImageHandle& depthImage,
+        bool bLoadPreviousData = false);
     void EndRendering(ImageHandle image);
 
     void SetCullMode(const CullMode& cullMode);
