@@ -231,6 +231,33 @@ namespace Swift::Vulkan
     {
         vmaUnmapMemory(context.allocator, buffer.allocation);
     }
+    
+    vk::Filter Util::GetFilter(const Filter filter)
+    {
+        switch (filter)
+        {
+        case Filter::Nearest:
+            return vk::Filter::eNearest;
+        case Filter::Linear:
+            return vk::Filter::eLinear;
+        default:
+            return vk::Filter::eNearest;
+        }
+    }
+    
+    vk::SamplerAddressMode Util::GetAddressMode(const Wrap wrapMode)
+    {
+        switch (wrapMode)
+        {
+        case Wrap::Repeat:
+            return vk::SamplerAddressMode::eRepeat;
+        case Wrap::ClampToEdge:
+            return vk::SamplerAddressMode::eClampToEdge;
+        case Wrap::MirroredRepeat:
+            return vk::SamplerAddressMode::eMirroredRepeat;
+        }
+        return vk::SamplerAddressMode::eRepeat;
+    }
 
     Buffer Util::UploadToImage(
         const Context& context,

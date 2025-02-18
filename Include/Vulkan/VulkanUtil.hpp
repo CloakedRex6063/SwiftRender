@@ -1,6 +1,8 @@
 #pragma once
-#include "VulkanStructs.hpp"
 #include "SwiftStructs.hpp"
+#include "VulkanStructs.hpp"
+
+#include <SwiftEnums.hpp>
 
 namespace Swift::Vulkan
 {
@@ -248,4 +250,7 @@ namespace Swift::Vulkan::Util
     void UnmapBuffer(
         const Context& context,
         const Buffer& buffer);
+
+    vk::Filter GetFilter(Filter filter);
+    vk::SamplerAddressMode GetAddressMode(Wrap wrapMode);
 }; // namespace Swift::Vulkan::Util

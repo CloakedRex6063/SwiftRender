@@ -26,6 +26,7 @@ namespace
     Vulkan::BindlessDescriptor gDescriptor;
     // TODO: sampler pool for all types of samplers
     vk::Sampler gLinearSampler;
+    std::vector<vk::Sampler> gSamplers;
 
     std::vector<Vulkan::Thread> gThreadDatas;
     std::vector<Vulkan::Buffer> gTransferStagingBuffers;
@@ -140,6 +141,7 @@ void Swift::Init(const InitInfo& initInfo)
             Init::CreateDescriptorSet(gContext, gDescriptor.pool, gDescriptor.setLayout));
 
     gLinearSampler = Init::CreateSampler(gContext);
+    gSamplers.emplace_back(gLinearSampler);
 
     gTransferCommand.commandPool =
         Init::CreateCommandPool(gContext, gTransferQueue.index, "Transfer Command Pool");
@@ -488,6 +490,25 @@ void Swift::DrawIndexedIndirectCount(
         stride);
 }
 
+SamplerHandle Swift::CreateSampler(
+    Filter magFilter,
+    Filter minFilter,
+    Wrap wrapS,
+    Wrap wrapT)
+{
+    const auto samplerCreateInfo = vk::SamplerCreateInfo()
+                                       .setMagFilter(Util::GetFilter(magFilter))
+                                       .setMinFilter(Util::GetFilter(minFilter))
+                                       .setAddressModeU(Util::GetAddressMode(wrapS))
+                                       .setAddressModeV(Util::GetAddressMode(wrapT))
+                                       .setMipmapMode(vk::SamplerMipmapMode::eLinear);
+    const auto [result, sampler] = gContext.device.createSampler(samplerCreateInfo);
+    VK_ASSERT(result, "Failed to create sampler!");
+    gSamplers.emplace_back(sampler);
+    const auto index = static_cast<u32>(gSamplers.size() - 1);
+    return index;
+}
+
 ImageHandle Swift::CreateImage(
     const ImageUsage usage,
     const ImageFormat format,
@@ -581,6 +602,7 @@ ImageHandle Swift::LoadImageFromFile(
     const int mipLevel,
     const bool loadAllMipMaps,
     const std::string_view debugName,
+    const SamplerHandle sampler,
     const bool tempImage,
     const ThreadHandle thread)
 {
@@ -590,6 +612,7 @@ ImageHandle Swift::LoadImageFromFile(
         mipLevel,
         loadAllMipMaps,
         debugName,
+        sampler,
         tempImage,
         thread);
     Swift::EndTransfer(thread);
@@ -601,6 +624,7 @@ ImageHandle Swift::LoadImageFromFileQueued(
     const int mipLevel,
     const bool loadAllMipMaps,
     const std::string_view debugName,
+    SamplerHandle samplerHandle,
     const bool tempImage,
     const ThreadHandle thread)
 {
@@ -637,12 +661,13 @@ ImageHandle Swift::LoadImageFromFileQueued(
         return PackImageType(arrayElement, ImageUsage::eTemporary);
     }
 
+    const auto sampler = samplerHandle != InvalidHandle ? gSamplers[samplerHandle] : gLinearSampler;
     gSamplerImages.emplace_back(image);
     arrayElement = static_cast<u32>(gSamplerImages.size() - 1);
     Util::UpdateDescriptorSampler(
         gDescriptor.set,
         gSamplerImages.back().imageView,
-        gLinearSampler,
+        sampler,
         arrayElement,
         gContext);
     return PackImageType(arrayElement, ImageUsage::eSampled);
@@ -1043,8 +1068,8 @@ void Swift::DispatchCompute(
 }
 
 void Swift::TransitionImage(
-    ImageHandle handle,
-    ImageTransition transition)
+    const ImageHandle handle,
+    const ImageTransition transition)
 {
     auto& realImage = GetRealImage(handle);
     auto transitionLayout = vk::ImageLayout::eUndefined;

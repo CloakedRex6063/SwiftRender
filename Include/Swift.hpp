@@ -8,7 +8,7 @@ namespace Swift
     void Init(const InitInfo& initInfo);
     void Shutdown();
 
-    Swift::InitInfo GetInitInfo();
+    InitInfo GetInitInfo();
     Vulkan::Context GetContext();
     Vulkan::Queue GetGraphicsQueue();
     Vulkan::Queue GetTransferQueue();
@@ -20,7 +20,7 @@ namespace Swift
 
     bool SupportsGraphicsMultithreading();
 
-    inline bool IsValid(const Swift::BufferHandle handle)
+    inline bool IsValid(const BufferHandle handle)
     {
         return handle != InvalidHandle;
     }
@@ -70,6 +70,8 @@ namespace Swift
         u32 maxDrawCount,
         u32 stride);
 
+    SamplerHandle CreateSampler(Filter magFilter, Filter minFilter, Wrap wrapS, Wrap wrapT);
+    
     ShaderHandle CreateGraphicsShader(
         std::string_view vertexPath,
         std::string_view fragmentPath,
@@ -108,6 +110,7 @@ namespace Swift
         int mipLevel,
         bool loadAllMipMaps,
         std::string_view debugName,
+        SamplerHandle samplerHandle = InvalidHandle,
         bool tempImage = false,
         ThreadHandle thread = -1);
     ImageHandle LoadImageFromFileQueued(
@@ -115,6 +118,7 @@ namespace Swift
         int mipLevel,
         bool loadAllMipMaps,
         std::string_view debugName,
+        SamplerHandle samplerHandle = InvalidHandle,
         bool tempImage = false,
         ThreadHandle thread = -1);
     ImageHandle LoadCubemapFromFile(

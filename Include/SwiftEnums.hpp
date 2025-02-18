@@ -86,4 +86,16 @@ namespace Swift
         eTriangleFan
     };
 
+    enum class Filter
+    {
+        Nearest,
+        Linear
+    };
+
+    enum class Wrap
+    {
+        Repeat,
+        ClampToEdge,
+        MirroredRepeat
+    };
 } // namespace Swift
