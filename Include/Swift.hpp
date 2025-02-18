@@ -92,6 +92,7 @@ namespace Swift
         u32 y,
         u32 z);
 
+    void TransitionImage(ImageHandle handle, ImageTransition transition);
     ImageHandle CreateImage(
         ImageUsage usage,
         ImageFormat format,

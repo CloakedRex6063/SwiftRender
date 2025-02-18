@@ -346,7 +346,12 @@ void Swift::BeginRendering(
         enableDepth = true;
     }
 
-    Render::BeginRendering(commandBuffer, Util::To2D(extent), realColorImages, realDepthImage, enableDepth);
+    Render::BeginRendering(
+        commandBuffer,
+        Util::To2D(extent),
+        realColorImages,
+        realDepthImage,
+        enableDepth);
     Render::SetPipelineDefault(gContext, commandBuffer, gSwapchain.extent, gInitInfo.bUsePipelines);
 }
 
@@ -469,10 +474,9 @@ ImageHandle Swift::CreateImage(
     const glm::uvec2 size,
     const std::string_view debugName)
 {
-    auto imageUsage = vk::ImageUsageFlagBits::eTransferSrc |
-                                vk::ImageUsageFlagBits::eTransferDst |
-                                vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled;
-    
+    auto imageUsage = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
+                      vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled;
+
     auto vkFormat = vk::Format::eR16G16B16A16Sfloat;
     switch (format)
     {
@@ -489,7 +493,7 @@ ImageHandle Swift::CreateImage(
         imageUsage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
         break;
     }
-    
+
     const auto image = Init::CreateImage(
         gContext,
         vk::ImageType::e2D,
@@ -1016,6 +1020,68 @@ void Swift::DispatchCompute(
 {
     const auto commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
     commandBuffer.dispatch(x, y, z);
+}
+
+void Swift::TransitionImage(
+    ImageHandle handle,
+    ImageTransition transition)
+{
+    auto& realImage = GetRealImage(handle);
+    auto transitionLayout = vk::ImageLayout::eUndefined;
+    auto aspectFlags = vk::ImageAspectFlagBits::eColor;
+    switch (transition)
+    {
+    case ImageTransition::eUndefined:
+        transitionLayout = vk::ImageLayout::eUndefined;
+        aspectFlags = vk::ImageAspectFlagBits::eColor;
+        break;
+    case ImageTransition::eGeneral:
+        transitionLayout = vk::ImageLayout::eGeneral;
+        aspectFlags = vk::ImageAspectFlagBits::eColor;
+        break;
+    case ImageTransition::eColorAttachmentOptimal:
+        transitionLayout = vk::ImageLayout::eColorAttachmentOptimal;
+        aspectFlags = vk::ImageAspectFlagBits::eColor;
+        break;
+    case ImageTransition::eDepthStencilAttachmentOptimal:
+        transitionLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+        aspectFlags = vk::ImageAspectFlagBits::eDepth;
+        break;
+    case ImageTransition::eShaderReadOnlyOptimal:
+        transitionLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+        aspectFlags = vk::ImageAspectFlagBits::eColor;
+        break;
+    case ImageTransition::eTransferSrcOptimal:
+        transitionLayout = vk::ImageLayout::eTransferSrcOptimal;
+        aspectFlags = vk::ImageAspectFlagBits::eColor;
+        break;
+    case ImageTransition::eTransferDstOptimal:
+        transitionLayout = vk::ImageLayout::eTransferDstOptimal;
+        aspectFlags = vk::ImageAspectFlagBits::eColor;
+        break;
+    case ImageTransition::eDepthAttachmentOptimal:
+        transitionLayout = vk::ImageLayout::eDepthAttachmentOptimal;
+        aspectFlags = vk::ImageAspectFlagBits::eDepth;
+        break;
+    case ImageTransition::eStencilAttachmentOptimal:
+        transitionLayout = vk::ImageLayout::eStencilAttachmentOptimal;
+        aspectFlags = vk::ImageAspectFlagBits::eStencil;
+        break;
+    case ImageTransition::eReadOnlyOptimal:
+        transitionLayout = vk::ImageLayout::eReadOnlyOptimal;
+        aspectFlags = vk::ImageAspectFlagBits::eColor;
+        break;
+    case ImageTransition::ePresentSrcKHR:
+        transitionLayout = vk::ImageLayout::ePresentSrcKHR;
+        aspectFlags = vk::ImageAspectFlagBits::eColor;
+        break;
+    }
+    const auto barrier = Util::ImageBarrier(
+        realImage.currentLayout,
+        transitionLayout,
+        realImage,
+        vk::ImageAspectFlagBits::eColor);
+    Util::PipelineBarrier(gCurrentFrameData.renderCommand, barrier);
 }
 
 void Swift::PushConstant(

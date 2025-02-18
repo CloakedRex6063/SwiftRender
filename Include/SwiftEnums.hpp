@@ -9,6 +9,21 @@ namespace Swift
         eD32
     };
 
+    enum class ImageTransition : uint8_t
+    {
+        eUndefined,
+        eGeneral,
+        eColorAttachmentOptimal,
+        eDepthStencilAttachmentOptimal,
+        eShaderReadOnlyOptimal,
+        eTransferSrcOptimal,
+        eTransferDstOptimal,
+        eDepthAttachmentOptimal,
+        eStencilAttachmentOptimal,
+        eReadOnlyOptimal,
+        ePresentSrcKHR
+    };
+
     enum class ImageUsage : uint8_t
     {
         eSampledReadWrite,
