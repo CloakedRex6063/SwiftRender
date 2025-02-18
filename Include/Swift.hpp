@@ -41,6 +41,7 @@ namespace Swift
     void SetCullMode(const CullMode& cullMode);
     void SetDepthCompareOp(DepthCompareOp depthCompareOp);
     void SetPolygonMode(PolygonMode polygonMode);
+    void SetLineWidth(float lineWidth);
     void SetTopology(Topology topology);
 
     void Draw(
@@ -117,7 +118,7 @@ namespace Swift
     ImageHandle LoadCubemapFromFile(
         const std::filesystem::path& filePath,
         std::string_view debugName);
-
+    
     int GetMinLod(ImageHandle image);
     int GetMaxLod(ImageHandle image);
     u32 GetImageArrayIndex(ImageHandle imageHandle);

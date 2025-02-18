@@ -272,6 +272,12 @@ namespace Swift::Vulkan::Render
     {
         commandBuffer.setPolygonModeEXT(polygonMode, context.dynamicLoader);
     }
+    inline void SetLineWidth(
+        const vk::CommandBuffer commandBuffer,
+        const float lineWidth)
+    {
+        commandBuffer.setLineWidth(lineWidth);
+    }
 
     // --------------------------------------------------------------------------------------------
     // -------------------------------------Multi Sample State-------------------------------------

@@ -372,6 +372,12 @@ void Swift::SetPolygonMode(PolygonMode polygonMode)
     Render::SetPolygonMode(gContext, commandBuffer, static_cast<vk::PolygonMode>(polygonMode));
 }
 
+void Swift::SetLineWidth(const float lineWidth)
+{
+    const auto& commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
+    Render::SetLineWidth(commandBuffer, lineWidth);
+}
+
 void Swift::SetTopology(Topology topology)
 {
     const auto& commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
