@@ -133,7 +133,11 @@ namespace
         if (std::holds_alternative<GLFWwindow*>(initInfo.windowHandle))
         {
             VkSurfaceKHR surface;
-            glfwCreateWindowSurface(context.instance, std::get<GLFWwindow*>(initInfo.windowHandle), nullptr, &surface);
+            glfwCreateWindowSurface(
+                context.instance,
+                std::get<GLFWwindow*>(initInfo.windowHandle),
+                nullptr,
+                &surface);
             return surface;
         }
         assert(false);
@@ -192,7 +196,7 @@ namespace
 
             std::vector extensions{
                 VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-            VK_EXT_SHADER_OBJECT_EXTENSION_NAME};
+                VK_EXT_SHADER_OBJECT_EXTENSION_NAME};
             if (initInfo.bUsePipelines)
             {
                 extensions.emplace_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
@@ -215,7 +219,7 @@ namespace
                 }
             }
 
-            //std::vector optionalExtensions{VK_EXT_SHADER_OBJECT_EXTENSION_NAME};
+            // std::vector optionalExtensions{VK_EXT_SHADER_OBJECT_EXTENSION_NAME};
             DeviceChecker deviceChecker;
             deviceChecker.device = device;
             // deviceChecker.optionalExtensionsSupport.reserve(extensionSupported);
@@ -280,7 +284,7 @@ namespace
     {
         std::vector extensionNames{
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        VK_EXT_SHADER_OBJECT_EXTENSION_NAME};
+            VK_EXT_SHADER_OBJECT_EXTENSION_NAME};
 
         std::vector<const char*> layerNames;
 
@@ -356,7 +360,9 @@ namespace
                                             .setShaderSampledImageArrayDynamicIndexing(true)
                                             .setShaderStorageBufferArrayDynamicIndexing(true)
                                             .setShaderUniformBufferArrayDynamicIndexing(true)
-                                            .setSamplerAnisotropy(true).setFillModeNonSolid(true);
+                                            .setSamplerAnisotropy(true)
+                                            .setFillModeNonSolid(true)
+                                            .setWideLines(true);
 
         auto& deviceFeatures2 =
             initInfo.bUsePipelines
