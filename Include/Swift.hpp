@@ -41,6 +41,7 @@ namespace Swift
     void SetCullMode(const CullMode& cullMode);
     void SetDepthCompareOp(DepthCompareOp depthCompareOp);
     void SetPolygonMode(PolygonMode polygonMode);
+    void SetTopology(Topology topology);
 
     void Draw(
         u32 vertexCount,

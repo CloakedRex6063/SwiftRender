@@ -75,5 +75,15 @@ namespace Swift
         eLine,
         ePoint,
     };
-    
-} // namespace myNamespace
+
+    enum class Topology
+    {
+        ePointList,
+        eLineList,
+        eLineStrip,
+        eTriangleList,
+        eTriangleStrip,
+        eTriangleFan
+    };
+
+} // namespace Swift

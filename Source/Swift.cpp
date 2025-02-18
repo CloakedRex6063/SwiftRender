@@ -372,6 +372,12 @@ void Swift::SetPolygonMode(PolygonMode polygonMode)
     Render::SetPolygonMode(gContext, commandBuffer, static_cast<vk::PolygonMode>(polygonMode));
 }
 
+void Swift::SetTopology(Topology topology)
+{
+    const auto& commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
+    Render::SetPrimitiveTopology(commandBuffer, static_cast<vk::PrimitiveTopology>(topology));
+}
+
 ShaderHandle Swift::CreateGraphicsShader(
     const std::string_view vertexPath,
     const std::string_view fragmentPath,
