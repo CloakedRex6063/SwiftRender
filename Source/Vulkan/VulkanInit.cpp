@@ -356,7 +356,7 @@ namespace
                                             .setShaderSampledImageArrayDynamicIndexing(true)
                                             .setShaderStorageBufferArrayDynamicIndexing(true)
                                             .setShaderUniformBufferArrayDynamicIndexing(true)
-                                            .setSamplerAnisotropy(true);
+                                            .setSamplerAnisotropy(true).setFillModeNonSolid(true);
 
         auto& deviceFeatures2 =
             initInfo.bUsePipelines
