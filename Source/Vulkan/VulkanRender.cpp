@@ -59,7 +59,8 @@ namespace Swift::Vulkan
         const vk::CommandBuffer commandBuffer,
         Swapchain& swapchain,
         const bool enableDepth,
-        const bool loadPreviousData)
+        const bool loadPreviousColor,
+        const bool bLoadPreviousDepth)
     {
         const auto colorAttachment =
             vk::RenderingAttachmentInfo()
@@ -67,13 +68,13 @@ namespace Swift::Vulkan
                 .setClearValue(vk::ClearColorValue().setFloat32({0.f}))
                 .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
                 .setLoadOp(
-                    loadPreviousData ? vk::AttachmentLoadOp::eLoad : vk::AttachmentLoadOp::eClear)
+                    loadPreviousColor ? vk::AttachmentLoadOp::eLoad : vk::AttachmentLoadOp::eClear)
                 .setStoreOp(vk::AttachmentStoreOp::eStore);
         const auto depthAttachment = vk::RenderingAttachmentInfo()
                                          .setImageView(swapchain.depthImage.imageView)
                                          .setClearValue(vk::ClearColorValue().setFloat32({1.f}))
                                          .setImageLayout(vk::ImageLayout::eDepthAttachmentOptimal)
-                                         .setLoadOp(vk::AttachmentLoadOp::eClear)
+                                         .setLoadOp(bLoadPreviousDepth? vk::AttachmentLoadOp::eLoad : vk::AttachmentLoadOp::eClear)
                                          .setStoreOp(vk::AttachmentStoreOp::eStore);
         const auto renderingInfo =
             vk::RenderingInfo()
@@ -90,7 +91,8 @@ namespace Swift::Vulkan
         const std::span<Image>& colorImage,
         const Image& depthImage,
         const bool enableDepth,
-        const bool loadPreviousData)
+        const bool loadPreviousColor,
+        const bool loadPreviousDepth)
     {
         std::vector<vk::RenderingAttachmentInfo> colorAttachments;
         colorAttachments.reserve(colorImage.size());
@@ -101,7 +103,7 @@ namespace Swift::Vulkan
                     .setImageView(image.imageView)
                     .setClearValue(vk::ClearColorValue().setFloat32({0.f}))
                     .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
-                    .setLoadOp(loadPreviousData ? vk::AttachmentLoadOp::eLoad : vk::AttachmentLoadOp::eClear)
+                    .setLoadOp(loadPreviousColor ? vk::AttachmentLoadOp::eLoad : vk::AttachmentLoadOp::eClear)
                     .setStoreOp(vk::AttachmentStoreOp::eStore);
             colorAttachments.emplace_back(colorAttachment);
         }
@@ -111,7 +113,7 @@ namespace Swift::Vulkan
                 .setImageView(depthImage.imageView)
                 .setClearValue(vk::ClearColorValue().setFloat32({1.f}))
                 .setImageLayout(vk::ImageLayout::eDepthAttachmentOptimal)
-                .setLoadOp(vk::AttachmentLoadOp::eClear)
+                .setLoadOp(loadPreviousDepth ? vk::AttachmentLoadOp::eLoad : vk::AttachmentLoadOp::eClear)
                 .setStoreOp(vk::AttachmentStoreOp::eStore);
         const auto renderingInfo =
             vk::RenderingInfo()

@@ -305,18 +305,18 @@ void Swift::EndFrame(const DynamicInfo& dynamicInfo)
     gCurrentFrame = (gCurrentFrame + 1) % gSwapchain.images.size();
 }
 
-void Swift::BeginRendering()
+void Swift::BeginRendering(
+    const bool bLoadPreviousColor,
+    const bool bLoadPreviousDepth)
 {
     const auto& commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
-    Render::BeginRendering(commandBuffer, gSwapchain, true);
-    Render::SetPipelineDefault(gContext, commandBuffer, gSwapchain.extent, gInitInfo.bUsePipelines);
-}
-
-void Swift::BeginRendering(const bool bLoadPreviousData)
-{
-    const auto& commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
-    Render::BeginRendering(commandBuffer, gSwapchain, true, bLoadPreviousData);
-    Render::SetPipelineDefault(gContext, commandBuffer, gSwapchain.extent, gInitInfo.bUsePipelines);
+    Render::BeginRendering(commandBuffer, gSwapchain, true, bLoadPreviousColor, bLoadPreviousDepth);
+    Render::SetPipelineDefault(
+        gContext,
+        commandBuffer,
+        gSwapchain.extent,
+        gInitInfo.bUsePipelines,
+        1);
 }
 
 void Swift::EndRendering()
@@ -329,7 +329,8 @@ void Swift::BeginRendering(
     const glm::uvec2& extent,
     const std::vector<ImageHandle>& colorImages,
     const ImageHandle& depthImage,
-    const bool bLoadPreviousData)
+    const bool bLoadPreviousColor,
+    const bool bLoadPreviousDepth)
 {
     const auto& commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
 
@@ -355,8 +356,14 @@ void Swift::BeginRendering(
         realColorImages,
         realDepthImage,
         enableDepth,
-        bLoadPreviousData);
-    Render::SetPipelineDefault(gContext, commandBuffer, gSwapchain.extent, gInitInfo.bUsePipelines);
+        bLoadPreviousColor,
+        bLoadPreviousDepth);
+    Render::SetPipelineDefault(
+        gContext,
+        commandBuffer,
+        gSwapchain.extent,
+        gInitInfo.bUsePipelines,
+        colorImages.size());
 }
 
 void Swift::SetCullMode(const CullMode& cullMode)

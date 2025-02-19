@@ -27,16 +27,16 @@ namespace Swift
 
     void BeginFrame(const DynamicInfo& dynamicInfo);
     void EndFrame(const DynamicInfo& dynamicInfo);
-
-    void BeginRendering();
-    void BeginRendering(bool bLoadPreviousData);
+    
+    void BeginRendering(bool bLoadPreviousColor = false, bool bLoadPreviousDepth = false);
     void EndRendering();
 
     void BeginRendering(
         const glm::uvec2& extent,
         const std::vector<ImageHandle>& colorImages,
         const ImageHandle& depthImage,
-        bool bLoadPreviousData = false);
+        bool bLoadPreviousColor = false,
+        bool bLoadPreviousDepth = false);
     void EndRendering(ImageHandle image);
 
     void SetCullMode(const CullMode& cullMode);

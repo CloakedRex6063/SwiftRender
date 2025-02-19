@@ -51,7 +51,8 @@ namespace Swift::Vulkan::Render
         vk::CommandBuffer commandBuffer,
         Swapchain& swapchain,
         bool enableDepth,
-        bool loadPreviousData = false);
+        bool loadPreviousColor = false,
+        bool bLoadPreviousDepth = false);
 
     void BeginRendering(
         vk::CommandBuffer commandBuffer,
@@ -59,7 +60,8 @@ namespace Swift::Vulkan::Render
         const std::span<Image>& colorImage,
         const Image& depthImage,
         bool enableDepth,
-        bool loadPreviousData = false);
+        bool loadPreviousColor = false,
+        bool bLoadPreviousDepth = false);
 
     void BeginRendering(
         vk::CommandBuffer commandBuffer,
@@ -122,25 +124,20 @@ namespace Swift::Vulkan::Render
 
     inline void SetColorBlendDefault(
         const Context& context,
-        const vk::CommandBuffer commandBuffer)
+        const vk::CommandBuffer commandBuffer,
+        const int count)
     {
-        commandBuffer.setColorWriteMaskEXT(
-            0,
-            {vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-             vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA},
-            context.dynamicLoader);
-        bool colorBlendEnabled = false;
-
-        constexpr auto colorBlendEquation =
-            vk::ColorBlendEquationEXT()
-                .setAlphaBlendOp(vk::BlendOp::eAdd)
-                .setSrcAlphaBlendFactor(vk::BlendFactor::eOne)
-                .setDstAlphaBlendFactor(vk::BlendFactor::eZero)
-                .setColorBlendOp(vk::BlendOp::eAdd)
-                .setSrcColorBlendFactor(vk::BlendFactor::eSrcAlpha)
-                .setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha);
+        const std::vector writeMasks(
+            count,
+            vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
+        commandBuffer.setColorWriteMaskEXT(0, writeMasks, context.dynamicLoader);
+        
+        constexpr auto colorBlendEquation =vk::ColorBlendEquationEXT();
+        const std::vector equations(count, colorBlendEquation);
+        const std::vector<vk::Bool32> enabled(count, false);
         commandBuffer.setColorBlendEquationEXT(0, colorBlendEquation, context.dynamicLoader);
-        commandBuffer.setColorBlendEnableEXT(0, colorBlendEnabled, context.dynamicLoader);
+        commandBuffer.setColorBlendEnableEXT(0, enabled, context.dynamicLoader);
     }
 
     inline void EnableTransparencyBlending(
@@ -160,18 +157,15 @@ namespace Swift::Vulkan::Render
     }
     inline void DisableBlending(
         const Context& context,
-        const vk::CommandBuffer commandBuffer)
+        const vk::CommandBuffer commandBuffer,
+        const int count)
     {
         constexpr auto colorBlendEquation =
-            vk::ColorBlendEquationEXT()
-                .setAlphaBlendOp(vk::BlendOp::eAdd)
-                .setSrcAlphaBlendFactor(vk::BlendFactor::eOne)
-                .setDstAlphaBlendFactor(vk::BlendFactor::eZero)
-                .setColorBlendOp(vk::BlendOp::eAdd)
-                .setSrcColorBlendFactor(vk::BlendFactor::eSrcAlpha)
-                .setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha);
-        commandBuffer.setColorBlendEquationEXT(0, colorBlendEquation, context.dynamicLoader);
-        commandBuffer.setColorBlendEnableEXT(0, 0, nullptr, context.dynamicLoader);
+            vk::ColorBlendEquationEXT();
+        const std::vector equations(count, colorBlendEquation);
+        const std::vector<vk::Bool32> enabled(count, false);
+        commandBuffer.setColorBlendEquationEXT(0, equations, context.dynamicLoader);
+        commandBuffer.setColorBlendEnableEXT(0, enabled, context.dynamicLoader);
     }
 
     // --------------------------------------------------------------------------------------------
@@ -300,7 +294,8 @@ namespace Swift::Vulkan::Render
         const Context& context,
         const vk::CommandBuffer commandBuffer,
         const vk::Extent2D extent,
-        const bool bUsePipeline)
+        const bool bUsePipeline,
+        const int count)
     {
         if (bUsePipeline)
         {
@@ -313,7 +308,7 @@ namespace Swift::Vulkan::Render
             commandBuffer.setScissor(0, vk::Rect2D().setExtent(extent));
         }
         SetViewportAndScissor(commandBuffer, extent);
-        SetColorBlendDefault(context, commandBuffer);
+        SetColorBlendDefault(context, commandBuffer, count);
         SetInputAssemblyDefault(commandBuffer);
         SetVertexInputDefault(context, commandBuffer);
         SetDepthStencilDefault(commandBuffer);
