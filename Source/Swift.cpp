@@ -523,18 +523,18 @@ ImageHandle Swift::CreateImage(
     const std::string_view debugName)
 {
     auto imageUsage = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
-                      vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled;
+                      vk::ImageUsageFlagBits::eSampled;
 
     auto vkFormat = vk::Format::eR16G16B16A16Sfloat;
     switch (format)
     {
     case ImageFormat::eR16G16B16A16_SRGB:
         vkFormat = vk::Format::eR16G16B16A16Sfloat;
-        imageUsage |= vk::ImageUsageFlagBits::eColorAttachment;
+        imageUsage |= vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage;
         break;
     case ImageFormat::eR32G32B32A32_SRGB:
         vkFormat = vk::Format::eR32G32B32A32Sfloat;
-        imageUsage |= vk::ImageUsageFlagBits::eColorAttachment;
+        imageUsage |= vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage;
         break;
     case ImageFormat::eD32:
         vkFormat = vk::Format::eD32Sfloat;
