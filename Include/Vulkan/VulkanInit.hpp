@@ -63,6 +63,7 @@ namespace Swift::Vulkan::Init
         std::string_view debugName);
 
     vk::Sampler CreateSampler(const Context& context);
+    vk::Sampler CreateCubemapSampler(const Context& context);
 
     vk::DescriptorSetLayout CreateDescriptorSetLayout(vk::Device device);
     vk::DescriptorPool CreateDescriptorPool(

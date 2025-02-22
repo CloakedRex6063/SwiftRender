@@ -132,8 +132,8 @@ namespace Swift::Vulkan::Render
             vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
                 vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
         commandBuffer.setColorWriteMaskEXT(0, writeMasks, context.dynamicLoader);
-        
-        constexpr auto colorBlendEquation =vk::ColorBlendEquationEXT();
+
+        constexpr auto colorBlendEquation = vk::ColorBlendEquationEXT();
         const std::vector equations(count, colorBlendEquation);
         const std::vector<vk::Bool32> enabled(count, false);
         commandBuffer.setColorBlendEquationEXT(0, colorBlendEquation, context.dynamicLoader);
@@ -160,8 +160,7 @@ namespace Swift::Vulkan::Render
         const vk::CommandBuffer commandBuffer,
         const int count)
     {
-        constexpr auto colorBlendEquation =
-            vk::ColorBlendEquationEXT();
+        constexpr auto colorBlendEquation = vk::ColorBlendEquationEXT();
         const std::vector equations(count, colorBlendEquation);
         const std::vector<vk::Bool32> enabled(count, false);
         commandBuffer.setColorBlendEquationEXT(0, equations, context.dynamicLoader);
@@ -221,6 +220,20 @@ namespace Swift::Vulkan::Render
         commandBuffer.setDepthCompareOp(vk::CompareOp::eLess);
         commandBuffer.setDepthWriteEnable(true);
     }
+
+    inline void SetDepthWrite(
+        const vk::CommandBuffer commandBuffer,
+        const bool enable)
+    {
+        commandBuffer.setDepthWriteEnable(enable);
+    };
+
+    inline void SetDepthTest(
+        const vk::CommandBuffer commandBuffer,
+        const bool enable)
+    {
+        commandBuffer.setDepthTestEnable(enable);
+    };
 
     inline void SetDepthCompareOp(
         const vk::CommandBuffer commandBuffer,

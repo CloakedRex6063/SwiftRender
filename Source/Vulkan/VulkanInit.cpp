@@ -1082,6 +1082,23 @@ namespace Swift::Vulkan
         return sampler;
     }
 
+    vk::Sampler Init::CreateCubemapSampler(const Context& context)
+    {
+        constexpr auto samplerCreateInfo =
+            vk::SamplerCreateInfo()
+                .setMagFilter(vk::Filter::eLinear)
+                .setMinFilter(vk::Filter::eLinear)
+                .setAddressModeU(vk::SamplerAddressMode::eClampToEdge)
+                .setAddressModeV(vk::SamplerAddressMode::eClampToEdge)
+                .setAddressModeW(vk::SamplerAddressMode::eClampToEdge)
+                .setMipmapMode(vk::SamplerMipmapMode::eLinear)
+                .setBorderColor(vk::BorderColor::eIntOpaqueBlack)
+                .setUnnormalizedCoordinates(false);
+        const auto [result, sampler] = context.device.createSampler(samplerCreateInfo);
+        VK_ASSERT(result, "Failed to create sampler!");
+        return sampler;
+    }
+
     vk::DescriptorSetLayout Init::CreateDescriptorSetLayout(const vk::Device device)
     {
         std::array descriptorBindings = {

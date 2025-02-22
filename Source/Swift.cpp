@@ -26,6 +26,7 @@ namespace
     Vulkan::BindlessDescriptor gDescriptor;
     // TODO: sampler pool for all types of samplers
     vk::Sampler gLinearSampler;
+    vk::Sampler gCubemapSampler;
     std::vector<vk::Sampler> gSamplers;
 
     std::vector<Vulkan::Thread> gThreadDatas;
@@ -141,7 +142,9 @@ void Swift::Init(const InitInfo& initInfo)
             Init::CreateDescriptorSet(gContext, gDescriptor.pool, gDescriptor.setLayout));
 
     gLinearSampler = Init::CreateSampler(gContext);
+    gCubemapSampler = Init::CreateCubemapSampler(gContext);
     gSamplers.emplace_back(gLinearSampler);
+    gSamplers.emplace_back(gCubemapSampler);
 
     gTransferCommand.commandPool =
         Init::CreateCommandPool(gContext, gTransferQueue.index, "Transfer Command Pool");
@@ -707,7 +710,7 @@ ImageHandle Swift::LoadCubemapFromFile(
     Util::UpdateDescriptorSampler(
         gDescriptor.set,
         gSamplerImages.back().imageView,
-        gLinearSampler,
+        gCubemapSampler,
         arrayElement,
         gContext);
 
