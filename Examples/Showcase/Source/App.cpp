@@ -102,7 +102,7 @@ int main()
     std::unordered_map<u32, int> textureIndices;
     for (const auto& [index, uri] : std::views::enumerate(scene.uris))
     {
-        const auto image = Swift::LoadImageFromFileQueued(uri, 0, true, uri);
+        const auto image = Swift::LoadImageFromFileQueued(uri, uri);
         textureIndices[index] = static_cast<int>(Swift::GetImageArrayIndex(image));
     }
 
