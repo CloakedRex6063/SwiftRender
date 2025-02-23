@@ -231,7 +231,7 @@ namespace Swift::Vulkan
     {
         vmaUnmapMemory(context.allocator, buffer.allocation);
     }
-    
+
     vk::Filter Util::GetFilter(const Filter filter)
     {
         switch (filter)
@@ -244,7 +244,7 @@ namespace Swift::Vulkan
             return vk::Filter::eNearest;
         }
     }
-    
+
     vk::SamplerAddressMode Util::GetAddressMode(const Wrap wrapMode)
     {
         switch (wrapMode)
@@ -269,28 +269,10 @@ namespace Swift::Vulkan
         const bool loadAllMips,
         const Image& image)
     {
-        u32 start;
-        u32 imageSize;
-        if (loadAllMips)
-        {
-            start = ddsImage.MipOffset(mipLevel);
-            imageSize =
-                ddsImage.DataSize() - (ddsImage.MipOffset(mipLevel) - ddsImage.DataOffset());
-        }
-        else
-        {
-            start = ddsImage.MipOffset(mipLevel);
-
-            if (mipLevel + 1 > ddsImage.MipLevels() - 1)
-            {
-                imageSize = ddsImage.DataSize() + ddsImage.DataOffset() - start;
-            }
-            else
-            {
-                imageSize = ddsImage.MipOffset(mipLevel + 1) - start;
-                imageSize *= ddsImage.ArraySize();
-            }
-        }
+        const auto minLevel = std::max(0, static_cast<int>(std::log2(float(ddsImage.Width()) / 4.f)) + 1);
+        
+        const auto start = ddsImage.MipOffset(mipLevel);
+        const auto imageSize = ddsImage.MipOffset(minLevel, ddsImage.ArraySize() - 1) + ddsImage.MipSize(minLevel) - ddsImage.MipOffset(mipLevel);
 
         const auto buffer = Init::CreateBuffer(
             context,
@@ -319,6 +301,7 @@ namespace Swift::Vulkan
         const bool loadAllMips,
         const vk::Image image)
     {
+        const auto minLevel = std::max(0, static_cast<int>(std::log2(float(ddsImage.Width()) / 4.f)) + 1);
         std::vector<vk::BufferImageCopy2> copyRegions;
         if (loadAllMips)
         {
@@ -326,36 +309,23 @@ namespace Swift::Vulkan
             u32 offset = 0;
             for (u32 layer = 0; layer < ddsImage.ArraySize(); layer++)
             {
-                for (int i = maxMipLevel; i < ddsImage.MipLevels(); i++)
+                for (int i = 0; i < minLevel; i++)
                 {
+                    offset = ddsImage.MipOffset(i, layer) - ddsImage.DataOffset();
                     vk::Extent3D mipExtent = {
                         std::max(1u, extent.width >> i),
                         std::max(1u, extent.height >> i),
                         std::max(1u, extent.depth >> i)};
-                    if (mipExtent.width < 4)
-                        break;
                     const auto bufferImageCopy = vk::BufferImageCopy2()
                                                      .setImageExtent(mipExtent)
                                                      .setImageSubresource(GetImageSubresourceLayers(
                                                          vk::ImageAspectFlagBits::eColor,
-                                                         i - maxMipLevel,
+                                                         i,
                                                          1,
                                                          layer))
                                                      .setBufferOffset(offset);
                     copyRegions.emplace_back(bufferImageCopy);
-                    offset += ddsImage.MipSize(i);
                 }
-            }
-        }
-        else
-        {
-            for (int i = 0; i < ddsImage.ArraySize(); i++)
-            {
-                const auto extent = Util::GetMipExtent(ddsImage.GetVulkanExtent(), maxMipLevel);
-                const auto bufferImageCopy =
-                    vk::BufferImageCopy2().setImageExtent(extent).setImageSubresource(
-                        GetImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 1, i));
-                copyRegions.emplace_back(bufferImageCopy);
             }
         }
         const auto bufferToImageInfo = vk::CopyBufferToImageInfo2()
