@@ -374,6 +374,16 @@ void Swift::SetCullMode(const CullMode& cullMode)
     const auto& commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
     Render::SetCullMode(commandBuffer, static_cast<vk::CullModeFlagBits>(cullMode));
 }
+void Swift::SetDepthTest(const bool depthTest)
+{
+    const auto& commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
+    Render::SetDepthTest(commandBuffer, depthTest);
+}
+void Swift::SetDepthWrite(const bool depthWrite)
+{
+    const auto& commandBuffer = Render::GetCommandBuffer(gCurrentFrameData);
+    Render::SetDepthWrite(commandBuffer, depthWrite);
+}
 
 void Swift::SetDepthCompareOp(DepthCompareOp depthCompareOp)
 {
@@ -609,8 +619,6 @@ ImageHandle Swift::CreateImage(
 
 ImageHandle Swift::LoadImageFromFile(
     const std::filesystem::path& filePath,
-    const int mipLevel,
-    const bool loadAllMipMaps,
     const std::string_view debugName,
     const SamplerHandle sampler,
     const bool tempImage,
@@ -619,8 +627,6 @@ ImageHandle Swift::LoadImageFromFile(
     Swift::BeginTransfer(thread);
     const auto image = Swift::LoadImageFromFileQueued(
         filePath,
-        mipLevel,
-        loadAllMipMaps,
         debugName,
         sampler,
         tempImage,
@@ -631,8 +637,6 @@ ImageHandle Swift::LoadImageFromFile(
 
 ImageHandle Swift::LoadImageFromFileQueued(
     const std::filesystem::path& filePath,
-    const int mipLevel,
-    const bool loadAllMipMaps,
     const std::string_view debugName,
     SamplerHandle samplerHandle,
     const bool tempImage,
@@ -657,13 +661,11 @@ ImageHandle Swift::LoadImageFromFileQueued(
             transferQueue,
             transferCommand,
             filePath,
-            mipLevel,
-            loadAllMipMaps,
             debugName);
     }
     gTransferStagingBuffers.emplace_back(staging);
 
-    u32 arrayElement;
+    u32 arrayElement = 0;
     if (tempImage)
     {
         gTemporaryImages.emplace_back(image);
@@ -698,8 +700,6 @@ ImageHandle Swift::LoadCubemapFromFile(
             gTransferQueue,
             gTransferCommand,
             filePath,
-            0,
-            true,
             debugName);
     }
     Swift::EndTransfer(-1);

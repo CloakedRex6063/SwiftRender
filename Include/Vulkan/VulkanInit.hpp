@@ -99,7 +99,5 @@ namespace Swift::Vulkan::Init
         Queue transferQueue,
         Command transferCommand,
         const std::filesystem::path& filePath,
-        int maxMipLevel,
-        bool loadAllMips,
         std::string_view debugName);
 } // namespace Swift::Vulkan::Init

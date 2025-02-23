@@ -862,8 +862,6 @@ namespace Swift::Vulkan
         Queue transferQueue,
         Command transferCommand,
         const std::filesystem::path& filePath,
-        int maxMipLevel,
-        const bool loadAllMips,
         const std::string_view debugName)
     {
         dds::Header header = dds::ReadHeader(filePath.string());
@@ -872,31 +870,13 @@ namespace Swift::Vulkan
             vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst);
         auto imageViewCreateInfo = header.GetVulkanImageViewCreateInfo();
 
-        if (maxMipLevel == -1)
-        {
-            maxMipLevel = static_cast<int>(header.MipLevels()) - 1;
-        }
-        maxMipLevel = std::clamp(maxMipLevel, 0, static_cast<int>(header.MipLevels()) - 1);
-
-        const auto minLevel = std::max(0, static_cast<int>(std::log2(header.Width() / 4)) + 1);
-        const auto mipCount = loadAllMips ? minLevel - maxMipLevel : 1;
-        if (loadAllMips)
-        {
-            imageCreateInfo.mipLevels = mipCount;
-            imageCreateInfo.extent = Util::GetMipExtent(imageCreateInfo.extent, maxMipLevel);
-            imageViewCreateInfo.subresourceRange.levelCount = mipCount;
-        }
-
-        if (!loadAllMips)
-        {
-            imageCreateInfo.mipLevels = 1;
-            imageCreateInfo.extent = Util::GetMipExtent(imageCreateInfo.extent, maxMipLevel);
-            imageViewCreateInfo.subresourceRange.levelCount = 1;
-        }
+        const auto minLevel = std::max(0, static_cast<int>(std::log2(float(header.Width()) / 4.f)) + 1);
+        imageCreateInfo.mipLevels = minLevel;
+        imageViewCreateInfo.subresourceRange.levelCount = minLevel;
 
         auto image = CreateImage(context, imageCreateInfo, imageViewCreateInfo, debugName)
-                         .SetMinLod(static_cast<float>(maxMipLevel))
-                         .SetMaxLod(static_cast<float>(header.MipLevels() - 1))
+                         .SetMinLod(static_cast<float>(0))
+                         .SetMaxLod(static_cast<float>(minLevel))
                          .SetURI(filePath.string());
 
         const auto srcImageBarrier = Util::ImageBarrier(
@@ -904,7 +884,7 @@ namespace Swift::Vulkan
             vk::ImageLayout::eTransferDstOptimal,
             image,
             vk::ImageAspectFlagBits::eColor,
-            mipCount,
+            minLevel,
             imageCreateInfo.arrayLayers);
         Util::PipelineBarrier(transferCommand, srcImageBarrier);
 
@@ -914,8 +894,8 @@ namespace Swift::Vulkan
             transferQueue.index,
             header,
             filePath.string(),
-            maxMipLevel,
-            loadAllMips,
+            0,
+            true,
             image);
 
         const auto dstImageBarrier = Util::ImageBarrier(
@@ -923,7 +903,7 @@ namespace Swift::Vulkan
             vk::ImageLayout::eShaderReadOnlyOptimal,
             image,
             vk::ImageAspectFlagBits::eColor,
-            mipCount,
+            minLevel,
             imageCreateInfo.arrayLayers);
         Util::PipelineBarrier(transferCommand, dstImageBarrier);
 

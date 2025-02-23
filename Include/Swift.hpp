@@ -40,6 +40,8 @@ namespace Swift
     void EndRendering(ImageHandle image);
 
     void SetCullMode(const CullMode& cullMode);
+    void SetDepthTest(bool depthTest);
+    void SetDepthWrite(bool depthWrite);
     void SetDepthCompareOp(DepthCompareOp depthCompareOp);
     void SetPolygonMode(PolygonMode polygonMode);
     void SetLineWidth(float lineWidth);
@@ -107,16 +109,12 @@ namespace Swift
     void DestroyImage(ImageHandle imageHandle);
     ImageHandle LoadImageFromFile(
         const std::filesystem::path& filePath,
-        int mipLevel,
-        bool loadAllMipMaps,
         std::string_view debugName,
         SamplerHandle samplerHandle = InvalidHandle,
         bool tempImage = false,
         ThreadHandle thread = -1);
     ImageHandle LoadImageFromFileQueued(
         const std::filesystem::path& filePath,
-        int mipLevel,
-        bool loadAllMipMaps,
         std::string_view debugName,
         SamplerHandle samplerHandle = InvalidHandle,
         bool tempImage = false,

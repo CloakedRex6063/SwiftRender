@@ -82,7 +82,7 @@ int main()
     auto specular =
         Swift::LoadCubemapFromFile("Resources/HDRI/Footprint/Footprint_Specular.dds", "Specular");
     auto lut =
-        Swift::LoadImageFromFile("Resources/HDRI/Footprint/Footprint_LUT.dds", 0, false, "Lut");
+        Swift::LoadImageFromFile("Resources/HDRI/Footprint/Footprint_LUT.dds", "Lut");
 
     scene.pushConstant = ModelPushConstant{
         .cameraBufferAddress = Swift::GetBufferAddress(cameraBuffer),
