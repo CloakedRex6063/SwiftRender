@@ -180,6 +180,11 @@ void Swift::Shutdown()
         shader.Destroy(gContext);
     }
 
+    for (const auto& sampler : gSamplers)
+    {
+        gContext.device.destroy(sampler);
+    }
+
     for (auto& image : gWriteableImages)
     {
         image.Destroy(gContext);
@@ -204,7 +209,6 @@ void Swift::Shutdown()
     gGraphicsCommand.Destroy(gContext);
     gContext.device.destroy(gTransferFence);
     gContext.device.destroy(gGraphicsFence);
-    gContext.device.destroy(gLinearSampler);
 
     gSwapchain.Destroy(gContext);
     gContext.Destroy();
@@ -657,6 +661,15 @@ ImageHandle Swift::LoadImageFromFileQueued(
     if (filePath.extension() == ".dds")
     {
         std::tie(image, staging) = Init::CreateDDSImage(
+            gContext,
+            transferQueue,
+            transferCommand,
+            filePath,
+            debugName);
+    }
+    if (filePath.extension() == ".png" or filePath.extension() == ".jpg")
+    {
+        std::tie(image, staging) = Init::CreateUnCompressedImage(
             gContext,
             transferQueue,
             transferCommand,

@@ -18,7 +18,6 @@ namespace Swift::ImGUI
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         auto format = VK_FORMAT_B8G8R8A8_UNORM;
         ImGui_ImplVulkan_InitInfo vulkanInitInfo{

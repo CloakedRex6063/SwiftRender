@@ -123,11 +123,19 @@ namespace Swift::Vulkan::Util
         bool loadAllMips,
         const Image& image);
 
+    Buffer UploadToImage(
+        const Context& context,
+        vk::CommandBuffer commandBuffer,
+        u32 queueIndex,
+        u64 size,
+        vk::Extent3D extent,
+        const void* pixels,
+        const Image& image);
+
     void CopyBufferToImage(
         vk::CommandBuffer commandBuffer,
         vk::Buffer buffer,
         const dds::Header& ddsImage,
-        u32 maxMipLevel,
         bool loadAllMips,
         vk::Image image);
 

@@ -2,6 +2,8 @@
 #include "SwiftStructs.hpp"
 #include "VulkanStructs.hpp"
 
+#include <complex.h>
+
 namespace Swift::Vulkan::Init
 {
     Context CreateContext(const InitInfo& initInfo);
@@ -99,5 +101,14 @@ namespace Swift::Vulkan::Init
         Queue transferQueue,
         Command transferCommand,
         const std::filesystem::path& filePath,
+        std::string_view debugName);
+    std::tuple<
+        Image,
+        Buffer>
+    CreateUnCompressedImage(
+        const Context& context,
+        Queue transferQueue,
+        Command transferCommand,
+        const std::filesystem::path& path,
         std::string_view debugName);
 } // namespace Swift::Vulkan::Init

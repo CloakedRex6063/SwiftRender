@@ -269,10 +269,12 @@ namespace Swift::Vulkan
         const bool loadAllMips,
         const Image& image)
     {
-        const auto minLevel = std::max(0, static_cast<int>(std::log2(float(ddsImage.Width()) / 4.f)) + 1);
-        
+        const auto minLevel =
+            std::max(0, static_cast<int>(std::log2(float(ddsImage.Width()) / 4.f)) + 1);
+
         const auto start = ddsImage.MipOffset(mipLevel);
-        const auto imageSize = ddsImage.MipOffset(minLevel, ddsImage.ArraySize() - 1) + ddsImage.MipSize(minLevel) - ddsImage.MipOffset(mipLevel);
+        const auto imageSize = ddsImage.MipOffset(minLevel, ddsImage.ArraySize() - 1) +
+                               ddsImage.MipSize(minLevel) - ddsImage.MipOffset(mipLevel);
 
         const auto buffer = Init::CreateBuffer(
             context,
@@ -289,7 +291,41 @@ namespace Swift::Vulkan
         file.read(static_cast<char*>(mapped), imageSize);
         UnmapBuffer(context, buffer);
 
-        CopyBufferToImage(commandBuffer, buffer, ddsImage, mipLevel, loadAllMips, image);
+        CopyBufferToImage(commandBuffer, buffer, ddsImage, loadAllMips, image);
+        return buffer;
+    }
+
+    Buffer Util::UploadToImage(
+        const Context& context,
+        const vk::CommandBuffer commandBuffer,
+        const u32 queueIndex,
+        const u64 size,
+        const vk::Extent3D extent,
+        const void* pixels,
+        const Image& image)
+    {
+        const auto buffer = Init::CreateBuffer(
+            context,
+            queueIndex,
+            size,
+            vk::BufferUsageFlagBits::eTransferSrc,
+            false,
+            "Staging");
+        
+        const auto mapped = MapBuffer(context, buffer);
+        std::memcpy(mapped, pixels, size);
+        UnmapBuffer(context, buffer);
+
+        const auto copyRegion = vk::BufferImageCopy2().setImageExtent(extent).setImageSubresource(
+            GetImageSubresourceLayers(vk::ImageAspectFlagBits::eColor));
+
+        const auto bufferToImageInfo = vk::CopyBufferToImageInfo2()
+                                           .setSrcBuffer(buffer)
+                                           .setDstImage(image)
+                                           .setDstImageLayout(vk::ImageLayout::eTransferDstOptimal)
+                                           .setRegions(copyRegion);
+        commandBuffer.copyBufferToImage2(bufferToImageInfo);
+
         return buffer;
     }
 
@@ -297,11 +333,11 @@ namespace Swift::Vulkan
         const vk::CommandBuffer commandBuffer,
         const vk::Buffer buffer,
         const dds::Header& ddsImage,
-        const u32 maxMipLevel,
         const bool loadAllMips,
         const vk::Image image)
     {
-        const auto minLevel = std::max(0, static_cast<int>(std::log2(float(ddsImage.Width()) / 4.f)) + 1);
+        const auto minLevel =
+            std::max(0, static_cast<int>(std::log2(float(ddsImage.Width()) / 4.f)) + 1);
         std::vector<vk::BufferImageCopy2> copyRegions;
         if (loadAllMips)
         {

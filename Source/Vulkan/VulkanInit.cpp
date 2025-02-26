@@ -5,6 +5,7 @@
 #include "Vulkan/VulkanStructs.hpp"
 #include "Vulkan/VulkanUtil.hpp"
 #include "dds.hpp"
+#include "stb_image.h"
 
 namespace
 {
@@ -870,7 +871,8 @@ namespace Swift::Vulkan
             vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst);
         auto imageViewCreateInfo = header.GetVulkanImageViewCreateInfo();
 
-        const auto minLevel = std::max(0, static_cast<int>(std::log2(float(header.Width()) / 4.f)) + 1);
+        const auto minLevel =
+            std::max(0, static_cast<int>(std::log2(float(header.Width()) / 4.f)) + 1);
         imageCreateInfo.mipLevels = minLevel;
         imageViewCreateInfo.subresourceRange.levelCount = minLevel;
 
@@ -904,6 +906,77 @@ namespace Swift::Vulkan
             image,
             vk::ImageAspectFlagBits::eColor,
             minLevel,
+            imageCreateInfo.arrayLayers);
+        Util::PipelineBarrier(transferCommand, dstImageBarrier);
+
+        return {image, buffer};
+    }
+    std::tuple<
+        Image,
+        Buffer>
+    Init::CreateUnCompressedImage(
+        const Context& context,
+        Queue transferQueue,
+        Command transferCommand,
+        const std::filesystem::path& path,
+        std::string_view debugName)
+    {
+        int width, height, channels;
+        stbi_uc* pixels =
+            stbi_load(path.generic_string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
+        assert(pixels != nullptr);
+
+        const auto extent = vk::Extent3D(width, height, 1);
+        auto imageCreateInfo =
+            vk::ImageCreateInfo()
+                .setUsage(vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst)
+                .setExtent(extent)
+                .setFormat(vk::Format::eR8G8B8A8Srgb)
+                .setImageType(vk::ImageType::e2D)
+                .setMipLevels(1)
+                .setArrayLayers(1)
+                .setTiling(vk::ImageTiling::eOptimal).setSamples(vk::SampleCountFlagBits::e1)
+                .setSharingMode(vk::SharingMode::eExclusive)
+                .setInitialLayout(vk::ImageLayout::eUndefined);
+        auto imageViewCreateInfo =
+            vk::ImageViewCreateInfo()
+                .setFormat(vk::Format::eR8G8B8A8Srgb)
+                .setViewType(vk::ImageViewType::e2D)
+                .setSubresourceRange(
+                    Util::GetImageSubresourceRange(vk::ImageAspectFlagBits::eColor));
+        auto image = CreateImage(context, imageCreateInfo, imageViewCreateInfo, debugName)
+                         .SetMinLod(static_cast<float>(0))
+                         .SetMaxLod(static_cast<float>(0))
+                         .SetURI(path.string());
+
+        const auto srcImageBarrier = Util::ImageBarrier(
+            image.currentLayout,
+            vk::ImageLayout::eTransferDstOptimal,
+            image,
+            vk::ImageAspectFlagBits::eColor,
+            1,
+            imageCreateInfo.arrayLayers);
+        Util::PipelineBarrier(transferCommand, srcImageBarrier);
+
+        const auto imageSize = width * height * 4;
+
+        const auto buffer = Util::UploadToImage(
+            context,
+            transferCommand,
+            transferQueue.index,
+            imageSize,
+            extent,
+            pixels,
+            image);
+
+        stbi_image_free(pixels);
+
+        const auto dstImageBarrier = Util::ImageBarrier(
+            image.currentLayout,
+            vk::ImageLayout::eShaderReadOnlyOptimal,
+            image,
+            vk::ImageAspectFlagBits::eColor,
+            1,
             imageCreateInfo.arrayLayers);
         Util::PipelineBarrier(transferCommand, dstImageBarrier);
 

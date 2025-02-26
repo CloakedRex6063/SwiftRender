@@ -42,3 +42,7 @@ target_compile_options(VulkanMemoryAllocator INTERFACE
 target_link_libraries(SwiftRender PUBLIC GPUOpen::VulkanMemoryAllocator)
 target_link_libraries(SwiftRender PRIVATE glfw)
 
+add_library(stb stb/stb_image.cpp)
+target_include_directories(stb PUBLIC stb)
+target_link_libraries(SwiftRender PUBLIC stb)
+
