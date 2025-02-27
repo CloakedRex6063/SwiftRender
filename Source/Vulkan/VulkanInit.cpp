@@ -4,6 +4,7 @@
 #include "Vulkan/VulkanConstants.hpp"
 #include "Vulkan/VulkanStructs.hpp"
 #include "Vulkan/VulkanUtil.hpp"
+#include "stb_image.h"
 #include "dds.hpp"
 
 namespace
