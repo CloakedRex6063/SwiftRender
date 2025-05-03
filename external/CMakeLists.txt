@@ -1,0 +1,12 @@
+add_library(VMA vma/src/vk_mem_alloc.cpp)
+target_include_directories(VMA PUBLIC vma/include)
+target_link_libraries(${PROJECT_NAME} PUBLIC VMA)
+
+find_package(Vulkan)
+if (Vulkan_FOUND)
+    message("Found Vulkan SDK")
+    target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC SWIFT_VULKAN_SDK)
+else ()
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/lib/libvulkan.so.1.4.309)
+endif ()

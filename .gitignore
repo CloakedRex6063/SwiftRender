@@ -1,0 +1,5 @@
+[Bb]uild/
+.venv
+.vscode/
+.cache/
+.idea/

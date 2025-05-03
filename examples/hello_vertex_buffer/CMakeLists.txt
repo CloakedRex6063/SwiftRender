@@ -1,0 +1,5 @@
+add_executable(HelloVertexBuffer hello_index_buffer.cpp)
+target_include_directories(HelloVertexBuffer PUBLIC include)
+target_link_libraries(HelloVertexBuffer PUBLIC Utils ${PROJECT_NAME} X11)
+compile_shaders(buffer_vertex HelloVertexBuffer ${CMAKE_CURRENT_SOURCE_DIR}/hello_index_buffer.slang "VsMain" ${CMAKE_CURRENT_BINARY_DIR}/hello_vertex_buffer.vert.spv)
+compile_shaders(buffer_frag HelloVertexBuffer ${CMAKE_CURRENT_SOURCE_DIR}/hello_index_buffer.slang "FsMain" ${CMAKE_CURRENT_BINARY_DIR}/hello_vertex_buffer.frag.spv)

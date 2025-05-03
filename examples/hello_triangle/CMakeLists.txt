@@ -1,0 +1,5 @@
+add_executable(HelloTriangle hello_triangle.cpp)
+target_include_directories(HelloTriangle PUBLIC include)
+target_link_libraries(HelloTriangle PUBLIC Utils ${PROJECT_NAME} X11)
+compile_shaders(triangle_vertex HelloTriangle ${CMAKE_CURRENT_SOURCE_DIR}/hello_triangle.slang "VsMain" ${CMAKE_CURRENT_BINARY_DIR}/hello_triangle.vert.spv)
+compile_shaders(triangle_frag HelloTriangle ${CMAKE_CURRENT_SOURCE_DIR}/hello_triangle.slang "FsMain" ${CMAKE_CURRENT_BINARY_DIR}/hello_triangle.frag.spv)
