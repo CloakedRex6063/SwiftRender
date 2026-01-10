@@ -1,0 +1,8 @@
+!bin/gfx.dll
+!bin/slang-compiler.dll
+!bin/slang.dll
+
+!lib/gfx.lib
+!lib/slang-compiler.lib
+!lib/slang-rt.lib
+!lib/slang.lib

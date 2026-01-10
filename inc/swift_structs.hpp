@@ -1,0 +1,259 @@
+#pragma once
+#include "variant"
+#include "string"
+#include "memory"
+#include "optional"
+#include "enum_flags.hpp"
+#include "vector"
+#include "array"
+
+namespace Swift
+{
+    class IResource;
+    class IBuffer;
+    class ITexture;
+
+    enum class BackendType
+    {
+        eD3D12,
+        eVulkan,
+    };
+
+    enum class QueueType : uint8_t
+    {
+        eGraphics,
+        eCompute,
+        eTransfer,
+    };
+
+    enum class QueuePriority : uint8_t
+    {
+        eHigh,
+        eNormal,
+    };
+
+    enum class Format : uint32_t
+    {
+        eRGBA8_UNORM,
+        eRGBA16F,
+        eRGBA32F,
+        eD32F,
+    };
+
+    struct MSAA
+    {
+        uint32_t samples;
+        uint32_t quality;
+    };
+
+    enum class BufferFlags : uint32_t
+    {
+        eNone = 0,
+        eConstantBuffer = 1 << 1,
+        eStructuredBuffer = 1 << 2,
+        eReadback = 1 << 3,
+    };
+
+    enum class TextureFlags : uint32_t
+    {
+        eNone = 0,
+        eRenderTarget = 1 << 1,
+        eShaderResource = 1 << 2,
+        eDepthStencil = 1 << 3,
+    };
+
+
+    struct ContextCreateInfo
+    {
+        BackendType backend_type;
+        std::array<uint32_t, 2> size;
+        void *native_window_handle;
+        void *native_display_handle;
+    };
+
+    enum class CullMode
+    {
+        eBack,
+        eFront,
+        eNone
+    };
+
+
+    enum class ShaderVisibility
+    {
+        eAll,
+        eVertex,
+        eHull,
+        eDomain,
+        eGeometry,
+        ePixel,
+        eAmplification,
+        eMesh
+    };
+
+    enum class DescriptorType
+    {
+        eConstant,
+        eShaderResource,
+        eUnorderedAccess,
+    };
+
+    struct Descriptor
+    {
+        uint32_t shader_register = 0;
+        uint32_t register_space = 0;
+        DescriptorType descriptor_type = DescriptorType::eConstant;
+        ShaderVisibility shader_visibility = ShaderVisibility::eAll;
+    };
+
+    enum class Filter
+    {
+        eNearest,
+        eLinear,
+        eNearestMipNearest,
+        eLinearMipNearest,
+        eNearestMipLinear,
+        eLinearMipLinear,
+    };
+
+    enum class Wrap
+    {
+        eRepeat,
+        eMirroredRepeat,
+        eClampToEdge,
+    };
+
+    struct SamplerDescriptor
+    {
+        Filter min_filter;
+        Filter mag_filter;
+        Wrap wrap_u;
+        Wrap wrap_y;
+        Wrap wrap_w;
+    };
+
+    struct GraphicsShaderCreateInfo
+    {
+        std::vector<Format> rtv_formats;
+        Format dsv_format;
+        std::vector<uint8_t> amplify_code;
+        std::vector<uint8_t> mesh_code;
+        std::vector<uint8_t> pixel_code;
+        CullMode cull_mode;
+        std::vector<Descriptor> descriptors;
+        std::vector<SamplerDescriptor> static_samplers;
+    };
+
+    struct ComputeShaderCreateInfo
+    {
+        std::vector<uint8_t> code;
+        std::vector<Descriptor> descriptors;
+        std::vector<SamplerDescriptor> static_samplers;
+    };
+
+    enum class ResourceState
+    {
+        eCommon,
+        eConstant,
+        eUnorderedAccess,
+        eIndexBuffer,
+        eRenderTarget,
+        eDepthWrite,
+        eDepthRead,
+        eShaderResource,
+        ePresent,
+        eCopyDest,
+        eCopySource,
+    };
+
+    struct Viewport
+    {
+        std::array<float, 2> dimensions{};
+        std::array<float, 2> offset{};
+        std::array<float, 2> depth_range = {0.0f, 1.0f};
+    };
+
+    struct Scissor
+    {
+        std::array<uint32_t, 2> dimensions;
+        std::array<uint32_t, 2> offset;
+    };
+
+    struct BufferCopyRegion
+    {
+        std::shared_ptr<IBuffer> src_buffer;
+        std::shared_ptr<IBuffer> dst_buffer;
+        uint64_t src_offset;
+        uint64_t dst_offset;
+        uint64_t size;
+    };
+
+    struct BufferTextureCopyRegion
+    {
+        std::shared_ptr<IBuffer> src_buffer;
+        std::shared_ptr<ITexture> dst_texture;
+    };
+
+    struct TextureRegion
+    {
+        std::array<uint32_t, 3> size;
+        std::array<uint32_t, 3> offset;
+    };
+
+    struct TextureCopyRegion
+    {
+        std::shared_ptr<ITexture> src_texture;
+        std::shared_ptr<ITexture> dst_texture;
+        TextureRegion src_region;
+        std::array<uint32_t, 3> dst_offset;
+    };
+
+    struct TextureCreateInfo
+    {
+        uint32_t width = 0;
+        uint32_t height = 0;
+        uint16_t mip_levels = 1;
+        uint16_t array_size = 1;
+        Format format = Format::eRGBA8_UNORM;
+        EnumFlags<TextureFlags> flags = TextureFlags::eNone;
+        const void *data = nullptr;
+        std::optional<MSAA> msaa = std::nullopt;
+        std::shared_ptr<IResource> resource = nullptr;
+    };
+
+    struct BufferCreateInfo
+    {
+        uint32_t num_elements = 0;
+        uint32_t element_size = 0;
+        uint32_t first_element = 0;
+        const void *data = nullptr;
+        EnumFlags<BufferFlags> flags = BufferFlags::eNone;
+        std::shared_ptr<IResource> resource = nullptr;
+    };
+
+    struct QueueCreateInfo
+    {
+        QueueType type;
+        QueuePriority priority;
+    };
+
+    enum class ShaderError
+    {
+        eNone,
+        eInvalidFile,
+        eCompileError,
+    };
+
+    enum class AlphaMode : uint32_t
+    {
+        eOpaque,
+        eTransparent,
+    };
+
+    struct AdapterDescription
+    {
+        std::string name;
+        float system_memory;
+        float dedicated_video_memory;
+    };
+}
