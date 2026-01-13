@@ -2,8 +2,8 @@
 #include "format"
 #include "mikktspace.h"
 #include "span"
+#include "algorithm"
 #define STB_IMAGE_IMPLEMENTATION
-#define TINYGLTF_IMPLEMENTATION
 #include "tiny_gltf.h"
 #include "glm/gtc/quaternion.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -454,7 +454,6 @@ Sampler Importer::LoadSampler(const tinygltf::Sampler &sampler)
         .mag_filter = ToFilter(sampler.magFilter),
         .wrap_u = ToWrap(sampler.wrapS),
         .wrap_y = ToWrap(sampler.wrapT),
-        .wrap_w = ToWrap(sampler.wrapR),
     };
 
     return s;

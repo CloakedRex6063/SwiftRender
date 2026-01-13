@@ -3,6 +3,10 @@ project(Swift)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(cmake/CPM.cmake)
+
+option(SWIFT_EXAMPLES "Build the examples" OFF)
+
 add_library(${PROJECT_NAME} STATIC)
 target_include_directories(${PROJECT_NAME} PUBLIC inc)
 target_include_directories(${PROJECT_NAME} PRIVATE src)
@@ -22,8 +26,6 @@ elseif (UNIX AND NOT APPLE)
 endif ()
 
 add_subdirectory(extern)
-
-set(SWIFT_EXAMPLES ON)
 
 if(SWIFT_EXAMPLES)
     add_subdirectory(examples)

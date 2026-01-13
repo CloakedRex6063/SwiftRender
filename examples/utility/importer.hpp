@@ -61,7 +61,6 @@ struct Sampler
     Swift::Filter mag_filter;
     Swift::Wrap wrap_u;
     Swift::Wrap wrap_y;
-    Swift::Wrap wrap_w;
 };
 
 struct Node
