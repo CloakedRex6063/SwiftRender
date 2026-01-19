@@ -86,35 +86,42 @@ public:
     Model LoadModel(std::string_view path);
 
 private:
-    static const float *GetAttributeData(const std::string &name, const tinygltf::Model &model,
-                                         const tinygltf::Primitive &primitive, uint32_t &numAttributes);
+    static const float* GetAttributeData(const std::string& name,
+                                         const tinygltf::Model& model,
+                                         const tinygltf::Primitive& primitive,
+                                         uint32_t& numAttributes);
 
-    static std::vector<Vertex> LoadVertices(const tinygltf::Model &model, const tinygltf::Primitive &primitive,
-                                            std::vector<uint32_t> &indices);
+    static std::vector<Vertex> LoadVertices(const tinygltf::Model& model,
+                                            const tinygltf::Primitive& primitive,
+                                            std::vector<uint32_t>& indices);
 
-    static std::vector<uint32_t> LoadIndices(const tinygltf::Model &model, const tinygltf::Primitive &primitive);
+    static std::vector<uint32_t> LoadIndices(const tinygltf::Model& model, const tinygltf::Primitive& primitive);
 
-    static std::tuple<std::vector<meshopt_Meshlet>, std::vector<uint32_t>, std::vector<uint8_t> > BuildMeshlets(
-        std::span<const Vertex> vertices, std::span<const uint32_t> indices);
+    static std::tuple<std::vector<meshopt_Meshlet>, std::vector<uint32_t>, std::vector<uint8_t>> BuildMeshlets(
+        std::span<const Vertex> vertices,
+        std::span<const uint32_t> indices);
 
-    static std::tuple<std::vector<Node>, std::vector<glm::mat4>> LoadNodes(const tinygltf::Model &model);
-    static void LoadNode(const tinygltf::Model &model, int node_index, const glm::mat4 &parent_transform,
-                          std::vector<Node> &nodes, std::vector<glm::mat4> &transforms);
+    static std::tuple<std::vector<Node>, std::vector<glm::mat4>> LoadNodes(const tinygltf::Model& model);
+    static void LoadNode(const tinygltf::Model& model,
+                         int node_index,
+                         const glm::mat4& parent_transform,
+                         std::vector<Node>& nodes,
+                         std::vector<glm::mat4>& transforms);
 
     static std::vector<uint32_t> RepackMeshlets(std::span<meshopt_Meshlet> meshlets,
                                                 std::span<const uint8_t> meshlet_triangles);
 
-    static void LoadTangents(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
+    static void LoadTangents(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
 
-    static Texture LoadTexture(const tinygltf::Model &model, const tinygltf::Texture &texture);
+    static Texture LoadTexture(const tinygltf::Model& model, const tinygltf::Texture& texture);
 
-    static glm::mat4 GetLocalTransform(const tinygltf::Node &node);
+    static glm::mat4 GetLocalTransform(const tinygltf::Node& node);
 
-    static std::vector<Mesh> LoadMesh(const tinygltf::Model &model, const tinygltf::Mesh &mesh);
+    static std::vector<Mesh> LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mesh);
 
-    static Material LoadMaterial(const tinygltf::Model &model, const tinygltf::Material &material);
+    static Material LoadMaterial(const tinygltf::Model& model, const tinygltf::Material& material);
 
-    static Sampler LoadSampler(const tinygltf::Sampler &sampler);
+    static Sampler LoadSampler(const tinygltf::Sampler& sampler);
 
     static Swift::Filter ToFilter(int filter);
 

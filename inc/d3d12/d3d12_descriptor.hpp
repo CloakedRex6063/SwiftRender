@@ -34,4 +34,4 @@ namespace Swift::D3D12
         std::vector<Descriptor> m_descriptors;
         std::vector<uint32_t> m_free_descriptors;
     };
-}
+}  // namespace Swift::D3D12

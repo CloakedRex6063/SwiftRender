@@ -6,7 +6,7 @@
 class Camera
 {
 public:
-    void Tick(Window& window, Input &input, float delta_time);
+    void Tick(Window& window, Input& input, float delta_time);
 
     float m_aspect_ratio = 16.f / 9.f;
     float m_fov = glm::radians(90.f);
@@ -26,6 +26,6 @@ public:
 
 private:
     glm::mat4 m_world_matrix{};
-    void UpdateKeyboard(Input &input, float delta_time);
-    void UpdateMouse(Window &window, Input &input, float delta_time);
+    void UpdateKeyboard(Input& input, float delta_time);
+    void UpdateMouse(Window& window, Input& input, float delta_time);
 };

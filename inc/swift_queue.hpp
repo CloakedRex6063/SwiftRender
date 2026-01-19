@@ -21,4 +21,4 @@ namespace Swift
     protected:
         SWIFT_CONSTRUCT(IQueue);
     };
-}
+}  // namespace Swift

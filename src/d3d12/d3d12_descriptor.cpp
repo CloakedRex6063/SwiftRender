@@ -1,8 +1,10 @@
 #include "../../inc/d3d12/d3d12_descriptor.hpp"
 #include "d3d12_helpers.hpp"
 
-Swift::D3D12::DescriptorHeap::DescriptorHeap(ID3D12Device14 *device, const D3D12_DESCRIPTOR_HEAP_TYPE heap_type,
-                                             const uint32_t count) : m_heap_type(heap_type)
+Swift::D3D12::DescriptorHeap::DescriptorHeap(ID3D12Device14* device,
+                                             const D3D12_DESCRIPTOR_HEAP_TYPE heap_type,
+                                             const uint32_t count)
+    : m_heap_type(heap_type)
 {
     auto flag = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     if (heap_type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
@@ -44,7 +46,4 @@ Swift::D3D12::Descriptor Swift::D3D12::DescriptorHeap::Allocate()
     return m_descriptors[index];
 }
 
-void Swift::D3D12::DescriptorHeap::Free(const Descriptor &descriptor)
-{
-    m_free_descriptors.push_back(descriptor.index);
-}
+void Swift::D3D12::DescriptorHeap::Free(const Descriptor& descriptor) { m_free_descriptors.push_back(descriptor.index); }

@@ -47,7 +47,7 @@ set(IMGUI_IMPL_DX10 FALSE)
 set(IMGUI_IMPL_DX11 TRUE)
 set(IMGUI_IMPL_DX12 TRUE)
 set(IMGUI_IMPL_VULKAN FALSE)
-add_subdirectory(${imgui_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/imgui EXCLUDE_FROM_ALL SYSTEM)
+add_subdirectory(${imgui_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/imgui EXCLUDE_FROM_ALL SYSTEM)
 
 CPMAddPackage(
         NAME mikktspace
@@ -55,10 +55,10 @@ CPMAddPackage(
         GIT_TAG master
         DOWNLOAD_ONLY TRUE
 )
-if(mikktspace_ADDED)
+if (mikktspace_ADDED)
     add_library(mikktspace STATIC ${mikktspace_SOURCE_DIR}/mikktspace.c)
     target_include_directories(mikktspace PUBLIC ${mikktspace_SOURCE_DIR})
-endif()
+endif ()
 
 add_library(slang INTERFACE)
 target_include_directories(slang INTERFACE slang/include)

@@ -145,36 +145,34 @@ int ToGLFWKey(const KeyboardKey key)
     }
 }
 
-Input::Input(Window &window) : m_window(window)
+Input::Input(Window& window) : m_window(window)
 {
     glfwSetWindowUserPointer(window.GetHandle(), this);
     glfwSetCursorPosCallback(window.GetHandle(),
-                             [](GLFWwindow *window, double x_pos, double y_pos)
+                             [](GLFWwindow* window, double x_pos, double y_pos)
                              {
-                                 auto* input = static_cast<Input *>(glfwGetWindowUserPointer(
-                                     window));
+                                 auto* input = static_cast<Input*>(glfwGetWindowUserPointer(window));
                                  input->m_mouse_position = {x_pos, -y_pos};
                              });
     glfwSetKeyCallback(window.GetHandle(),
-                       [](GLFWwindow *window, const int key, int scancode, const int action, int mods)
+                       [](GLFWwindow* window, const int key, int scancode, const int action, int mods)
                        {
-                           auto* input = static_cast<Input *>(glfwGetWindowUserPointer(window));
+                           auto* input = static_cast<Input*>(glfwGetWindowUserPointer(window));
                            input->m_key_states[key] = action;
                        });
 
     glfwSetMouseButtonCallback(window.GetHandle(),
-                               [](GLFWwindow *window, int button, int action, int mods)
+                               [](GLFWwindow* window, int button, int action, int mods)
                                {
-                                   auto* input = static_cast<Input *>(glfwGetWindowUserPointer(window));
+                                   auto* input = static_cast<Input*>(glfwGetWindowUserPointer(window));
                                    input->m_mouse_states[button] = action;
                                });
 
     glfwSetWindowSizeCallback(m_window.GetHandle(),
-                              [](GLFWwindow *window, int w, int h)
+                              [](GLFWwindow* window, int w, int h)
                               {
-                                  auto* input = static_cast<Input *>(
-                                      glfwGetWindowUserPointer(window));
-                                  for (auto &callback: input->m_window.m_resize_callbacks)
+                                  auto* input = static_cast<Input*>(glfwGetWindowUserPointer(window));
+                                  for (auto& callback : input->m_window.m_resize_callbacks)
                                   {
                                       callback({w, h});
                                   }
@@ -187,11 +185,11 @@ void Input::Tick()
     m_prev_key_states = m_key_states;
     m_prev_mouse_states = m_mouse_states;
 
-    for (auto &[key, state]: m_key_states)
+    for (auto& [key, state] : m_key_states)
     {
         m_prev_key_states[key] = state;
     }
-    for (auto &[key, state]: m_mouse_states)
+    for (auto& [key, state] : m_mouse_states)
     {
         m_prev_mouse_states[key] = state;
     }
@@ -217,8 +215,7 @@ bool Input::IsKeyHeld(const KeyboardKey key)
 
 bool Input::IsMouseButtonPressed(MouseButton button)
 {
-    return m_mouse_states[static_cast<int>(button)] && !m_prev_mouse_states[static_cast<int>(
-               button)];
+    return m_mouse_states[static_cast<int>(button)] && !m_prev_mouse_states[static_cast<int>(button)];
 }
 
 bool Input::IsMouseButtonReleased(MouseButton button)
@@ -226,7 +223,4 @@ bool Input::IsMouseButtonReleased(MouseButton button)
     return !m_mouse_states[static_cast<int>(button)] && m_prev_mouse_states[static_cast<int>(button)];
 }
 
-bool Input::IsMouseButtonHeld(MouseButton button)
-{
-    return m_mouse_states[static_cast<int>(button)];
-}
+bool Input::IsMouseButtonHeld(MouseButton button) { return m_mouse_states[static_cast<int>(button)]; }

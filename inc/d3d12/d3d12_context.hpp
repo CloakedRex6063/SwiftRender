@@ -43,8 +43,8 @@ namespace Swift::D3D12
         void CreateDescriptorHeaps();
         void CreateFrameData();
         void CreateQueues();
-        void CreateTextures(const ContextCreateInfo &create_info);
-        void CreateSwapchain(const ContextCreateInfo &create_info);
+        void CreateTextures(const ContextCreateInfo& create_info);
+        void CreateSwapchain(const ContextCreateInfo& create_info);
 
         IDXGIAdapter4* m_adapter = nullptr;
         IDXGIFactory7* m_factory = nullptr;
@@ -55,4 +55,4 @@ namespace Swift::D3D12
         std::shared_ptr<DescriptorHeap> m_cbv_srv_uav_heap{};
         DXGI_ADAPTER_DESC3 m_adapter_desc{};
     };
-}
+}  // namespace Swift::D3D12

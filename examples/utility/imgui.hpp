@@ -5,10 +5,10 @@
 class Imgui
 {
 public:
-    Imgui(const std::shared_ptr<Swift::IContext> &context, const Window &window);
+    Imgui(const std::shared_ptr<Swift::IContext>& context, const Window& window);
     ~Imgui();
     void BeginFrame();
-    void Render(const std::shared_ptr<Swift::ICommand> &command);
+    void Render(const std::shared_ptr<Swift::ICommand>& command);
 
 private:
     void SetupStyle();

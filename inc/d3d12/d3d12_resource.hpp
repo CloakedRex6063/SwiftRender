@@ -19,4 +19,4 @@ namespace Swift::D3D12
     private:
         ID3D12Resource* m_resource;
     };
-}
+}  // namespace Swift::D3D12

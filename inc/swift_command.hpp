@@ -32,10 +32,9 @@ namespace Swift
                                        const std::shared_ptr<ITexture>& depth_stencil) = 0;
         virtual void ClearRenderTarget(const std::shared_ptr<ITexture>& texture_handle, const std::array<float, 4>& color) = 0;
         virtual void ClearDepthStencil(const std::shared_ptr<ITexture>& texture_handle, float depth, uint8_t stencil) = 0;
-        virtual void TransitionResource(const std::shared_ptr<IResource>& resource_handle,
-                                        ResourceState new_state) = 0;
+        virtual void TransitionResource(const std::shared_ptr<IResource>& resource_handle, ResourceState new_state) = 0;
 
     protected:
         SWIFT_CONSTRUCT(ICommand);
     };
-}
+}  // namespace Swift

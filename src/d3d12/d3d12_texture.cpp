@@ -2,10 +2,12 @@
 
 #include "d3d12_helpers.hpp"
 
-Swift::D3D12::Texture::Texture(Context* context, const std::shared_ptr<DescriptorHeap> &rtv_heap,
-                               const std::shared_ptr<DescriptorHeap> &dsv_heap, const std::shared_ptr<DescriptorHeap> &srv_heap,
-                               const TextureCreateInfo &info) :
-m_rtv_heap(rtv_heap), m_dsv_heap(dsv_heap), m_srv_heap(srv_heap)
+Swift::D3D12::Texture::Texture(Context* context,
+                               const std::shared_ptr<DescriptorHeap>& rtv_heap,
+                               const std::shared_ptr<DescriptorHeap>& dsv_heap,
+                               const std::shared_ptr<DescriptorHeap>& srv_heap,
+                               const TextureCreateInfo& info)
+    : m_rtv_heap(rtv_heap), m_dsv_heap(dsv_heap), m_srv_heap(srv_heap)
 {
     m_resource = info.resource;
     m_format = info.format;
@@ -44,12 +46,13 @@ m_rtv_heap(rtv_heap), m_dsv_heap(dsv_heap), m_srv_heap(srv_heap)
             .Format = ToDXGIFormat(info.format),
             .ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D,
             .Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
-            .Texture2D = {
-                .MostDetailedMip = 0,
-                .MipLevels = info.mip_levels,
-                .PlaneSlice = 0,
-                .ResourceMinLODClamp = 0.0f,
-            },
+            .Texture2D =
+                {
+                    .MostDetailedMip = 0,
+                    .MipLevels = info.mip_levels,
+                    .PlaneSlice = 0,
+                    .ResourceMinLODClamp = 0.0f,
+                },
         };
         m_srv_descriptor = srv_heap->Allocate();
         device->CreateShaderResourceView(dx_resource, &srv_desc, m_srv_descriptor->cpu_handle);

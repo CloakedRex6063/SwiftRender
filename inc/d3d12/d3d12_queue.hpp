@@ -24,4 +24,4 @@ namespace Swift::D3D12
         ID3D12CommandQueue* m_queue = nullptr;
         ID3D12Fence* m_fence = nullptr;
     };
-}
+}  // namespace Swift::D3D12

@@ -18,7 +18,7 @@ namespace Swift
         SWIFT_NO_COPY(IContext);
         SWIFT_NO_MOVE(IContext);
 
-        explicit IContext(const ContextCreateInfo&){}
+        explicit IContext(const ContextCreateInfo&) {}
 
         [[nodiscard]] virtual void* GetDevice() const = 0;
         [[nodiscard]] virtual void* GetAdapter() const = 0;
@@ -57,4 +57,4 @@ namespace Swift
         uint32_t m_frame_index{};
         std::array<std::shared_ptr<ITexture>, 3> m_swapchain_textures;
     };
-}
+}  // namespace Swift

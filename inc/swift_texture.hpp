@@ -25,4 +25,4 @@ namespace Swift
         uint32_t m_mip_levels = 1;
         uint32_t m_array_size = 1;
     };
-}
+}  // namespace Swift

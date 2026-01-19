@@ -14,4 +14,4 @@ namespace Swift
     protected:
         SWIFT_CONSTRUCT(IShader);
     };
-}
+}  // namespace Swift

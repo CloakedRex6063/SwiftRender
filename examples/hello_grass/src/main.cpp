@@ -30,18 +30,16 @@ struct GrassPatch
     float height;
 };
 
-void BuildGrass(const std::shared_ptr<Swift::IBuffer> &grass_buffer, const GrassSettings &settings,
-                uint32_t &grass_count);
+void BuildGrass(const std::shared_ptr<Swift::IBuffer>& grass_buffer, const GrassSettings& settings, uint32_t& grass_count);
 
 int main()
 {
     auto window = Window();
     const auto window_size = window.GetSize();
-    auto context = Swift::CreateContext({
-        .backend_type = Swift::BackendType::eD3D12, .size = std::array{window_size.x, window_size.y},
-        .native_window_handle = window.GetNativeWindow(),
-        .native_display_handle = nullptr
-    });
+    auto context = Swift::CreateContext({.backend_type = Swift::BackendType::eD3D12,
+                                         .size = std::array{window_size.x, window_size.y},
+                                         .native_window_handle = window.GetNativeWindow(),
+                                         .native_display_handle = nullptr});
 
     const Swift::TextureCreateInfo render_tex_info{
         .width = window_size[0],
@@ -49,8 +47,7 @@ int main()
         .mip_levels = 1,
         .array_size = 1,
         .format = Swift::Format::eRGBA8_UNORM,
-        .flags = EnumFlags(Swift::TextureFlags::eRenderTarget) |
-                 EnumFlags(Swift::TextureFlags::eShaderResource),
+        .flags = EnumFlags(Swift::TextureFlags::eRenderTarget) | EnumFlags(Swift::TextureFlags::eShaderResource),
     };
     const auto render_texture = context->CreateTexture(render_tex_info);
     const Swift::TextureCreateInfo depth_tex_info{
@@ -77,8 +74,7 @@ int main()
     };
     descriptors.emplace_back(descriptor);
 
-    const auto grass_shader_create_info = Swift::GraphicsShaderCreateInfo
-    {
+    const auto grass_shader_create_info = Swift::GraphicsShaderCreateInfo{
         .rtv_formats = {Swift::Format::eRGBA8_UNORM},
         .amplify_code = amplify_code,
         .mesh_code = mesh_code,
@@ -99,12 +95,11 @@ int main()
         uint32_t grass_patch_count;
         glm::float2 padding;
     };
-    const Swift::BufferCreateInfo constant_create_info
-    {
+    const Swift::BufferCreateInfo constant_create_info{
         .num_elements = 1,
         .element_size = 65536,
         .first_element = 0,
-        .flags = Swift::BufferFlags::eConstantBuffer,
+        .flags = Swift::BufferType::eConstantBuffer,
     };
     const auto constant_buffer = context->CreateBuffer(constant_create_info);
 
@@ -130,7 +125,7 @@ int main()
         .num_elements = 1,
         .element_size = sizeof(Frustum),
         .first_element = 0,
-        .flags = Swift::BufferFlags::eStructuredBuffer,
+        .flags = Swift::BufferType::eStructuredBuffer,
     };
     const auto frustum_buffer = context->CreateBuffer(frustum_create_info);
 
@@ -138,7 +133,7 @@ int main()
         .num_elements = 1000000,
         .element_size = sizeof(GrassPatch),
         .first_element = 0,
-        .flags = Swift::BufferFlags::eStructuredBuffer,
+        .flags = Swift::BufferType::eStructuredBuffer,
     };
     const auto grass_buffer = context->CreateBuffer(grass_info);
     GrassSettings grass_settings{};
@@ -159,12 +154,12 @@ int main()
         input.Tick();
         window.PollEvents();
 
-        const auto &command = context->GetCurrentCommand();
+        const auto& command = context->GetCurrentCommand();
 
         const auto window_size = window.GetSize();
         const auto float_size = std::array{static_cast<float>(window_size[0]), static_cast<float>(window_size[1])};
 
-        auto &render_target = context->GetCurrentSwapchainTexture();
+        auto& render_target = context->GetCurrentSwapchainTexture();
 
         const auto current_time = std::chrono::high_resolution_clock::now();
         const auto delta_time = std::chrono::duration<float>(current_time - prev_time).count();
@@ -205,17 +200,17 @@ int main()
             float time;
             glm::float2 padding;
         } push_constant{
-                    .wind_speed = grass_settings.wind_speed,
-                    .wind_strength = grass_settings.wind_strength,
-                    .apply_view_space_thicken = grass_settings.apply_view_space_thicken,
-                    .lod_distance = grass_settings.lod_distance,
-                    .grass_count = grass_count,
-                    .radius = grass_settings.radius,
-                    .cull = grass_settings.cull,
-                    .cull_z = grass_settings.cull_z,
-                    .width = grass_settings.width,
-                    .time = time,
-                };
+            .wind_speed = grass_settings.wind_speed,
+            .wind_strength = grass_settings.wind_strength,
+            .apply_view_space_thicken = grass_settings.apply_view_space_thicken,
+            .lod_distance = grass_settings.lod_distance,
+            .grass_count = grass_count,
+            .radius = grass_settings.radius,
+            .cull = grass_settings.cull,
+            .cull_z = grass_settings.cull_z,
+            .width = grass_settings.width,
+            .time = time,
+        };
         command->PushConstants(&push_constant, sizeof(PushConstant));
 
         const uint32_t num_amp_groups = (grass_count + 127) / 128;
@@ -266,8 +261,7 @@ int main()
     context->GetGraphicsQueue()->WaitIdle();
 }
 
-void BuildGrass(const std::shared_ptr<Swift::IBuffer> &grass_buffer, const GrassSettings &settings,
-                uint32_t &grass_count)
+void BuildGrass(const std::shared_ptr<Swift::IBuffer>& grass_buffer, const GrassSettings& settings, uint32_t& grass_count)
 {
     grass_count = settings.patch_x * settings.patch_y;
     std::vector<GrassPatch> grass_patches;
@@ -275,8 +269,7 @@ void BuildGrass(const std::shared_ptr<Swift::IBuffer> &grass_buffer, const Grass
     {
         for (int j = 0; j < settings.patch_y; j++)
         {
-            GrassPatch patch
-            {
+            GrassPatch patch{
                 .position = glm::vec3(i * settings.grid_spacing, 0, j * settings.grid_spacing),
                 .height = settings.height,
             };

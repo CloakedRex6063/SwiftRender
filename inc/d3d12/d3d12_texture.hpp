@@ -7,8 +7,10 @@ namespace Swift::D3D12
     class Texture final : public ITexture
     {
     public:
-        Texture(Context* context, const std::shared_ptr<DescriptorHeap>& rtv_heap,
-                const std::shared_ptr<DescriptorHeap>& dsv_heap, const std::shared_ptr<DescriptorHeap>& srv_heap,
+        Texture(Context* context,
+                const std::shared_ptr<DescriptorHeap>& rtv_heap,
+                const std::shared_ptr<DescriptorHeap>& dsv_heap,
+                const std::shared_ptr<DescriptorHeap>& srv_heap,
                 const TextureCreateInfo& info);
         SWIFT_NO_COPY(Texture);
         SWIFT_NO_MOVE(Texture);
@@ -27,4 +29,4 @@ namespace Swift::D3D12
         std::optional<Descriptor> m_dsv_descriptor = std::nullopt;
         std::optional<Descriptor> m_srv_descriptor = std::nullopt;
     };
-}
+}  // namespace Swift::D3D12

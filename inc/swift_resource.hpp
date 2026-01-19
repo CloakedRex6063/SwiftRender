@@ -25,4 +25,4 @@ namespace Swift
         void* m_data = nullptr;
         bool m_mapped = false;
     };
-}
+}  // namespace Swift

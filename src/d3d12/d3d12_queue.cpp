@@ -2,7 +2,7 @@
 
 #include "d3d12_helpers.hpp"
 
-Swift::D3D12::Queue::Queue(ID3D12Device14 *device, const QueueCreateInfo info)
+Swift::D3D12::Queue::Queue(ID3D12Device14* device, const QueueCreateInfo info)
 {
     const D3D12_COMMAND_QUEUE_DESC queue_desc = {
         .Type = ToCommandType(info.type),
@@ -44,7 +44,7 @@ void Swift::D3D12::Queue::WaitIdle()
     }
 }
 
-uint64_t Swift::D3D12::Queue::Execute(const std::span<const std::shared_ptr<ICommand>> &commands)
+uint64_t Swift::D3D12::Queue::Execute(const std::span<const std::shared_ptr<ICommand>>& commands)
 {
     std::array<ID3D12CommandList*, 8> command_lists;
     for (size_t i = 0; i < commands.size(); i++)

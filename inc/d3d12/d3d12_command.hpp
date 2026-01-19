@@ -18,7 +18,7 @@ namespace Swift::D3D12
 
         void* GetCommandList() override { return m_list; }
         void* GetCommandAllocator() override { return m_allocator; }
-        
+
         void Begin() override;
         void End() override;
         void SetViewport(const Viewport& viewport) override;
@@ -35,8 +35,7 @@ namespace Swift::D3D12
                                const std::shared_ptr<ITexture>& depth_stencil) override;
         void ClearRenderTarget(const std::shared_ptr<ITexture>& texture, const std::array<float, 4>& color) override;
         void ClearDepthStencil(const std::shared_ptr<ITexture>& texture, float depth, uint8_t stencil) override;
-        void TransitionResource(const std::shared_ptr<IResource>& resource_handle,
-            ResourceState new_state) override;
+        void TransitionResource(const std::shared_ptr<IResource>& resource_handle, ResourceState new_state) override;
 
     private:
         Context* m_context;
@@ -45,4 +44,4 @@ namespace Swift::D3D12
         ID3D12CommandAllocator* m_allocator = nullptr;
         std::shared_ptr<DescriptorHeap> m_cbv_srv_uav_heap;
     };
-}
+}  // namespace Swift::D3D12

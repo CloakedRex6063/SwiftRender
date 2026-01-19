@@ -5,7 +5,7 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/gtx/quaternion.hpp"
 
-void Camera::Tick(Window &window, Input &input, const float delta_time)
+void Camera::Tick(Window& window, Input& input, const float delta_time)
 {
     UpdateKeyboard(input, delta_time);
     UpdateMouse(window, input, delta_time);
@@ -17,12 +17,7 @@ void Camera::Tick(Window &window, Input &input, const float delta_time)
     m_world_matrix = translation * rotation_matrix;
     m_aspect_ratio = (float)size.x / (float)size.y;
     m_view_matrix = glm::inverse(m_world_matrix);
-    m_proj_matrix = glm::perspective(
-        m_fov,
-        m_aspect_ratio,
-        m_near_plane,
-        m_far_plane
-    );
+    m_proj_matrix = glm::perspective(m_fov, m_aspect_ratio, m_near_plane, m_far_plane);
 }
 
 void Camera::UpdateKeyboard(Input& input, const float delta_time)
@@ -37,28 +32,28 @@ void Camera::UpdateKeyboard(Input& input, const float delta_time)
     float front_back = 0;
     float sideways = 0;
 
-    if(forward)
+    if (forward)
     {
         front_back += m_move_speed;
     }
-    if(backward)
+    if (backward)
     {
         front_back -= m_move_speed;
     }
-    if(left)
+    if (left)
     {
         sideways -= m_move_speed;
     }
-    if(right)
+    if (right)
     {
         sideways += m_move_speed;
     }
     m_position += ((GetForwardVector() * front_back) + (GetRightVector() * sideways)) * delta_time;
-    if(up)
+    if (up)
     {
         m_position.y += delta_time * m_move_speed;
     }
-    if(down)
+    if (down)
     {
         m_position.y -= delta_time * m_move_speed;
     }

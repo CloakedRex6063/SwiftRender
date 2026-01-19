@@ -7,9 +7,9 @@
 #include "d3d12/d3d12_context.hpp"
 #include "d3d12/d3d12_descriptor.hpp"
 
-Imgui::Imgui(const std::shared_ptr<Swift::IContext> &context, const Window& window)
+Imgui::Imgui(const std::shared_ptr<Swift::IContext>& context, const Window& window)
 {
-IMGUI_CHECKVERSION();
+    IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     SetupStyle();
     ImGuiIO& io = ImGui::GetIO();
@@ -23,8 +23,7 @@ IMGUI_CHECKVERSION();
 
     ImGui_ImplDX12_InitInfo init_info = {};
     init_info.Device = static_cast<ID3D12Device*>(context->GetDevice());
-    init_info.CommandQueue =
-        static_cast<ID3D12CommandQueue*>(context->GetGraphicsQueue()->GetQueue());
+    init_info.CommandQueue = static_cast<ID3D12CommandQueue*>(context->GetGraphicsQueue()->GetQueue());
     init_info.NumFramesInFlight = 1;
     init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
     init_info.DSVFormat = DXGI_FORMAT_UNKNOWN;
@@ -39,15 +38,12 @@ IMGUI_CHECKVERSION();
         out_cpu_handle->ptr = descriptor.cpu_handle.ptr;
         out_gpu_handle->ptr = descriptor.gpu_handle.ptr;
     };
-    init_info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo* info,
-                                       D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle,
-                                       D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle)
+    init_info.SrvDescriptorFreeFn =
+        [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle)
     {
         auto* srv_heap = static_cast<Swift::D3D12::DescriptorHeap*>(info->UserData);
-        const uint32_t index =
-            (cpu_handle.ptr - srv_heap->GetCpuBaseHandle().ptr) / srv_heap->GetStride();
-        srv_heap->Free(Swift::D3D12::Descriptor{
-            .cpu_handle = cpu_handle, .gpu_handle = gpu_handle, .index = index});
+        const uint32_t index = (cpu_handle.ptr - srv_heap->GetCpuBaseHandle().ptr) / srv_heap->GetStride();
+        srv_heap->Free(Swift::D3D12::Descriptor{.cpu_handle = cpu_handle, .gpu_handle = gpu_handle, .index = index});
     };
     ImGui_ImplDX12_Init(&init_info);
 }
@@ -69,13 +65,12 @@ void Imgui::BeginFrame()
 void Imgui::Render(const std::shared_ptr<Swift::ICommand>& command)
 {
     ImGui::Render();
-    ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(),
-                              static_cast<ID3D12GraphicsCommandList*>(command->GetCommandList()));
+    ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), static_cast<ID3D12GraphicsCommandList*>(command->GetCommandList()));
 }
 
 void Imgui::SetupStyle()
 {
-        ImVec4* colors = ImGui::GetStyle().Colors;
+    ImVec4* colors = ImGui::GetStyle().Colors;
     colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
     colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
     colors[ImGuiCol_WindowBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);

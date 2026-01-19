@@ -1,5 +1,4 @@
 #pragma once
-#include "variant"
 #include "string"
 #include "memory"
 #include "optional"
@@ -15,7 +14,9 @@ namespace Swift
 
     enum class BackendType
     {
+#ifdef SWIFT_WINDOWS
         eD3D12,
+#endif
         eVulkan,
     };
 
@@ -46,12 +47,12 @@ namespace Swift
         uint32_t quality;
     };
 
-    enum class BufferFlags : uint32_t
+    enum class BufferType : uint32_t
     {
-        eNone = 0,
-        eConstantBuffer = 1 << 1,
-        eStructuredBuffer = 1 << 2,
-        eReadback = 1 << 3,
+        eNone,
+        eReadback,
+        eConstantBuffer,
+        eStructuredBuffer,
     };
 
     enum class TextureFlags : uint32_t
@@ -62,13 +63,26 @@ namespace Swift
         eDepthStencil = 1 << 3,
     };
 
-
     struct ContextCreateInfo
     {
         BackendType backend_type;
-        std::array<uint32_t, 2> size;
-        void *native_window_handle;
-        void *native_display_handle;
+        uint32_t width;
+        uint32_t height;
+        void* native_window_handle;
+        void* native_display_handle;
+    };
+
+    enum class PolygonMode
+    {
+        ePoint,
+        eLine,
+        eTriangle
+    };
+
+    enum class FrontFace
+    {
+        eClockwise,
+        eCounterClockwise,
     };
 
     enum class CullMode
@@ -78,6 +92,11 @@ namespace Swift
         eNone
     };
 
+    enum class FillMode
+    {
+        eWireframe,
+        eSolid
+    };
 
     enum class ShaderVisibility
     {
@@ -132,14 +151,43 @@ namespace Swift
         Wrap wrap_w;
     };
 
+    enum class DepthTest
+    {
+        eAlways,
+        eNever,
+        eLess,
+        eLessEqual,
+        eGreater,
+        eGreaterEqual,
+        eEqual,
+        eNotEqual,
+    };
+
+    struct DepthStencilState
+    {
+        bool depth_enable;
+        bool depth_write_enable;
+        DepthTest depth_test;
+        bool stencil_enable;
+    };
+
+    struct RasterizerState
+    {
+        FillMode fill_mode;
+        CullMode cull_mode;
+        FrontFace front_face;
+    };
+
     struct GraphicsShaderCreateInfo
     {
         std::vector<Format> rtv_formats;
-        Format dsv_format;
+        std::optional<Format> dsv_format;
         std::vector<uint8_t> amplify_code;
         std::vector<uint8_t> mesh_code;
         std::vector<uint8_t> pixel_code;
-        CullMode cull_mode;
+        DepthStencilState depth_stencil_state;
+        RasterizerState rasterizer_state;
+        PolygonMode polygon_mode;
         std::vector<Descriptor> descriptors;
         std::vector<SamplerDescriptor> static_samplers;
     };
@@ -216,7 +264,7 @@ namespace Swift
         uint16_t array_size = 1;
         Format format = Format::eRGBA8_UNORM;
         EnumFlags<TextureFlags> flags = TextureFlags::eNone;
-        const void *data = nullptr;
+        const void* data = nullptr;
         std::optional<MSAA> msaa = std::nullopt;
         std::shared_ptr<IResource> resource = nullptr;
     };
@@ -226,8 +274,8 @@ namespace Swift
         uint32_t num_elements = 0;
         uint32_t element_size = 0;
         uint32_t first_element = 0;
-        const void *data = nullptr;
-        EnumFlags<BufferFlags> flags = BufferFlags::eNone;
+        const void* data = nullptr;
+        BufferType type = BufferType::eConstantBuffer;
         std::shared_ptr<IResource> resource = nullptr;
     };
 
@@ -256,4 +304,4 @@ namespace Swift
         float system_memory;
         float dedicated_video_memory;
     };
-}
+}  // namespace Swift

@@ -8,9 +8,12 @@ namespace Swift::D3D12
     {
         switch (type)
         {
-            case QueueType::eGraphics: return D3D12_COMMAND_LIST_TYPE_DIRECT;
-            case QueueType::eCompute: return D3D12_COMMAND_LIST_TYPE_COMPUTE;
-            case QueueType::eTransfer: return D3D12_COMMAND_LIST_TYPE_COPY;
+            case QueueType::eGraphics:
+                return D3D12_COMMAND_LIST_TYPE_DIRECT;
+            case QueueType::eCompute:
+                return D3D12_COMMAND_LIST_TYPE_COMPUTE;
+            case QueueType::eTransfer:
+                return D3D12_COMMAND_LIST_TYPE_COPY;
         }
         return D3D12_COMMAND_LIST_TYPE_DIRECT;
     }
@@ -19,9 +22,12 @@ namespace Swift::D3D12
     {
         switch (type)
         {
-            case DescriptorType::eConstant: return D3D12_ROOT_PARAMETER_TYPE_CBV;
-            case DescriptorType::eShaderResource: return D3D12_ROOT_PARAMETER_TYPE_SRV;
-            case DescriptorType::eUnorderedAccess: return D3D12_ROOT_PARAMETER_TYPE_UAV;
+            case DescriptorType::eConstant:
+                return D3D12_ROOT_PARAMETER_TYPE_CBV;
+            case DescriptorType::eShaderResource:
+                return D3D12_ROOT_PARAMETER_TYPE_SRV;
+            case DescriptorType::eUnorderedAccess:
+                return D3D12_ROOT_PARAMETER_TYPE_UAV;
         }
         return D3D12_ROOT_PARAMETER_TYPE_CBV;
     }
@@ -54,8 +60,10 @@ namespace Swift::D3D12
     {
         switch (priority)
         {
-            case QueuePriority::eHigh: return D3D12_COMMAND_QUEUE_PRIORITY_HIGH;
-            case QueuePriority::eNormal: return D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+            case QueuePriority::eHigh:
+                return D3D12_COMMAND_QUEUE_PRIORITY_HIGH;
+            case QueuePriority::eNormal:
+                return D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
         }
         return D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
     }
@@ -91,6 +99,68 @@ namespace Swift::D3D12
         return D3D12_CULL_MODE_NONE;
     }
 
+    constexpr bool ToFrontFace(const FrontFace front_face) noexcept
+    {
+        switch (front_face)
+        {
+            case FrontFace::eClockwise:
+                return false;
+            case FrontFace::eCounterClockwise:
+                return true;
+        }
+        return true;
+    }
+
+    constexpr D3D12_FILL_MODE ToFillMode(const FillMode mode) noexcept
+    {
+        switch (mode)
+        {
+            case FillMode::eWireframe:
+                return D3D12_FILL_MODE_WIREFRAME;
+            case FillMode::eSolid:
+                return D3D12_FILL_MODE_SOLID;
+        }
+        return D3D12_FILL_MODE_WIREFRAME;
+    }
+
+    constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE ToPolygonMode(const PolygonMode mode) noexcept
+    {
+        switch (mode)
+        {
+            case PolygonMode::ePoint:
+                return D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+            case PolygonMode::eLine:
+                return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+            case PolygonMode::eTriangle:
+                return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        }
+        return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    }
+
+    constexpr D3D12_COMPARISON_FUNC ToDepthTest(const DepthTest test)
+    {
+        switch (test)
+        {
+            case DepthTest::eAlways:
+                return D3D12_COMPARISON_FUNC_ALWAYS;
+            case DepthTest::eNever:
+                return D3D12_COMPARISON_FUNC_NEVER;
+            case DepthTest::eLess:
+                return D3D12_COMPARISON_FUNC_LESS;
+            case DepthTest::eLessEqual:
+                return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+            case DepthTest::eGreater:
+                return D3D12_COMPARISON_FUNC_GREATER;
+            case DepthTest::eGreaterEqual:
+                return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+            case DepthTest::eEqual:
+                return D3D12_COMPARISON_FUNC_EQUAL;
+            case DepthTest::eNotEqual:
+                return D3D12_COMPARISON_FUNC_NOT_EQUAL;
+        }
+        return D3D12_COMPARISON_FUNC_ALWAYS;
+    }
+
     constexpr D3D12_RESOURCE_STATES ToResourceState(const ResourceState state) noexcept
     {
         switch (state)
@@ -123,8 +193,10 @@ namespace Swift::D3D12
 
     constexpr D3D12_FILTER ToFilter(const Filter min_filter, const Filter mag_filter) noexcept
     {
-        constexpr auto get_base = [](const Filter f) -> int {
-            switch (f) {
+        constexpr auto get_base = [](const Filter f) -> int
+        {
+            switch (f)
+            {
                 case Filter::eNearest:
                 case Filter::eNearestMipNearest:
                 case Filter::eNearestMipLinear:
@@ -137,8 +209,10 @@ namespace Swift::D3D12
             return 0;
         };
 
-        constexpr auto get_mip = [](const Filter f) -> int {
-            switch (f) {
+        constexpr auto get_mip = [](const Filter f) -> int
+        {
+            switch (f)
+            {
                 case Filter::eNearest:
                 case Filter::eLinear:
                 case Filter::eNearestMipNearest:
@@ -169,7 +243,8 @@ namespace Swift::D3D12
 
     constexpr D3D12_TEXTURE_ADDRESS_MODE ToWrap(const Wrap wrap) noexcept
     {
-        switch (wrap) {
+        switch (wrap)
+        {
             case Wrap::eRepeat:
                 return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
             case Wrap::eMirroredRepeat:
@@ -180,7 +255,7 @@ namespace Swift::D3D12
         return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
     }
 
-    inline const char *GetResultMessage(const HRESULT hr)
+    inline const char* GetResultMessage(const HRESULT hr)
     {
         LPSTR errorText = nullptr;
         FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -192,4 +267,4 @@ namespace Swift::D3D12
                       nullptr);
         return errorText;
     }
-}
+}  // namespace Swift::D3D12

@@ -12,7 +12,7 @@ Window::Window()
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE , GLFW_TRUE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     m_window = glfwCreateWindow(1280, 720, "Window", nullptr, nullptr);
 }
 
@@ -22,34 +22,25 @@ Window::~Window()
     glfwTerminate();
 }
 
-bool Window::IsRunning() const
-{
-    return !glfwWindowShouldClose(m_window);
-}
+bool Window::IsRunning() const { return !glfwWindowShouldClose(m_window); }
 
-void Window::PollEvents() const
-{
-    glfwPollEvents();
-}
+void Window::PollEvents() const { glfwPollEvents(); }
 
-void * Window::GetNativeWindow() const
+void* Window::GetNativeWindow() const
 {
 #ifdef SWIFT_WINDOWS
     return glfwGetWin32Window(m_window);
 #endif
 }
 
-void * Window::GetNativeDisplay() const
+void* Window::GetNativeDisplay() const
 {
 #ifdef SWIFT_WINDOWS
     return nullptr;
 #endif
 }
 
-GLFWwindow * Window::GetHandle() const
-{
-    return m_window;
-}
+GLFWwindow* Window::GetHandle() const { return m_window; }
 
 glm::uvec2 Window::GetSize() const
 {

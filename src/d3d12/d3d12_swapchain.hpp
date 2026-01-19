@@ -12,7 +12,7 @@ namespace Swift::D3D12
         SWIFT_NO_CONSTRUCT(Swapchain);
         SWIFT_NO_COPY(Swapchain);
         SWIFT_NO_MOVE(Swapchain);
-        Swapchain(IDXGIFactory7 *factory, ID3D12CommandQueue *queue, const ContextCreateInfo &create_info);
+        Swapchain(IDXGIFactory7* factory, ID3D12CommandQueue* queue, const ContextCreateInfo& create_info);
 
         void Present(bool m_vsync) const;
         void* GetSwapchain() const { return m_swapchain; };
@@ -22,4 +22,4 @@ namespace Swift::D3D12
     private:
         IDXGISwapChain4* m_swapchain = nullptr;
     };
-}
+}  // namespace Swift::D3D12
