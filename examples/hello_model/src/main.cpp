@@ -13,7 +13,8 @@ int main()
     auto window = Window();
     const auto window_size = window.GetSize();
     const auto context = Swift::CreateContext({.backend_type = Swift::BackendType::eD3D12,
-                                               .size = std::array{window_size.x, window_size.y},
+                                               .width = window_size.x,
+                                               .height = window_size.y,
                                                .native_window_handle = window.GetNativeWindow(),
                                                .native_display_handle = nullptr});
 
@@ -70,7 +71,7 @@ int main()
         .dsv_format = Swift::Format::eD32F,
         .mesh_code = mesh_shader,
         .pixel_code = pixel_shader,
-        .cull_mode = Swift::CullMode::eBack,
+        .polygon_mode = Swift::PolygonMode::eTriangle,
         .descriptors = descriptors,
         .static_samplers = sampler_descriptors,
     };
@@ -89,7 +90,7 @@ int main()
         .num_elements = 1,
         .element_size = 65536,
         .first_element = 0,
-        .flags = Swift::BufferType::eConstantBuffer,
+        .type = Swift::BufferType::eConstantBuffer,
     };
     const auto constant_buffer = context->CreateBuffer(constant_create_info);
 
@@ -143,7 +144,7 @@ int main()
             .element_size = sizeof(Vertex),
             .first_element = 0,
             .data = mesh.vertices.data(),
-            .flags = Swift::BufferType::eStructuredBuffer,
+            .type = Swift::BufferType::eStructuredBuffer,
         };
         const auto vertex_buffer = context->CreateBuffer(vertex_create_info);
 
@@ -152,7 +153,7 @@ int main()
             .element_size = sizeof(meshopt_Meshlet),
             .first_element = 0,
             .data = mesh.meshlets.data(),
-            .flags = Swift::BufferType::eStructuredBuffer,
+            .type = Swift::BufferType::eStructuredBuffer,
         };
         const auto meshlet_buffer = context->CreateBuffer(mesh_create_info);
 
@@ -161,7 +162,7 @@ int main()
             .element_size = sizeof(uint32_t),
             .first_element = 0,
             .data = mesh.meshlet_vertices.data(),
-            .flags = Swift::BufferType::eStructuredBuffer,
+            .type = Swift::BufferType::eStructuredBuffer,
         };
         const auto mesh_vertex_buffer = context->CreateBuffer(mesh_vertex_create_info);
 
@@ -170,7 +171,7 @@ int main()
             .element_size = sizeof(uint32_t),
             .first_element = 0,
             .data = mesh.meshlet_triangles.data(),
-            .flags = Swift::BufferType::eStructuredBuffer,
+            .type = Swift::BufferType::eStructuredBuffer,
         };
         const auto mesh_triangle_buffer = context->CreateBuffer(mesh_triangle_create_info);
         MeshBuffer mesh_buffer{
@@ -245,7 +246,7 @@ int main()
         .element_size = sizeof(Material),
         .first_element = 0,
         .data = chess.materials.data(),
-        .flags = Swift::BufferType::eStructuredBuffer,
+        .type = Swift::BufferType::eStructuredBuffer,
     };
     const auto material_buffer = context->CreateBuffer(material_create_info);
 
@@ -254,7 +255,7 @@ int main()
         .element_size = sizeof(glm::mat4),
         .first_element = 0,
         .data = chess.transforms.data(),
-        .flags = Swift::BufferType::eStructuredBuffer,
+        .type = Swift::BufferType::eStructuredBuffer,
     };
     const auto transforms_buffer = context->CreateBuffer(transforms_create_info);
 

@@ -7,7 +7,7 @@
 #include "d3d12/d3d12_context.hpp"
 #include "d3d12/d3d12_descriptor.hpp"
 
-Imgui::Imgui(const std::shared_ptr<Swift::IContext>& context, const Window& window)
+ImguiBackend::ImguiBackend(const std::shared_ptr<Swift::IContext>& context, const Window& window)
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -48,27 +48,27 @@ Imgui::Imgui(const std::shared_ptr<Swift::IContext>& context, const Window& wind
     ImGui_ImplDX12_Init(&init_info);
 }
 
-Imgui::~Imgui()
+ImguiBackend::~ImguiBackend()
 {
     ImGui_ImplDX12_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 }
 
-void Imgui::BeginFrame()
+void ImguiBackend::BeginFrame()
 {
     ImGui_ImplDX12_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 }
 
-void Imgui::Render(const std::shared_ptr<Swift::ICommand>& command)
+void ImguiBackend::Render(const std::shared_ptr<Swift::ICommand>& command)
 {
     ImGui::Render();
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), static_cast<ID3D12GraphicsCommandList*>(command->GetCommandList()));
 }
 
-void Imgui::SetupStyle()
+void ImguiBackend::SetupStyle()
 {
     ImVec4* colors = ImGui::GetStyle().Colors;
     colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);

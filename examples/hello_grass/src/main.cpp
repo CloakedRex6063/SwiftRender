@@ -37,7 +37,8 @@ int main()
     auto window = Window();
     const auto window_size = window.GetSize();
     auto context = Swift::CreateContext({.backend_type = Swift::BackendType::eD3D12,
-                                         .size = std::array{window_size.x, window_size.y},
+                                         .width = window_size.x,
+                                         .height = window_size.y,
                                          .native_window_handle = window.GetNativeWindow(),
                                          .native_display_handle = nullptr});
 
@@ -79,7 +80,10 @@ int main()
         .amplify_code = amplify_code,
         .mesh_code = mesh_code,
         .pixel_code = pixel_code,
-        .cull_mode = Swift::CullMode::eNone,
+        .rasterizer_state =
+            {
+                .cull_mode = Swift::CullMode::eNone,
+            },
         .descriptors = descriptors,
     };
     auto grass_shader = context->CreateShader(grass_shader_create_info);
@@ -99,7 +103,7 @@ int main()
         .num_elements = 1,
         .element_size = 65536,
         .first_element = 0,
-        .flags = Swift::BufferType::eConstantBuffer,
+        .type = Swift::BufferType::eConstantBuffer,
     };
     const auto constant_buffer = context->CreateBuffer(constant_create_info);
 
@@ -125,7 +129,7 @@ int main()
         .num_elements = 1,
         .element_size = sizeof(Frustum),
         .first_element = 0,
-        .flags = Swift::BufferType::eStructuredBuffer,
+        .type = Swift::BufferType::eStructuredBuffer,
     };
     const auto frustum_buffer = context->CreateBuffer(frustum_create_info);
 
@@ -133,7 +137,7 @@ int main()
         .num_elements = 1000000,
         .element_size = sizeof(GrassPatch),
         .first_element = 0,
-        .flags = Swift::BufferType::eStructuredBuffer,
+        .type = Swift::BufferType::eStructuredBuffer,
     };
     const auto grass_buffer = context->CreateBuffer(grass_info);
     GrassSettings grass_settings{};
@@ -145,7 +149,7 @@ int main()
 
     Camera camera{};
     Input input{window};
-    Imgui imgui{context, window};
+    ImguiBackend imgui{context, window};
 
     float time = 0.0f;
     auto prev_time = std::chrono::high_resolution_clock::now();

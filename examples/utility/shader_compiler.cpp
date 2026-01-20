@@ -1,6 +1,7 @@
 #include "shader_compiler.hpp"
 #include "string"
 #include "vector"
+#include "array"
 
 ShaderCompiler::ShaderCompiler()
 {
@@ -10,10 +11,26 @@ ShaderCompiler::ShaderCompiler()
 
 std::vector<uint8_t> ShaderCompiler::CompileShader(const std::string_view file_path, const ShaderStage stage) const
 {
+    std::array options =
+    {
+        slang::CompilerOptionEntry{
+            slang::CompilerOptionName::DebugInformation,
+            { slang::CompilerOptionValueKind::Int,
+              SLANG_DEBUG_INFO_LEVEL_STANDARD }
+        },
+        slang::CompilerOptionEntry{
+            slang::CompilerOptionName::Optimization,
+            { slang::CompilerOptionValueKind::Int,
+              SLANG_OPTIMIZATION_LEVEL_NONE }
+        }
+    };
+
     slang::TargetDesc target_desc = {
         .structureSize = sizeof(slang::TargetDesc),
         .format = SLANG_DXIL,
         .profile = m_global_session->findProfile("sm_6_8"),
+        .compilerOptionEntries = options.data(),
+        .compilerOptionEntryCount = options.size(),
     };
     const slang::SessionDesc session_desc{
         .structureSize = sizeof(slang::SessionDesc),

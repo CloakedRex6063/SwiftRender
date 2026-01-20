@@ -344,7 +344,7 @@ namespace Swift
 
     struct BufferBuilder
     {
-        BufferBuilder(const std::shared_ptr<IContext>& context, const BufferType buffer_type, uint32_t size = 0)
+        BufferBuilder(const std::shared_ptr<IContext>& context, const BufferType buffer_type, uint32_t size = 65536)
         {
             m_context = context;
             m_buffer_type = buffer_type;

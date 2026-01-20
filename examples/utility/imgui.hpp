@@ -2,11 +2,11 @@
 #include "swift.hpp"
 #include "window.hpp"
 
-class Imgui
+class ImguiBackend
 {
 public:
-    Imgui(const std::shared_ptr<Swift::IContext>& context, const Window& window);
-    ~Imgui();
+    ImguiBackend(const std::shared_ptr<Swift::IContext>& context, const Window& window);
+    ~ImguiBackend();
     void BeginFrame();
     void Render(const std::shared_ptr<Swift::ICommand>& command);
 

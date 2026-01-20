@@ -7,7 +7,8 @@ int main()
     const auto window = Window();
     const auto window_size = window.GetSize();
     const auto context = Swift::CreateContext({.backend_type = Swift::BackendType::eD3D12,
-                                               .size = window_size,
+                                               .width = window_size.x,
+                                               .height = window_size.y,
                                                .native_window_handle = window.GetNativeWindow(),
                                                .native_display_handle = nullptr});
 

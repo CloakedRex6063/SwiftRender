@@ -3,11 +3,14 @@
 #include "swift.hpp"
 #include "window.hpp"
 #include "shader_compiler.hpp"
-#include "glm/fwd.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtx/compatibility.hpp"
 #include "chrono"
+#include "imgui.h"
+#include "imgui.hpp"
+#include "mesh_renderer.hpp"
 #include "swift_builders.hpp"
+#include "lights.hpp"
 
 int main()
 {
@@ -67,145 +70,11 @@ int main()
                             .SetStaticSamplers(sampler_descriptors)
                             .Build();
 
-    struct ConstantBufferInfo
-    {
-        glm::mat4 view_proj;
-        glm::float3 cam_pos;
-        uint32_t material_buffer_index;
-        uint32_t transform_buffer_index;
-        glm::float3 padding;
-    };
-
     const auto constant_buffer = Swift::BufferBuilder(context, Swift::BufferType::eConstantBuffer, 65536).Build();
 
-    struct MeshRenderer
-    {
-        uint32_t m_vertex_buffer;
-        uint32_t m_mesh_buffer;
-        uint32_t m_mesh_vertex_buffer;
-        uint32_t m_mesh_triangle_buffer;
-        uint32_t m_meshlet_count;
-        int m_material_index;
-        uint32_t m_transform_index;
-
-        void Draw(const std::shared_ptr<Swift::ICommand>& command) const
-        {
-            const struct PushConstants
-            {
-                uint32_t vertex_buffer;
-                uint32_t meshlet_buffer;
-                uint32_t mesh_vertex_buffer;
-                uint32_t mesh_triangle_buffer;
-                int material_index;
-                uint32_t transform_index;
-            } push_constants{
-                .vertex_buffer = m_vertex_buffer,
-                .meshlet_buffer = m_mesh_buffer,
-                .mesh_vertex_buffer = m_mesh_vertex_buffer,
-                .mesh_triangle_buffer = m_mesh_triangle_buffer,
-                .material_index = m_material_index,
-                .transform_index = m_transform_index,
-            };
-            command->PushConstants(&push_constants, sizeof(PushConstants));
-            command->DispatchMesh(m_meshlet_count, 1, 1);
-        }
-    };
-
-    std::vector<MeshRenderer> mesh_renderers;
-
-    struct MeshBuffers
-    {
-        std::shared_ptr<Swift::IBuffer> m_vertex_buffer;
-        std::shared_ptr<Swift::IBuffer> m_mesh_buffer;
-        std::shared_ptr<Swift::IBuffer> m_mesh_vertex_buffer;
-        std::shared_ptr<Swift::IBuffer> m_mesh_triangle_buffer;
-    };
-    std::vector<MeshBuffers> mesh_buffers;
-    for (auto& mesh : helmet.meshes)
-    {
-        const auto vertex_buffer = Swift::BufferBuilder(context, Swift::BufferType::eStructuredBuffer)
-                                       .SetElementSize(sizeof(Vertex))
-                                       .SetNumElements(mesh.vertices.size())
-                                       .SetData(mesh.vertices.data())
-                                       .Build();
-        const auto meshlet_buffer = Swift::BufferBuilder(context, Swift::BufferType::eStructuredBuffer)
-                                        .SetElementSize(sizeof(meshopt_Meshlet))
-                                        .SetNumElements(mesh.meshlets.size())
-                                        .SetData(mesh.meshlets.data())
-                                        .Build();
-        const auto mesh_vertex_buffer = Swift::BufferBuilder(context, Swift::BufferType::eStructuredBuffer)
-                                            .SetElementSize(sizeof(uint32_t))
-                                            .SetNumElements(mesh.meshlet_vertices.size())
-                                            .SetData(mesh.meshlet_vertices.data())
-                                            .Build();
-        const auto mesh_triangle_buffer = Swift::BufferBuilder(context, Swift::BufferType::eStructuredBuffer)
-                                              .SetElementSize(sizeof(uint32_t))
-                                              .SetNumElements(mesh.meshlet_triangles.size())
-                                              .SetData(mesh.meshlet_triangles.data())
-                                              .Build();
-
-        MeshBuffers mesh_buffer{
-            .m_vertex_buffer = vertex_buffer,
-            .m_mesh_buffer = meshlet_buffer,
-            .m_mesh_vertex_buffer = mesh_vertex_buffer,
-            .m_mesh_triangle_buffer = mesh_triangle_buffer,
-        };
-        mesh_buffers.emplace_back(mesh_buffer);
-    }
-
-    for (auto& node : helmet.nodes)
-    {
-        const auto& mesh = helmet.meshes[node.mesh_index];
-        const auto& [m_vertex_buffer, m_mesh_buffer, m_mesh_vertex_buffer, m_mesh_triangle_buffer] =
-            mesh_buffers[node.mesh_index];
-        MeshRenderer mesh_renderer{
-            .m_vertex_buffer = m_vertex_buffer->GetDescriptorIndex(),
-            .m_mesh_buffer = m_mesh_buffer->GetDescriptorIndex(),
-            .m_mesh_vertex_buffer = m_mesh_vertex_buffer->GetDescriptorIndex(),
-            .m_mesh_triangle_buffer = m_mesh_triangle_buffer->GetDescriptorIndex(),
-            .m_meshlet_count = static_cast<uint32_t>(mesh.meshlets.size()),
-            .m_material_index = mesh.material_index,
-            .m_transform_index = node.transform_index,
-        };
-        mesh_renderers.push_back(mesh_renderer);
-    }
-
-    std::vector<std::shared_ptr<Swift::ITexture>> textures;
-    for (auto& texture : helmet.textures)
-    {
-        const auto t = Swift::TextureBuilder(context, texture.width, texture.height)
-                           .SetFormat(texture.format)
-                           .SetArraySize(texture.array_size)
-                           .SetMipmapLevels(texture.mip_levels)
-                           .SetFlags(Swift::TextureFlags::eShaderResource)
-                           .SetData(texture.pixels.data())
-                           .Build();
-        textures.emplace_back(t);
-    }
-
-    for (auto& material : helmet.materials)
-    {
-        if (material.albedo_index != -1)
-        {
-            material.albedo_index = textures[material.albedo_index]->GetDescriptorIndex();
-        }
-        if (material.metal_rough_index != -1)
-        {
-            material.metal_rough_index = textures[material.metal_rough_index]->GetDescriptorIndex();
-        }
-        if (material.occlusion_index != -1)
-        {
-            material.occlusion_index = textures[material.occlusion_index]->GetDescriptorIndex();
-        }
-        if (material.emissive_index != -1)
-        {
-            material.emissive_index = textures[material.emissive_index]->GetDescriptorIndex();
-        }
-        if (material.normal_index != -1)
-        {
-            material.normal_index = textures[material.normal_index]->GetDescriptorIndex();
-        }
-    }
+    const auto mesh_buffers = CreateMeshBuffers(context, helmet.meshes);
+    std::vector<MeshRenderer> mesh_renderers = CreateMeshRenderers(helmet.nodes, helmet.meshes, mesh_buffers);
+    const auto textures = CreateTextures(context, helmet.textures, helmet.materials);
 
     const auto material_buffer = Swift::BufferBuilder(context, Swift::BufferType::eStructuredBuffer)
                                      .SetElementSize(sizeof(Material))
@@ -218,8 +87,20 @@ int main()
                                        .SetData(helmet.transforms.data())
                                        .Build();
 
+    const auto point_light_buffer = Swift::BufferBuilder(context, Swift::BufferType::eStructuredBuffer)
+                                        .SetElementSize(sizeof(PointLight))
+                                        .SetNumElements(100)
+                                        .Build();
+    const auto dir_light_buffer = Swift::BufferBuilder(context, Swift::BufferType::eStructuredBuffer)
+                                      .SetElementSize(sizeof(DirectionalLight))
+                                      .SetNumElements(100)
+                                      .Build();
+    std::vector<PointLight> point_lights{};
+    std::vector<DirectionalLight> dir_lights{};
+
     Camera camera{};
     Input input{window};
+    ImguiBackend imgui{context, window};
 
     auto prev_time = std::chrono::high_resolution_clock::now();
     while (window.IsRunning())
@@ -240,13 +121,40 @@ int main()
 
         camera.Tick(window, input, delta_time);
 
+        struct ConstantBufferInfo
+        {
+            glm::mat4 view_proj;
+            glm::float3 cam_pos;
+            uint32_t material_buffer_index;
+
+            uint32_t transform_buffer_index;
+            uint32_t point_light_buffer_index;
+            uint32_t dir_light_buffer_index;
+            uint32_t point_light_count;
+
+            uint32_t dir_light_count;
+            glm::float3 padding;
+        };
         const ConstantBufferInfo scene_buffer_data{
             .view_proj = camera.m_proj_matrix * camera.m_view_matrix,
             .cam_pos = camera.m_position,
             .material_buffer_index = material_buffer->GetDescriptorIndex(),
             .transform_buffer_index = transforms_buffer->GetDescriptorIndex(),
+            .point_light_buffer_index = point_light_buffer->GetDescriptorIndex(),
+            .dir_light_buffer_index = dir_light_buffer->GetDescriptorIndex(),
+            .point_light_count = static_cast<uint32_t>(point_lights.size()),
+            .dir_light_count = static_cast<uint32_t>(dir_lights.size()),
         };
         constant_buffer->Write(&scene_buffer_data, 0, sizeof(ConstantBufferInfo));
+
+        if (!point_lights.empty())
+        {
+            point_light_buffer->Write(point_lights.data(), 0, sizeof(PointLight) * static_cast<uint32_t>(point_lights.size()));
+        }
+        if (!dir_lights.empty())
+        {
+            dir_light_buffer->Write(dir_lights.data(), 0, sizeof(DirectionalLight) * static_cast<uint32_t>(dir_lights.size()));
+        }
 
         command->Begin();
         command->SetViewport(Swift::Viewport{.dimensions = float_size});
@@ -256,10 +164,48 @@ int main()
         command->BindShader(shader);
         command->BindConstantBuffer(constant_buffer, 1);
         command->BindRenderTargets(std::array{render_target}, depth_texture);
+
         for (auto& mesh : mesh_renderers)
         {
             mesh.Draw(command);
         }
+
+        imgui.BeginFrame();
+        ImGui::Begin("Lights");
+        if (ImGui::Button("Add Point Light"))
+        {
+            point_lights.emplace_back();
+        }
+
+        for (int i = 0; i < point_lights.size(); ++i)
+        {
+            auto& [position, intensity, color, range] = point_lights[i];
+            ImGui::PushID(i);
+            ImGui::DragFloat3("Position", glm::value_ptr(position));
+            ImGui::DragFloat("Intensity", &intensity);
+            ImGui::DragFloat3("Color", glm::value_ptr(color));
+            ImGui::DragFloat("Range", &range);
+            ImGui::PopID();
+        }
+
+        if (ImGui::Button("Add Directional Light"))
+        {
+            dir_lights.emplace_back();
+        }
+
+        for (int i = 0; i < dir_lights.size(); ++i)
+        {
+            auto& dir_light = dir_lights[i];
+            ImGui::PushID(i);
+            ImGui::DragFloat3("Direction", glm::value_ptr(dir_light.direction));
+            ImGui::DragFloat("Intensity", &dir_light.intensity);
+            ImGui::DragFloat3("Color", glm::value_ptr(dir_light.color));
+            ImGui::PopID();
+        }
+
+        ImGui::End();
+        imgui.Render(command);
+
         command->End();
 
         context->Present(false);

@@ -55,6 +55,16 @@ float4 pixel_main(OutVertex input) : SV_TARGET
         albedo *= albedo_texture.Sample(samp, input.uv).rgb;
     }
 
+    float metallic = material.metallic;
+    float roughness = material.roughness;
+    if(material.metal_rough_index != -1)
+    {
+        var metal_rough_texture = DescriptorHandle<Texture2D>(uint(material.metal_rough_index));
+        float3 mr = metal_rough_texture.Sample(samp, input.uv).rgb;
+        metallic *= mr.g;
+        roughness *= mr.b;
+    }
+
     float3 emissive = material.emissive;
     if(material.emissive_index != -1)
     {
@@ -62,6 +72,44 @@ float4 pixel_main(OutVertex input) : SV_TARGET
         emissive *= emissive_texture.Sample(samp, input.uv).rgb;
     }
 
-    float3 color = albedo + emissive;
+    float3 world_pos = input.world_pos;
+    float3 n = input.normal;
+    float3 v = normalize(GlobalConstants.cam_pos - world_pos);
+    float3 f0 = float3(0.04, 0.04, 0.04);
+    f0 = lerp(f0, albedo, metallic);
+
+    float occlusion = 1.0;
+    if(material.occlusion_index != -1)
+    {
+        var occlusion_texture = DescriptorHandle<Texture2D>(uint(material.occlusion_index));
+        occlusion *= occlusion_texture.Sample(samp, input.uv).r;
+    }
+
+    float3 lo = float3(0.0, 0.0, 0.0);
+    var point_light_buffer = DescriptorHandle<StructuredBuffer<PointLight>>(GlobalConstants.point_light_buffer_index);
+    for(int i = 0; i < GlobalConstants.point_light_count; i++)
+    {
+        PointLight point_light = point_light_buffer[i];
+        float3 l = normalize(point_light.position - world_pos);
+        float3 h = normalize(v + l);
+        float distance = length(point_light.position - world_pos);
+        float attenuation = 1.0 / (distance * distance);
+        float3 radiance = point_light.color * point_light.intensity * attenuation;
+        lo += ApplyLight(n, h, v, l, f0, albedo, radiance, roughness, metallic);
+    };
+
+    var dir_light_buffer = DescriptorHandle<StructuredBuffer<DirectionalLight>>(GlobalConstants.point_light_buffer_index);
+    for(int i = 0; i < GlobalConstants.dir_light_count; i++)
+    {
+        DirectionalLight dir_light = dir_light_buffer[i];
+        float3 l = normalize(dir_light.direction);
+        float3 h = normalize(v + l);
+        float3 radiance = dir_light.color * dir_light.intensity;
+        lo += ApplyLight(n, h, v, l, f0, albedo, radiance, roughness, metallic);
+    };
+
+    float3 ambient = float3(0.03, 0.03, 0.03) * albedo * occlusion;
+    float3 color = ambient + lo + emissive;
+    color = color / (color + float3(1.0, 1.0, 1.0));
     return float4(color, 1.0);
 }

@@ -173,9 +173,9 @@ namespace Swift
 
     struct RasterizerState
     {
-        FillMode fill_mode;
-        CullMode cull_mode;
-        FrontFace front_face;
+        FillMode fill_mode = FillMode::eSolid;
+        CullMode cull_mode = CullMode::eBack;
+        FrontFace front_face = FrontFace::eCounterClockwise;
     };
 
     struct GraphicsShaderCreateInfo
@@ -187,7 +187,7 @@ namespace Swift
         std::vector<uint8_t> pixel_code;
         DepthStencilState depth_stencil_state;
         RasterizerState rasterizer_state;
-        PolygonMode polygon_mode;
+        PolygonMode polygon_mode = Swift::PolygonMode::eTriangle;
         std::vector<Descriptor> descriptors;
         std::vector<SamplerDescriptor> static_samplers;
     };
@@ -266,6 +266,7 @@ namespace Swift
         EnumFlags<TextureFlags> flags = TextureFlags::eNone;
         const void* data = nullptr;
         std::optional<MSAA> msaa = std::nullopt;
+        bool gen_mipmaps = false;
         std::shared_ptr<IResource> resource = nullptr;
     };
 
