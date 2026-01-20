@@ -39,7 +39,10 @@ int main()
         .rtv_formats = {Swift::Format::eRGBA8_UNORM},
         .mesh_code = mesh_shader,
         .pixel_code = pixel_shader,
-        .cull_mode = Swift::CullMode::eNone,
+        .rasterizer_state =
+            {
+                .cull_mode = Swift::CullMode::eNone,
+            },
     };
     auto triangle_shader = context->CreateShader(triangle_create_info);
 
@@ -56,7 +59,7 @@ int main()
 
         command->Begin();
         command->SetViewport(Swift::Viewport{.dimensions = float_size});
-        command->SetScissor(Swift::Scissor{.dimensions = window_size});
+        command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
         command->ClearRenderTarget(render_target, {0.0f, 0.0f, 0.0f, 0.0f});
         command->BindShader(triangle_shader);
         command->BindRenderTargets(std::array{render_target}, {});
