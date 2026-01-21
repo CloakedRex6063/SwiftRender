@@ -4,5 +4,6 @@
 
 namespace Swift
 {
-    std::shared_ptr<IContext> CreateContext(const ContextCreateInfo& create_info);
+    IContext* CreateContext(const ContextCreateInfo& create_info);
+    void DestroyContext(const IContext* context);
 }

@@ -10,7 +10,7 @@ public:
 
     float m_aspect_ratio = 16.f / 9.f;
     float m_fov = glm::radians(90.f);
-    float m_near_plane = 0.1f;
+    float m_near_plane = 0.01f;
     float m_far_plane = 1000.f;
     glm::mat4 m_view_matrix{};
     glm::mat4 m_proj_matrix{};

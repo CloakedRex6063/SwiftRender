@@ -1,7 +1,6 @@
 #include "d3d12/d3d12_swapchain.hpp"
 #include "d3d12/d3d12_helpers.hpp"
 #include "d3d12/d3d12_context.hpp"
-#include "d3d12/d3d12_resource.hpp"
 
 Swift::D3D12::Swapchain::Swapchain(IDXGIFactory7* factory, ID3D12CommandQueue* queue, const ContextCreateInfo& create_info)
 {
@@ -22,51 +21,23 @@ Swift::D3D12::Swapchain::Swapchain(IDXGIFactory7* factory, ID3D12CommandQueue* q
     };
     IDXGISwapChain1* swapchain;
 
-    [[maybe_unused]]
-    auto result = factory->CreateSwapChainForHwnd(queue, hwnd, &swapchain_desc, nullptr, nullptr, &swapchain);
-    result = swapchain->QueryInterface(IID_PPV_ARGS(&m_swapchain));
+    factory->CreateSwapChainForHwnd(queue, hwnd, &swapchain_desc, nullptr, nullptr, &swapchain);
+    swapchain->QueryInterface(IID_PPV_ARGS(&m_swapchain));
 }
 
-void Swift::D3D12::Swapchain::Present(bool m_vsync) const
+void Swift::D3D12::Swapchain::Present(const bool m_vsync) const
 {
     [[maybe_unused]]
     const auto result = m_swapchain->Present(m_vsync, 0);
 }
 
-void Swift::D3D12::Swapchain::Resize(const std::shared_ptr<IContext>& context, const std::array<float, 2>& size)
+void Swift::D3D12::Swapchain::Resize(const uint32_t width, const uint32_t height) const
 {
-    for (auto texture : context->GetSwapchainTextures())
-    {
-        texture.reset();
-    }
-
-    [[maybe_unused]]
-    auto result = m_swapchain->ResizeBuffers(3,
-                                             (uint32_t)size[0],
-                                             (uint32_t)size[1],
-                                             DXGI_FORMAT_R8G8B8A8_UNORM,
-                                             DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
-
-    constexpr auto format = Format::eRGBA8_UNORM;
-    for (int i = 0; i < context->GetSwapchainTextures().size(); i++)
-    {
-        ID3D12Resource* back_buffer;
-        result = m_swapchain->GetBuffer(i, IID_PPV_ARGS(&back_buffer));
-
-        const auto resource = std::make_shared<Resource>(back_buffer);
-        TextureCreateInfo create_info{
-            .width = (uint32_t)size[0],
-            .height = (uint32_t)size[1],
-            .mip_levels = 1,
-            .array_size = 1,
-            .format = format,
-            .flags = TextureFlags::eRenderTarget,
-            .msaa = std::nullopt,
-            .resource = resource,
-        };
-
-        context->GetSwapchainTextures()[i] = context->CreateTexture(create_info);
-    }
+    m_swapchain->ResizeBuffers(3,
+                               width,
+                               height,
+                               DXGI_FORMAT_R8G8B8A8_UNORM,
+                               DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
 }
 
 uint32_t Swift::D3D12::Swapchain::GetFrameIndex() const { return m_swapchain->GetCurrentBackBufferIndex(); }

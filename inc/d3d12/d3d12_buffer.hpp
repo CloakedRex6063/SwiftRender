@@ -7,17 +7,15 @@ namespace Swift::D3D12
     class Buffer final : public IBuffer
     {
     public:
-        Buffer(const std::shared_ptr<Context>& context,
-               const std::shared_ptr<DescriptorHeap>& cbv_srv_uav_heap,
-               const BufferCreateInfo& info);
-        ~Buffer() override;
+        Buffer(Context* context, DescriptorHeap* cbv_srv_uav_heap, const BufferCreateInfo& info);
+        SWIFT_NO_COPY(Buffer);
+        SWIFT_NO_MOVE(Buffer);
+        SWIFT_DESTRUCT(Buffer);
         void Write(const void* data, uint64_t offset, uint64_t size, bool one_time = false) override;
         void Read(uint32_t offset, uint32_t size, void* data) override;
-        [[nodiscard]] uint32_t GetDescriptorIndex() const override { return m_descriptor.index; }
 
     private:
-        std::shared_ptr<DescriptorHeap> m_cbv_srv_uav_heap;
-        Descriptor m_descriptor{};
-        std::shared_ptr<Context> m_context;
+        DescriptorHeap* m_cbv_srv_uav_heap;
+        Context* m_context;
     };
 }  // namespace Swift::D3D12

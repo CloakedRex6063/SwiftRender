@@ -16,7 +16,7 @@ namespace Swift::D3D12
 
         void Present(bool m_vsync) const;
         void* GetSwapchain() const { return m_swapchain; };
-        void Resize(const std::shared_ptr<IContext>& context, const std::array<float, 2>& size);
+        void Resize(uint32_t width, uint32_t height) const;
         uint32_t GetFrameIndex() const;
 
     private:

@@ -3,7 +3,6 @@
 #include "swift.hpp"
 #include "window.hpp"
 #include "shader_compiler.hpp"
-#include "glm/fwd.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtx/compatibility.hpp"
 #include "chrono"
@@ -11,22 +10,13 @@
 int main()
 {
     auto window = Window();
-    const auto window_size = window.GetSize();
-    const auto context = Swift::CreateContext({.backend_type = Swift::BackendType::eD3D12,
-                                               .width = window_size.x,
-                                               .height = window_size.y,
-                                               .native_window_handle = window.GetNativeWindow(),
-                                               .native_display_handle = nullptr});
+    auto window_size = window.GetSize();
+    auto* const context = Swift::CreateContext({.backend_type = Swift::BackendType::eD3D12,
+                                                .width = window_size.x,
+                                                .height = window_size.y,
+                                                .native_window_handle = window.GetNativeWindow(),
+                                                .native_display_handle = nullptr});
 
-    const Swift::TextureCreateInfo render_tex_info{
-        .width = window_size[0],
-        .height = window_size[1],
-        .mip_levels = 1,
-        .array_size = 1,
-        .format = Swift::Format::eRGBA8_UNORM,
-        .flags = EnumFlags(Swift::TextureFlags::eRenderTarget) | EnumFlags(Swift::TextureFlags::eShaderResource),
-    };
-    const auto render_texture = context->CreateTexture(render_tex_info);
     const Swift::TextureCreateInfo depth_tex_info{
         .width = window_size[0],
         .height = window_size[1],
@@ -35,7 +25,8 @@ int main()
         .format = Swift::Format::eD32F,
         .flags = Swift::TextureFlags::eDepthStencil,
     };
-    const auto depth_texture = context->CreateTexture(depth_tex_info);
+    auto* depth_texture = context->CreateTexture(depth_tex_info);
+    auto* depth_stencil = context->CreateDepthStencil(depth_texture);
 
     ShaderCompiler compiler{};
 
@@ -66,16 +57,24 @@ int main()
     };
     descriptors.emplace_back(descriptor);
 
+    std::vector rtv_formats{Swift::Format::eRGBA8_UNORM};
     const Swift::GraphicsShaderCreateInfo shader_create_info{
-        .rtv_formats = {Swift::Format::eRGBA8_UNORM},
+        .rtv_formats = rtv_formats,
         .dsv_format = Swift::Format::eD32F,
         .mesh_code = mesh_shader,
         .pixel_code = pixel_shader,
+        .depth_stencil_state =
+            {
+                .depth_enable = true,
+                .depth_write_enable = true,
+                .depth_test = Swift::DepthTest::eLess,
+                .stencil_enable = false,
+            },
         .polygon_mode = Swift::PolygonMode::eTriangle,
         .descriptors = descriptors,
         .static_samplers = sampler_descriptors,
     };
-    auto shader = context->CreateShader(shader_create_info);
+    auto* shader = context->CreateShader(shader_create_info);
 
     struct ConstantBufferInfo
     {
@@ -87,12 +86,9 @@ int main()
     };
 
     const Swift::BufferCreateInfo constant_create_info{
-        .num_elements = 1,
-        .element_size = 65536,
-        .first_element = 0,
-        .type = Swift::BufferType::eConstantBuffer,
+        .size = 65536,
     };
-    const auto constant_buffer = context->CreateBuffer(constant_create_info);
+    auto* const constant_buffer = context->CreateBuffer(constant_create_info);
 
     struct MeshRenderer
     {
@@ -104,7 +100,7 @@ int main()
         int m_material_index;
         uint32_t m_transform_index;
 
-        void Draw(const std::shared_ptr<Swift::ICommand>& command) const
+        void Draw(Swift::ICommand* command) const
         {
             const struct PushConstants
             {
@@ -131,54 +127,69 @@ int main()
 
     struct MeshBuffer
     {
-        std::shared_ptr<Swift::IBuffer> m_vertex_buffer;
-        std::shared_ptr<Swift::IBuffer> m_mesh_buffer;
-        std::shared_ptr<Swift::IBuffer> m_mesh_vertex_buffer;
-        std::shared_ptr<Swift::IBuffer> m_mesh_triangle_buffer;
+        Swift::IBuffer* m_vertex_buffer;
+        Swift::IBufferSRV* m_vertex_buffer_srv;
+        Swift::IBuffer* m_mesh_buffer;
+        Swift::IBufferSRV* m_mesh_buffer_srv;
+        Swift::IBuffer* m_mesh_vertex_buffer;
+        Swift::IBufferSRV* m_mesh_vertex_buffer_srv;
+        Swift::IBuffer* m_mesh_triangle_buffer;
+        Swift::IBufferSRV* m_mesh_triangle_buffer_srv;
     };
     std::vector<MeshBuffer> mesh_buffers;
     for (auto& mesh : chess.meshes)
     {
-        const Swift::BufferCreateInfo vertex_create_info{
-            .num_elements = static_cast<uint32_t>(mesh.vertices.size()),
-            .element_size = sizeof(Vertex),
-            .first_element = 0,
+        auto* const vertex_buffer = context->CreateBuffer(Swift::BufferCreateInfo{
+            .size = static_cast<uint32_t>(mesh.vertices.size() * sizeof(Vertex)),
             .data = mesh.vertices.data(),
-            .type = Swift::BufferType::eStructuredBuffer,
-        };
-        const auto vertex_buffer = context->CreateBuffer(vertex_create_info);
+        });
+        auto* const vertex_buffer_srv =
+            context->CreateShaderResource(vertex_buffer,
+                                          Swift::BufferSRVCreateInfo{
+                                              .num_elements = static_cast<uint32_t>(mesh.vertices.size()),
+                                              .element_size = sizeof(Vertex),
+                                          });
 
-        const Swift::BufferCreateInfo mesh_create_info{
-            .num_elements = static_cast<uint32_t>(mesh.meshlets.size()),
-            .element_size = sizeof(meshopt_Meshlet),
-            .first_element = 0,
+        auto* const meshlet_buffer = context->CreateBuffer(Swift::BufferCreateInfo{
+            .size = static_cast<uint32_t>(mesh.meshlets.size() * sizeof(meshopt_Meshlet)),
             .data = mesh.meshlets.data(),
-            .type = Swift::BufferType::eStructuredBuffer,
-        };
-        const auto meshlet_buffer = context->CreateBuffer(mesh_create_info);
+        });
+        auto* const meshlet_buffer_srv =
+            context->CreateShaderResource(meshlet_buffer,
+                                          Swift::BufferSRVCreateInfo{
+                                              .num_elements = static_cast<uint32_t>(mesh.meshlets.size()),
+                                              .element_size = sizeof(meshopt_Meshlet),
+                                          });
 
-        const Swift::BufferCreateInfo mesh_vertex_create_info{
-            .num_elements = static_cast<uint32_t>(mesh.meshlet_vertices.size()),
-            .element_size = sizeof(uint32_t),
-            .first_element = 0,
+        auto* const mesh_vertex_buffer = context->CreateBuffer(Swift::BufferCreateInfo{
+            .size = static_cast<uint32_t>(mesh.meshlet_vertices.size() * sizeof(uint32_t)),
             .data = mesh.meshlet_vertices.data(),
-            .type = Swift::BufferType::eStructuredBuffer,
-        };
-        const auto mesh_vertex_buffer = context->CreateBuffer(mesh_vertex_create_info);
+        });
+        auto* const mesh_vertex_buffer_srv =
+            context->CreateShaderResource(mesh_vertex_buffer,
+                                          Swift::BufferSRVCreateInfo{
+                                              .num_elements = static_cast<uint32_t>(mesh.meshlet_vertices.size()),
+                                              .element_size = sizeof(uint32_t),
+                                          });
 
         const Swift::BufferCreateInfo mesh_triangle_create_info{
-            .num_elements = static_cast<uint32_t>(mesh.meshlet_triangles.size()),
-            .element_size = sizeof(uint32_t),
-            .first_element = 0,
+            .size = static_cast<uint32_t>(mesh.meshlet_triangles.size() * sizeof(uint32_t)),
             .data = mesh.meshlet_triangles.data(),
-            .type = Swift::BufferType::eStructuredBuffer,
         };
-        const auto mesh_triangle_buffer = context->CreateBuffer(mesh_triangle_create_info);
+        auto* const mesh_triangle_buffer = context->CreateBuffer(mesh_triangle_create_info);
+        auto* const mesh_triangle_buffer_srv = context->CreateShaderResource(
+            mesh_triangle_buffer,
+            Swift::BufferSRVCreateInfo{.num_elements = static_cast<uint32_t>(mesh.meshlet_triangles.size()),
+                                       .element_size = sizeof(uint32_t)});
         MeshBuffer mesh_buffer{
             .m_vertex_buffer = vertex_buffer,
+            .m_vertex_buffer_srv = vertex_buffer_srv,
             .m_mesh_buffer = meshlet_buffer,
+            .m_mesh_buffer_srv = meshlet_buffer_srv,
             .m_mesh_vertex_buffer = mesh_vertex_buffer,
+            .m_mesh_vertex_buffer_srv = mesh_vertex_buffer_srv,
             .m_mesh_triangle_buffer = mesh_triangle_buffer,
+            .m_mesh_triangle_buffer_srv = mesh_triangle_buffer_srv,
         };
         mesh_buffers.emplace_back(mesh_buffer);
     }
@@ -186,13 +197,12 @@ int main()
     for (auto& node : chess.nodes)
     {
         const auto& mesh = chess.meshes[node.mesh_index];
-        const auto& [m_vertex_buffer, m_mesh_buffer, m_mesh_vertex_buffer, m_mesh_triangle_buffer] =
-            mesh_buffers[node.mesh_index];
+        const auto& mesh_buffer = mesh_buffers[node.mesh_index];
         MeshRenderer mesh_renderer{
-            .m_vertex_buffer = m_vertex_buffer->GetDescriptorIndex(),
-            .m_mesh_buffer = m_mesh_buffer->GetDescriptorIndex(),
-            .m_mesh_vertex_buffer = m_mesh_vertex_buffer->GetDescriptorIndex(),
-            .m_mesh_triangle_buffer = m_mesh_triangle_buffer->GetDescriptorIndex(),
+            .m_vertex_buffer = mesh_buffer.m_vertex_buffer_srv->GetDescriptorIndex(),
+            .m_mesh_buffer = mesh_buffer.m_mesh_buffer_srv->GetDescriptorIndex(),
+            .m_mesh_vertex_buffer = mesh_buffer.m_mesh_vertex_buffer_srv->GetDescriptorIndex(),
+            .m_mesh_triangle_buffer = mesh_buffer.m_mesh_triangle_buffer_srv->GetDescriptorIndex(),
             .m_meshlet_count = static_cast<uint32_t>(mesh.meshlets.size()),
             .m_material_index = mesh.material_index,
             .m_transform_index = node.transform_index,
@@ -200,7 +210,12 @@ int main()
         mesh_renderers.push_back(mesh_renderer);
     }
 
-    std::vector<std::shared_ptr<Swift::ITexture>> textures;
+    struct TextureView
+    {
+        Swift::ITexture* texture;
+        Swift::ITextureSRV* texture_srv;
+    };
+    std::vector<TextureView> textures;
     for (auto& texture : chess.textures)
     {
         const Swift::TextureCreateInfo texture_create_info{
@@ -209,58 +224,78 @@ int main()
             .mip_levels = texture.mip_levels,
             .array_size = texture.array_size,
             .format = texture.format,
-            .flags = Swift::TextureFlags::eShaderResource,
             .data = texture.pixels.data(),
-            .msaa = std::nullopt,
         };
-        const auto t = context->CreateTexture(texture_create_info);
-        textures.emplace_back(t);
+        auto* t = context->CreateTexture(texture_create_info);
+        auto* t_srv = context->CreateShaderResource(t);
+        textures.emplace_back(t, t_srv);
     }
 
     for (auto& material : chess.materials)
     {
         if (material.albedo_index != -1)
         {
-            material.albedo_index = textures[material.albedo_index]->GetDescriptorIndex();
+            material.albedo_index = textures[material.albedo_index].texture_srv->GetDescriptorIndex();
         }
         if (material.metal_rough_index != -1)
         {
-            material.metal_rough_index = textures[material.metal_rough_index]->GetDescriptorIndex();
+            material.metal_rough_index = textures[material.metal_rough_index].texture_srv->GetDescriptorIndex();
         }
         if (material.occlusion_index != -1)
         {
-            material.occlusion_index = textures[material.occlusion_index]->GetDescriptorIndex();
+            material.occlusion_index = textures[material.occlusion_index].texture_srv->GetDescriptorIndex();
         }
         if (material.emissive_index != -1)
         {
-            material.emissive_index = textures[material.emissive_index]->GetDescriptorIndex();
+            material.emissive_index = textures[material.emissive_index].texture_srv->GetDescriptorIndex();
         }
         if (material.normal_index != -1)
         {
-            material.normal_index = textures[material.normal_index]->GetDescriptorIndex();
+            material.normal_index = textures[material.normal_index].texture_srv->GetDescriptorIndex();
         }
     }
 
     const Swift::BufferCreateInfo material_create_info{
-        .num_elements = static_cast<uint32_t>(chess.materials.size()),
-        .element_size = sizeof(Material),
-        .first_element = 0,
+        .size = static_cast<uint32_t>(chess.materials.size() * sizeof(Material)),
         .data = chess.materials.data(),
-        .type = Swift::BufferType::eStructuredBuffer,
     };
-    const auto material_buffer = context->CreateBuffer(material_create_info);
+    auto* material_buffer = context->CreateBuffer(material_create_info);
+    auto* material_buffer_srv =
+        context->CreateShaderResource(material_buffer,
+                                      Swift::BufferSRVCreateInfo{.num_elements = static_cast<uint32_t>(chess.materials.size()),
+                                                                 .element_size = sizeof(Material)});
 
     const Swift::BufferCreateInfo transforms_create_info{
-        .num_elements = static_cast<uint32_t>(chess.transforms.size()),
-        .element_size = sizeof(glm::mat4),
-        .first_element = 0,
+        .size = static_cast<uint32_t>(chess.transforms.size() * sizeof(glm::mat4)),
         .data = chess.transforms.data(),
-        .type = Swift::BufferType::eStructuredBuffer,
     };
-    const auto transforms_buffer = context->CreateBuffer(transforms_create_info);
+    auto* transforms_buffer = context->CreateBuffer(transforms_create_info);
+    auto* transforms_buffer_srv =
+        context->CreateShaderResource(transforms_buffer,
+                                      Swift::BufferSRVCreateInfo{.num_elements = static_cast<uint32_t>(chess.transforms.size()),
+                                                                 .element_size = sizeof(glm::mat4)});
 
     Camera camera{};
     Input input{window};
+
+    window.AddResizeCallback(
+        [&context, &depth_stencil, &depth_texture](const glm::uvec2 size)
+        {
+            context->GetGraphicsQueue()->WaitIdle();
+            context->ResizeBuffers(size.x, size.y);
+            context->DestroyTexture(depth_texture);
+            context->DestroyDepthStencil(depth_stencil);
+            const Swift::TextureCreateInfo depth_tex_info{
+                .width = size.x,
+                .height = size.y,
+                .mip_levels = 1,
+                .array_size = 1,
+                .format = Swift::Format::eD32F,
+                .flags = Swift::TextureFlags::eDepthStencil,
+            };
+            depth_texture = context->CreateTexture(depth_tex_info);
+            depth_stencil = context->CreateDepthStencil(depth_texture);
+        });
 
     auto prev_time = std::chrono::high_resolution_clock::now();
     while (window.IsRunning())
@@ -270,10 +305,10 @@ int main()
 
         const auto& command = context->GetCurrentCommand();
 
-        const auto window_size = window.GetSize();
+        window_size = window.GetSize();
         const auto float_size = std::array{static_cast<float>(window_size[0]), static_cast<float>(window_size[1])};
 
-        auto& render_target = context->GetCurrentSwapchainTexture();
+        auto* render_target = context->GetCurrentRenderTarget();
 
         const auto current_time = std::chrono::high_resolution_clock::now();
         const auto delta_time = std::chrono::duration<float>(current_time - prev_time).count();
@@ -284,8 +319,8 @@ int main()
         const ConstantBufferInfo scene_buffer_data{
             .view_proj = camera.m_proj_matrix * camera.m_view_matrix,
             .cam_pos = camera.m_position,
-            .material_buffer_index = material_buffer->GetDescriptorIndex(),
-            .transform_buffer_index = transforms_buffer->GetDescriptorIndex(),
+            .material_buffer_index = material_buffer_srv->GetDescriptorIndex(),
+            .transform_buffer_index = transforms_buffer_srv->GetDescriptorIndex(),
         };
         constant_buffer->Write(&scene_buffer_data, 0, sizeof(ConstantBufferInfo));
 
@@ -293,10 +328,10 @@ int main()
         command->SetViewport(Swift::Viewport{.dimensions = float_size});
         command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
         command->ClearRenderTarget(render_target, {0.0f, 0.0f, 0.0f, 0.0f});
-        command->ClearDepthStencil(depth_texture, 1.f, 0.f);
+        command->ClearDepthStencil(depth_stencil, 1.f, 0.f);
         command->BindShader(shader);
         command->BindConstantBuffer(constant_buffer, 1);
-        command->BindRenderTargets(std::array{render_target}, depth_texture);
+        command->BindRenderTargets(render_target, depth_stencil);
         for (auto& mesh : mesh_renderers)
         {
             mesh.Draw(command);
@@ -305,4 +340,19 @@ int main()
 
         context->Present(false);
     }
+
+    context->DestroyBuffer(material_buffer);
+    context->DestroyShaderResource(material_buffer_srv);
+    context->DestroyBuffer(transforms_buffer);
+    context->DestroyShaderResource(transforms_buffer_srv);
+    context->DestroyBuffer(constant_buffer);
+
+    for (auto& [texture, texture_srv] : textures)
+    {
+        context->DestroyTexture(texture);
+        context->DestroyShaderResource(texture_srv);
+    }
+
+    context->DestroyShader(shader);
+    Swift::DestroyContext(context);
 }

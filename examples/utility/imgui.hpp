@@ -5,10 +5,10 @@
 class ImguiBackend
 {
 public:
-    ImguiBackend(const std::shared_ptr<Swift::IContext>& context, const Window& window);
+    ImguiBackend(Swift::IContext* context, const Window& window);
     ~ImguiBackend();
     void BeginFrame();
-    void Render(const std::shared_ptr<Swift::ICommand>& command);
+    void Render(Swift::ICommand* command);
 
 private:
     void SetupStyle();

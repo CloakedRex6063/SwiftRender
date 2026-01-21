@@ -14,7 +14,6 @@ namespace Swift
         [[nodiscard]] uint32_t GetMipLevels() const { return m_mip_levels; }
         [[nodiscard]] uint32_t GetArraySize() const { return m_array_size; }
         [[nodiscard]] Format GetFormat() const { return m_format; }
-        [[nodiscard]] virtual uint32_t GetDescriptorIndex() = 0;
         [[nodiscard]] std::shared_ptr<IResource> GetResource() const { return m_resource; }
 
     protected:

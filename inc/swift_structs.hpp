@@ -5,6 +5,7 @@
 #include "enum_flags.hpp"
 #include "vector"
 #include "array"
+#include "span"
 
 namespace Swift
 {
@@ -41,6 +42,15 @@ namespace Swift
         eD32F,
     };
 
+    struct BufferSRVCreateInfo
+    {
+        uint32_t num_elements;
+        uint32_t element_size;
+        uint32_t first_element;
+    };
+
+    using BufferUAVCreateInfo = BufferSRVCreateInfo;
+
     struct MSAA
     {
         uint32_t samples;
@@ -49,18 +59,8 @@ namespace Swift
 
     enum class BufferType : uint32_t
     {
-        eNone,
+        eDefault,
         eReadback,
-        eConstantBuffer,
-        eStructuredBuffer,
-    };
-
-    enum class TextureFlags : uint32_t
-    {
-        eNone = 0,
-        eRenderTarget = 1 << 1,
-        eShaderResource = 1 << 2,
-        eDepthStencil = 1 << 3,
     };
 
     struct ContextCreateInfo
@@ -144,11 +144,11 @@ namespace Swift
 
     struct SamplerDescriptor
     {
-        Filter min_filter;
-        Filter mag_filter;
-        Wrap wrap_u;
-        Wrap wrap_y;
-        Wrap wrap_w;
+        Filter min_filter = Filter::eLinear;
+        Filter mag_filter = Filter::eLinear;
+        Wrap wrap_u = Wrap::eRepeat;
+        Wrap wrap_y = Wrap::eRepeat;
+        Wrap wrap_w = Wrap::eRepeat;
     };
 
     enum class DepthTest
@@ -180,23 +180,23 @@ namespace Swift
 
     struct GraphicsShaderCreateInfo
     {
-        std::vector<Format> rtv_formats;
+        std::span<const Format> rtv_formats;
         std::optional<Format> dsv_format;
-        std::vector<uint8_t> amplify_code;
-        std::vector<uint8_t> mesh_code;
-        std::vector<uint8_t> pixel_code;
+        std::span<const uint8_t> amplify_code;
+        std::span<const uint8_t> mesh_code;
+        std::span<const uint8_t> pixel_code;
         DepthStencilState depth_stencil_state;
         RasterizerState rasterizer_state;
         PolygonMode polygon_mode = Swift::PolygonMode::eTriangle;
-        std::vector<Descriptor> descriptors;
-        std::vector<SamplerDescriptor> static_samplers;
+        std::span<const Descriptor> descriptors;
+        std::span<const SamplerDescriptor> static_samplers;
     };
 
     struct ComputeShaderCreateInfo
     {
-        std::vector<uint8_t> code;
-        std::vector<Descriptor> descriptors;
-        std::vector<SamplerDescriptor> static_samplers;
+        std::span<const uint8_t> code;
+        std::span<const Descriptor> descriptors;
+        std::span<const SamplerDescriptor> static_samplers;
     };
 
     enum class ResourceState
@@ -229,8 +229,8 @@ namespace Swift
 
     struct BufferCopyRegion
     {
-        std::shared_ptr<IBuffer> src_buffer;
-        std::shared_ptr<IBuffer> dst_buffer;
+        IBuffer* src_buffer;
+        IBuffer* dst_buffer;
         uint64_t src_offset;
         uint64_t dst_offset;
         uint64_t size;
@@ -238,22 +238,37 @@ namespace Swift
 
     struct BufferTextureCopyRegion
     {
-        std::shared_ptr<IBuffer> src_buffer;
-        std::shared_ptr<ITexture> dst_texture;
+        IBuffer* src_buffer;
+        ITexture* dst_texture;
+        uint32_t mip_levels;
     };
 
     struct TextureRegion
     {
         std::array<uint32_t, 3> size;
         std::array<uint32_t, 3> offset;
+        uint32_t mip_level;
+    };
+
+    struct TextureUpdateRegion
+    {
+        std::vector<TextureRegion> regions;
+        const void* data;
     };
 
     struct TextureCopyRegion
     {
-        std::shared_ptr<ITexture> src_texture;
-        std::shared_ptr<ITexture> dst_texture;
+        ITexture* src_texture;
+        ITexture* dst_texture;
         TextureRegion src_region;
         std::array<uint32_t, 3> dst_offset;
+    };
+
+    enum class TextureFlags
+    {
+        eNone,
+        eRenderTarget,
+        eDepthStencil,
     };
 
     struct TextureCreateInfo
@@ -263,21 +278,21 @@ namespace Swift
         uint16_t mip_levels = 1;
         uint16_t array_size = 1;
         Format format = Format::eRGBA8_UNORM;
-        EnumFlags<TextureFlags> flags = TextureFlags::eNone;
         const void* data = nullptr;
         std::optional<MSAA> msaa = std::nullopt;
         bool gen_mipmaps = false;
+        EnumFlags<TextureFlags> flags;
         std::shared_ptr<IResource> resource = nullptr;
+        std::string_view name;
     };
 
     struct BufferCreateInfo
     {
-        uint32_t num_elements = 0;
-        uint32_t element_size = 0;
-        uint32_t first_element = 0;
+        uint32_t size = 0;
         const void* data = nullptr;
-        BufferType type = BufferType::eConstantBuffer;
+        BufferType type = BufferType::eDefault;
         std::shared_ptr<IResource> resource = nullptr;
+        std::string_view name;
     };
 
     struct QueueCreateInfo

@@ -70,7 +70,7 @@ Swift::D3D12::Resource::Resource(ID3D12Device14* device, const BufferCreateInfo&
     const D3D12_RESOURCE_DESC resource_info = {
         .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
         .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
-        .Width = info.num_elements * info.element_size,
+        .Width = info.size,
         .Height = 1,
         .DepthOrArraySize = 1,
         .MipLevels = 1,

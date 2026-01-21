@@ -32,7 +32,7 @@ namespace Swift
             return *this;
         }
 
-        std::shared_ptr<IContext> Build() const
+        IContext* Build() const
         {
             return CreateContext({.backend_type = m_backend_type,
                                   .width = m_width,
@@ -55,11 +55,17 @@ namespace Swift
 
     struct TextureBuilder
     {
-        TextureBuilder(const std::shared_ptr<IContext>& context, const uint32_t width, const uint32_t height)
+        TextureBuilder(IContext* context, const uint32_t width, const uint32_t height)
         {
             m_context = context;
             m_width = width;
             m_height = height;
+        }
+
+        TextureBuilder& SetFlags(const EnumFlags<TextureFlags> texture_flags)
+        {
+            m_texture_flags = texture_flags;
+            return *this;
         }
 
         TextureBuilder& SetMipmapLevels(const uint32_t levels)
@@ -80,12 +86,6 @@ namespace Swift
             return *this;
         }
 
-        TextureBuilder& SetFlags(const EnumFlags<TextureFlags> texture_flags)
-        {
-            m_texture_flags = texture_flags;
-            return *this;
-        }
-
         TextureBuilder& SetData(const void* data)
         {
             m_data = data;
@@ -98,42 +98,52 @@ namespace Swift
             return *this;
         }
 
+        TextureBuilder& SetName(const std::string_view name)
+        {
+            m_name = name;
+            return *this;
+        }
+
         TextureBuilder& SetResource(const std::shared_ptr<IResource>& resource)
         {
             m_resource = resource;
             return *this;
         }
 
-        [[nodiscard]] std::shared_ptr<ITexture> Build() const
+        [[nodiscard]] ITexture* Build() const
         {
-            const TextureCreateInfo info{.width = m_width,
-                                         .height = m_height,
-                                         .mip_levels = m_mip_levels,
-                                         .array_size = m_array_size,
-                                         .format = m_format,
-                                         .flags = m_texture_flags,
-                                         .data = m_data,
-                                         .msaa = m_msaa,
-                                         .resource = m_resource};
+            const TextureCreateInfo info{
+                .width = m_width,
+                .height = m_height,
+                .mip_levels = m_mip_levels,
+                .array_size = m_array_size,
+                .format = m_format,
+                .data = m_data,
+                .msaa = m_msaa,
+                .flags = m_texture_flags,
+                .resource = m_resource,
+                .name = m_name,
+            };
             return m_context->CreateTexture(info);
         }
 
     private:
-        std::shared_ptr<IContext> m_context;
+        IContext* m_context;
         uint32_t m_width = 0;
         uint32_t m_height = 0;
         uint16_t m_mip_levels = 1;
         uint16_t m_array_size = 1;
         Format m_format = Format::eRGBA8_UNORM;
         EnumFlags<TextureFlags> m_texture_flags = TextureFlags::eNone;
-        std::shared_ptr<IResource> m_resource;
+        std::shared_ptr<IResource> m_resource = nullptr;
+        std::string_view m_name;
         const void* m_data = nullptr;
         std::optional<MSAA> m_msaa;
     };
 
     struct DescriptorBuilder
     {
-        DescriptorBuilder(DescriptorType descriptor_type) { m_descriptor_type = descriptor_type; }
+        explicit DescriptorBuilder(const DescriptorType descriptor_type) { m_descriptor_type = descriptor_type; }
 
         DescriptorBuilder& SetShaderRegister(const uint32_t shader_register)
         {
@@ -225,7 +235,7 @@ namespace Swift
 
     struct GraphicsShaderBuilder
     {
-        GraphicsShaderBuilder(const std::shared_ptr<IContext>& context) { m_context = context; }
+        explicit GraphicsShaderBuilder(IContext* context) { m_context = context; }
         GraphicsShaderBuilder& SetRTVFormats(const std::vector<Format>& rtv_formats)
         {
             m_rtv_formats = rtv_formats;
@@ -302,7 +312,7 @@ namespace Swift
             return *this;
         }
 
-        std::shared_ptr<IShader> Build() const
+        IShader* Build() const
         {
             const GraphicsShaderCreateInfo shader_create_info{
                 .rtv_formats = m_rtv_formats,
@@ -320,7 +330,7 @@ namespace Swift
         }
 
     private:
-        std::shared_ptr<IContext> m_context;
+        IContext* m_context;
         std::vector<Format> m_rtv_formats{};
         std::optional<Format> m_dsv_format = std::nullopt;
         std::vector<uint8_t> m_amplify_code;
@@ -344,28 +354,21 @@ namespace Swift
 
     struct BufferBuilder
     {
-        BufferBuilder(const std::shared_ptr<IContext>& context, const BufferType buffer_type, uint32_t size = 65536)
+        BufferBuilder(IContext* context, const uint32_t size)
         {
             m_context = context;
-            m_buffer_type = buffer_type;
-            m_element_size = size;
-        }
-
-        BufferBuilder& SetElementSize(uint32_t size)
-        {
-            m_element_size = size;
-            return *this;
-        }
-
-        BufferBuilder& SetNumElements(uint32_t num_elements)
-        {
-            m_num_elements = num_elements;
-            return *this;
+            m_size = size;
         }
 
         BufferBuilder& SetData(const void* data)
         {
             m_data = data;
+            return *this;
+        }
+
+        BufferBuilder& SetBufferType(const BufferType buffer_type)
+        {
+            m_buffer_type = buffer_type;
             return *this;
         }
 
@@ -375,26 +378,30 @@ namespace Swift
             return *this;
         }
 
-        std::shared_ptr<IBuffer> Build() const
+        BufferBuilder& SetName(const std::string_view name)
+        {
+            m_name = name;
+            return *this;
+        }
+
+        IBuffer* Build() const
         {
             return m_context->CreateBuffer({
-                .num_elements = m_num_elements,
-                .element_size = m_element_size,
-                .first_element = m_first_element,
+                .size = m_size,
                 .data = m_data,
                 .type = m_buffer_type,
                 .resource = m_resource,
+                .name = m_name
             });
         }
 
     private:
-        std::shared_ptr<IContext> m_context;
-        uint32_t m_first_element = 0;
-        uint32_t m_element_size = 0;
-        uint32_t m_num_elements = 1;
+        IContext* m_context = nullptr;
+        uint32_t m_size = 0;
         const void* m_data = nullptr;
-        BufferType m_buffer_type = BufferType::eConstantBuffer;
+        BufferType m_buffer_type = BufferType::eDefault;
         std::shared_ptr<IResource> m_resource = nullptr;
+        std::string_view m_name;
     };
 
 }  // namespace Swift

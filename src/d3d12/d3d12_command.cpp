@@ -7,17 +7,15 @@
 #include "d3d12/d3d12_shader.hpp"
 #include "d3d12/d3d12_texture.hpp"
 
-Swift::D3D12::Command::Command(IContext* context, const std::shared_ptr<DescriptorHeap>& cbv_heap, const QueueType type)
-    : m_context(dynamic_cast<Context*>(context)), m_cbv_srv_uav_heap(cbv_heap)
+Swift::D3D12::Command::Command(IContext* context, DescriptorHeap* cbv_heap, const QueueType type)
+    : m_context(static_cast<Context*>(context)), m_cbv_srv_uav_heap(cbv_heap)
 {
-    const auto device = static_cast<ID3D12Device14*>(context->GetDevice());
+    auto* const device = static_cast<ID3D12Device14*>(context->GetDevice());
     m_type = type;
-    [[maybe_unused]]
-    auto result = device->CreateCommandAllocator(ToCommandType(type), IID_PPV_ARGS(&m_allocator));
 
-    result = device->CreateCommandList(0, ToCommandType(type), m_allocator, nullptr, IID_PPV_ARGS(&m_list));
-
-    result = m_list->Close();
+    device->CreateCommandAllocator(ToCommandType(type), IID_PPV_ARGS(&m_allocator));
+    device->CreateCommandList(0, ToCommandType(type), m_allocator, nullptr, IID_PPV_ARGS(&m_list));
+    m_list->Close();
 }
 
 Swift::D3D12::Command::~Command()
@@ -28,10 +26,9 @@ Swift::D3D12::Command::~Command()
 
 void Swift::D3D12::Command::Begin()
 {
-    [[maybe_unused]]
-    auto result = m_allocator->Reset();
+    m_allocator->Reset();
 
-    result = m_list->Reset(m_allocator, nullptr);
+    m_list->Reset(m_allocator, nullptr);
 
     if (m_list->GetType() != D3D12_COMMAND_LIST_TYPE_COPY)
     {
@@ -44,7 +41,7 @@ void Swift::D3D12::Command::End()
 {
     if (m_list->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT)
     {
-        TransitionResource(m_context->GetCurrentSwapchainTexture()->GetResource(), ResourceState::ePresent);
+        ResourceBarrier(m_context->GetCurrentSwapchainTexture()->GetResource(), ResourceState::ePresent);
     }
     [[maybe_unused]]
     const auto result = m_list->Close();
@@ -63,14 +60,14 @@ void Swift::D3D12::Command::SetViewport(const Viewport& viewport)
 
 void Swift::D3D12::Command::SetScissor(const Scissor& scissor)
 {
-    const D3D12_RECT dx_scissor = {(int)scissor.offset[0],
-                                   (int)scissor.offset[1],
-                                   (int)scissor.dimensions[0],
-                                   (int)scissor.dimensions[1]};
+    const D3D12_RECT dx_scissor = {static_cast<int>(scissor.offset[0]),
+                                   static_cast<int>(scissor.offset[1]),
+                                   static_cast<int>(scissor.dimensions[0]),
+                                   static_cast<int>(scissor.dimensions[1])};
     m_list->RSSetScissorRects(1, &dx_scissor);
 }
 
-void Swift::D3D12::Command::BindConstantBuffer(const std::shared_ptr<IBuffer>& buffer, const uint32_t slot)
+void Swift::D3D12::Command::BindConstantBuffer(IBuffer* buffer, const uint32_t slot)
 {
     const D3D12_GPU_VIRTUAL_ADDRESS gpu_address = buffer->GetResource()->GetVirtualAddress();
     m_list->SetGraphicsRootConstantBufferView(slot, gpu_address);
@@ -81,9 +78,9 @@ void Swift::D3D12::Command::PushConstants(const void* data, const uint32_t size,
     m_list->SetGraphicsRoot32BitConstants(0, size / sizeof(uint32_t), data, offset);
 }
 
-void Swift::D3D12::Command::BindShader(const std::shared_ptr<IShader>& shader)
+void Swift::D3D12::Command::BindShader(IShader* shader)
 {
-    const auto dx_shader = static_cast<Shader*>(shader.get());  // NOLINT(*-pro-type-static-cast-downcast)
+    const auto *const dx_shader = static_cast<Shader*>(shader);
     if (m_type != QueueType::eTransfer)
     {
         const auto descriptor_heaps = std::array{m_cbv_srv_uav_heap->GetHeap()};
@@ -107,19 +104,19 @@ void Swift::D3D12::Command::DispatchCompute(const uint32_t group_x, const uint32
     m_list->Dispatch(group_x, group_y, group_z);
 }
 
-void Swift::D3D12::Command::CopyBufferToTexture(const std::shared_ptr<IContext>& context, const BufferTextureCopyRegion& region)
+void Swift::D3D12::Command::CopyBufferToTexture(const IContext* context, const BufferTextureCopyRegion& region)
 {
     auto* dst_resource = static_cast<ID3D12Resource*>(region.dst_texture->GetResource()->GetResource());
     auto* src_resource = static_cast<ID3D12Resource*>(region.src_buffer->GetResource()->GetResource());
 
-    const auto device = static_cast<ID3D12Device14*>(context->GetDevice());
+    auto* const device = static_cast<ID3D12Device14*>(context->GetDevice());
 
-    D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout;
-    UINT numRows;
-    UINT64 rowSizeInBytes;
-    UINT64 totalBytes;
+    const auto& texture = region.dst_texture;
 
-    auto texture = region.dst_texture;
+    std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> layouts(texture->GetMipLevels());
+    std::vector<uint32_t> num_rows(texture->GetMipLevels());
+    std::vector<uint64_t> row_size_in_bytes(texture->GetMipLevels());
+    uint64_t total_bytes = 0;
 
     // TODO: Handle msaa
     constexpr auto sample_desc = DXGI_SAMPLE_DESC{1, 0};
@@ -136,21 +133,30 @@ void Swift::D3D12::Command::CopyBufferToTexture(const std::shared_ptr<IContext>&
         .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
     };
 
-    device->GetCopyableFootprints(&texture_desc, 0, 1, 0, &layout, &numRows, &rowSizeInBytes, &totalBytes);
+    device->GetCopyableFootprints(&texture_desc,
+                                  0,
+                                  texture->GetMipLevels(),
+                                  0,
+                                  layouts.data(),
+                                  num_rows.data(),
+                                  row_size_in_bytes.data(),
+                                  &total_bytes);
 
-    const D3D12_TEXTURE_COPY_LOCATION src_location = {
-        .pResource = src_resource,
-        .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-        .PlacedFootprint = layout,
-    };
+    for (uint32_t i = 0; i < texture->GetMipLevels(); ++i)
+    {
+        const D3D12_TEXTURE_COPY_LOCATION src_location = {
+            .pResource = src_resource,
+            .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+            .PlacedFootprint = layouts[i],
+        };
 
-    D3D12_TEXTURE_COPY_LOCATION dst_location = {
-        .pResource = dst_resource,
-        .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-        .SubresourceIndex = 0,
-    };
-
-    m_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, nullptr);
+        D3D12_TEXTURE_COPY_LOCATION dst_location = {
+            .pResource = dst_resource,
+            .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+            .SubresourceIndex = i,
+        };
+        m_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, nullptr);
+    }
 }
 
 void Swift::D3D12::Command::CopyBufferRegion(const BufferCopyRegion& region)
@@ -165,8 +171,8 @@ void Swift::D3D12::Command::CopyTextureRegion(const TextureCopyRegion& region)
     auto* dst_resource = static_cast<ID3D12Resource*>(region.dst_texture->GetResource()->GetResource());
     auto* src_resource = static_cast<ID3D12Resource*>(region.src_texture->GetResource()->GetResource());
 
-    TransitionResource(region.dst_texture->GetResource(), ResourceState::eCopyDest);
-    TransitionResource(region.src_texture->GetResource(), ResourceState::eCopySource);
+    ResourceBarrier(region.dst_texture->GetResource(), ResourceState::eCopyDest);
+    ResourceBarrier(region.src_texture->GetResource(), ResourceState::eCopySource);
 
     const D3D12_TEXTURE_COPY_LOCATION src_location = {
         .pResource = src_resource,
@@ -197,23 +203,22 @@ void Swift::D3D12::Command::CopyTextureRegion(const TextureCopyRegion& region)
                               &src_box);
 }
 
-void Swift::D3D12::Command::BindRenderTargets(const std::span<const std::shared_ptr<ITexture>> render_targets,
-                                              const std::shared_ptr<ITexture>& depth_stencil)
+void Swift::D3D12::Command::BindRenderTargets(const std::span<IRenderTarget*> render_targets, IDepthStencil* depth_stencil)
 {
     std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 8> render_target_descriptors;
     for (int i = 0; i < render_targets.size(); i++)
     {
-        const auto* dx_render_target = static_cast<Texture*>(render_targets[i].get());
-        render_target_descriptors[i] = dx_render_target->GetRTVDescriptor()->cpu_handle;
+        auto* dx_render_target = static_cast<RenderTarget*>(render_targets[i]);
+        render_target_descriptors[i] = dx_render_target->GetDescriptorData().cpu_handle;
     }
 
     if (depth_stencil)
     {
-        const auto* dx_depth_stencil = static_cast<Texture*>(depth_stencil.get());
+        auto* dx_depth_stencil = static_cast<DepthStencil*>(depth_stencil);
         m_list->OMSetRenderTargets(static_cast<uint32_t>(render_targets.size()),
                                    render_target_descriptors.data(),
                                    false,
-                                   &dx_depth_stencil->GetDSVDescriptor()->cpu_handle);
+                                   &dx_depth_stencil->GetDescriptorData().cpu_handle);
     }
     else
     {
@@ -224,18 +229,18 @@ void Swift::D3D12::Command::BindRenderTargets(const std::span<const std::shared_
     }
 }
 
-void Swift::D3D12::Command::ClearRenderTarget(const std::shared_ptr<ITexture>& texture, const std::array<float, 4>& color)
+void Swift::D3D12::Command::ClearRenderTarget(IRenderTarget* render_target, const std::array<float, 4>& color)
 {
-    const auto* dx_texture = static_cast<Texture*>(texture.get());
-    TransitionResource(dx_texture->GetResource(), ResourceState::eRenderTarget);
-    m_list->ClearRenderTargetView(dx_texture->GetRTVDescriptor()->cpu_handle, color.data(), 0, nullptr);
+    auto* dx_render_target = static_cast<RenderTarget*>(render_target);
+    ResourceBarrier(dx_render_target->GetTexture()->GetResource(), ResourceState::eRenderTarget);
+    m_list->ClearRenderTargetView(dx_render_target->GetDescriptorData().cpu_handle, color.data(), 0, nullptr);
 }
 
-void Swift::D3D12::Command::ClearDepthStencil(const std::shared_ptr<ITexture>& texture, float depth, const uint8_t stencil)
+void Swift::D3D12::Command::ClearDepthStencil(IDepthStencil* depth_stencil, const float depth, const uint8_t stencil)
 {
-    const auto* dx_texture = static_cast<Texture*>(texture.get());
-    TransitionResource(texture->GetResource(), ResourceState::eDepthWrite);
-    m_list->ClearDepthStencilView(dx_texture->GetDSVDescriptor()->cpu_handle,
+    auto* dx_depth_stencil = static_cast<DepthStencil*>(depth_stencil);
+    ResourceBarrier(depth_stencil->GetTexture()->GetResource(), ResourceState::eDepthWrite);
+    m_list->ClearDepthStencilView(dx_depth_stencil->GetDescriptorData().cpu_handle,
                                   D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
                                   depth,
                                   stencil,
@@ -243,7 +248,7 @@ void Swift::D3D12::Command::ClearDepthStencil(const std::shared_ptr<ITexture>& t
                                   nullptr);
 }
 
-void Swift::D3D12::Command::TransitionResource(const std::shared_ptr<IResource>& resource_handle, const ResourceState new_state)
+void Swift::D3D12::Command::ResourceBarrier(const std::shared_ptr<IResource>& resource_handle, const ResourceState new_state)
 {
     auto* dx_resource = static_cast<Resource*>(resource_handle.get());
     const auto new_dx_state = ToResourceState(new_state);
@@ -257,5 +262,16 @@ void Swift::D3D12::Command::TransitionResource(const std::shared_ptr<IResource>&
                                                     .StateAfter = new_dx_state,
                                                 }};
     dx_resource->SetState(new_state);
+    m_list->ResourceBarrier(1, &barrier);
+}
+
+void Swift::D3D12::Command::UAVBarrier(IResource* resource_handle)
+{
+    auto* dx_resource = static_cast<Resource*>(resource_handle);
+    const auto barrier = D3D12_RESOURCE_BARRIER{.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV,
+                                                .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                                                .UAV = {
+                                                    .pResource = static_cast<ID3D12Resource*>(dx_resource->GetResource()),
+                                                }};
     m_list->ResourceBarrier(1, &barrier);
 }

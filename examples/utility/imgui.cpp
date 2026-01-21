@@ -7,7 +7,7 @@
 #include "d3d12/d3d12_context.hpp"
 #include "d3d12/d3d12_descriptor.hpp"
 
-ImguiBackend::ImguiBackend(const std::shared_ptr<Swift::IContext>& context, const Window& window)
+ImguiBackend::ImguiBackend(Swift::IContext* context, const Window& window)
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -18,8 +18,8 @@ ImguiBackend::ImguiBackend(const std::shared_ptr<Swift::IContext>& context, cons
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     ImGui_ImplGlfw_InitForOther(window.GetHandle(), true);
 
-    auto* dx_context = static_cast<Swift::D3D12::Context*>(context.get());
-    auto* srv_heap = dx_context->GetCBVSRVUAVHeap().get();
+    const auto* dx_context = static_cast<Swift::D3D12::Context*>(context);
+    auto* srv_heap = dx_context->GetCBVSRVUAVHeap();
 
     ImGui_ImplDX12_InitInfo init_info = {};
     init_info.Device = static_cast<ID3D12Device*>(context->GetDevice());
@@ -43,7 +43,7 @@ ImguiBackend::ImguiBackend(const std::shared_ptr<Swift::IContext>& context, cons
     {
         auto* srv_heap = static_cast<Swift::D3D12::DescriptorHeap*>(info->UserData);
         const uint32_t index = (cpu_handle.ptr - srv_heap->GetCpuBaseHandle().ptr) / srv_heap->GetStride();
-        srv_heap->Free(Swift::D3D12::Descriptor{.cpu_handle = cpu_handle, .gpu_handle = gpu_handle, .index = index});
+        srv_heap->Free(Swift::D3D12::DescriptorData{.cpu_handle = cpu_handle, .gpu_handle = gpu_handle, .index = index});
     };
     ImGui_ImplDX12_Init(&init_info);
 }
@@ -62,7 +62,7 @@ void ImguiBackend::BeginFrame()
     ImGui::NewFrame();
 }
 
-void ImguiBackend::Render(const std::shared_ptr<Swift::ICommand>& command)
+void ImguiBackend::Render(Swift::ICommand* command)
 {
     ImGui::Render();
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), static_cast<ID3D12GraphicsCommandList*>(command->GetCommandList()));

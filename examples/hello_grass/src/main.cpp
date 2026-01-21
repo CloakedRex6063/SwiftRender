@@ -1,5 +1,4 @@
-#include <chrono>
-
+#include "chrono"
 #include "camera.hpp"
 #include "imgui.h"
 #include "imgui.hpp"
@@ -30,27 +29,18 @@ struct GrassPatch
     float height;
 };
 
-void BuildGrass(const std::shared_ptr<Swift::IBuffer>& grass_buffer, const GrassSettings& settings, uint32_t& grass_count);
+void BuildGrass(Swift::IBuffer* grass_buffer, const GrassSettings& settings, uint32_t& grass_count);
 
 int main()
 {
     auto window = Window();
-    const auto window_size = window.GetSize();
-    auto context = Swift::CreateContext({.backend_type = Swift::BackendType::eD3D12,
-                                         .width = window_size.x,
-                                         .height = window_size.y,
-                                         .native_window_handle = window.GetNativeWindow(),
-                                         .native_display_handle = nullptr});
+    auto window_size = window.GetSize();
+    auto* context = Swift::CreateContext({.backend_type = Swift::BackendType::eD3D12,
+                                          .width = window_size.x,
+                                          .height = window_size.y,
+                                          .native_window_handle = window.GetNativeWindow(),
+                                          .native_display_handle = nullptr});
 
-    const Swift::TextureCreateInfo render_tex_info{
-        .width = window_size[0],
-        .height = window_size[1],
-        .mip_levels = 1,
-        .array_size = 1,
-        .format = Swift::Format::eRGBA8_UNORM,
-        .flags = EnumFlags(Swift::TextureFlags::eRenderTarget) | EnumFlags(Swift::TextureFlags::eShaderResource),
-    };
-    const auto render_texture = context->CreateTexture(render_tex_info);
     const Swift::TextureCreateInfo depth_tex_info{
         .width = window_size[0],
         .height = window_size[1],
@@ -59,7 +49,8 @@ int main()
         .format = Swift::Format::eD32F,
         .flags = Swift::TextureFlags::eDepthStencil,
     };
-    const auto depth_texture = context->CreateTexture(depth_tex_info);
+    auto* depth_texture = context->CreateTexture(depth_tex_info);
+    auto* depth_stencil = context->CreateDepthStencil(depth_texture);
 
     ShaderCompiler compiler{};
     auto amplify_code = compiler.CompileShader("hello_grass.slang", ShaderStage::eAmplification);
@@ -75,18 +66,23 @@ int main()
     };
     descriptors.emplace_back(descriptor);
 
+    const auto formats = std::vector{Swift::Format::eRGBA8_UNORM};
     const auto grass_shader_create_info = Swift::GraphicsShaderCreateInfo{
-        .rtv_formats = {Swift::Format::eRGBA8_UNORM},
+        .rtv_formats = formats,
         .amplify_code = amplify_code,
         .mesh_code = mesh_code,
         .pixel_code = pixel_code,
+        .depth_stencil_state = {.depth_enable = true,
+                                .depth_write_enable = true,
+                                .depth_test = Swift::DepthTest::eLess,
+                                .stencil_enable = false},
         .rasterizer_state =
             {
                 .cull_mode = Swift::CullMode::eNone,
             },
         .descriptors = descriptors,
     };
-    auto grass_shader = context->CreateShader(grass_shader_create_info);
+    auto* grass_shader = context->CreateShader(grass_shader_create_info);
 
     struct ConstantBufferInfo
     {
@@ -99,13 +95,10 @@ int main()
         uint32_t grass_patch_count;
         glm::float2 padding;
     };
-    const Swift::BufferCreateInfo constant_create_info{
-        .num_elements = 1,
-        .element_size = 65536,
-        .first_element = 0,
-        .type = Swift::BufferType::eConstantBuffer,
+    constexpr Swift::BufferCreateInfo constant_create_info{
+        .size = 65536,
     };
-    const auto constant_buffer = context->CreateBuffer(constant_create_info);
+    auto* const constant_buffer = context->CreateBuffer(constant_create_info);
 
     struct Plane
     {
@@ -125,31 +118,54 @@ int main()
         Plane far_face;
     };
 
-    const Swift::BufferCreateInfo frustum_create_info{
-        .num_elements = 1,
-        .element_size = sizeof(Frustum),
-        .first_element = 0,
-        .type = Swift::BufferType::eStructuredBuffer,
+    constexpr Swift::BufferCreateInfo frustum_create_info{
+        .size = sizeof(Frustum),
     };
-    const auto frustum_buffer = context->CreateBuffer(frustum_create_info);
+    auto* frustum_buffer = context->CreateBuffer(frustum_create_info);
+    auto* frustum_buffer_srv = context->CreateShaderResource(frustum_buffer,
+                                                             Swift::BufferSRVCreateInfo{
+                                                                 .num_elements = 1,
+                                                                 .element_size = sizeof(Frustum),
+                                                             });
 
-    const Swift::BufferCreateInfo grass_info{
-        .num_elements = 1000000,
-        .element_size = sizeof(GrassPatch),
-        .first_element = 0,
-        .type = Swift::BufferType::eStructuredBuffer,
+    constexpr Swift::BufferCreateInfo grass_info{
+        .size = 1'000'000 * sizeof(GrassPatch),
     };
-    const auto grass_buffer = context->CreateBuffer(grass_info);
+    auto* grass_buffer = context->CreateBuffer(grass_info);
+    auto* grass_buffer_srv = context->CreateShaderResource(frustum_buffer,
+                                                           Swift::BufferSRVCreateInfo{
+                                                               .num_elements = 1'000'000,
+                                                               .element_size = sizeof(GrassPatch),
+                                                           });
     GrassSettings grass_settings{};
     uint32_t grass_count = grass_settings.patch_x * grass_settings.patch_y;
     BuildGrass(grass_buffer, grass_settings, grass_count);
 
-    float near_plane;
-    float far_plane;
+    float near_plane = 0.01;
+    float far_plane = 1000;
 
     Camera camera{};
     Input input{window};
     ImguiBackend imgui{context, window};
+
+    window.AddResizeCallback(
+        [&context, &depth_stencil, &depth_texture](const glm::uvec2 size)
+        {
+            context->GetGraphicsQueue()->WaitIdle();
+            context->ResizeBuffers(size.x, size.y);
+            context->DestroyTexture(depth_texture);
+            context->DestroyDepthStencil(depth_stencil);
+            const Swift::TextureCreateInfo depth_tex_info{
+                .width = size.x,
+                .height = size.y,
+                .mip_levels = 1,
+                .array_size = 1,
+                .format = Swift::Format::eD32F,
+                .flags = Swift::TextureFlags::eDepthStencil,
+            };
+            depth_texture = context->CreateTexture(depth_tex_info);
+            depth_stencil = context->CreateDepthStencil(depth_texture);
+        });
 
     float time = 0.0f;
     auto prev_time = std::chrono::high_resolution_clock::now();
@@ -160,10 +176,10 @@ int main()
 
         const auto& command = context->GetCurrentCommand();
 
-        const auto window_size = window.GetSize();
+        window_size = window.GetSize();
         const auto float_size = std::array{static_cast<float>(window_size[0]), static_cast<float>(window_size[1])};
 
-        auto& render_target = context->GetCurrentSwapchainTexture();
+        auto* render_target = context->GetCurrentRenderTarget();
 
         const auto current_time = std::chrono::high_resolution_clock::now();
         const auto delta_time = std::chrono::duration<float>(current_time - prev_time).count();
@@ -175,8 +191,8 @@ int main()
         const ConstantBufferInfo scene_buffer_data{
             .view_proj = camera.m_proj_matrix * camera.m_view_matrix,
             .cam_pos = camera.m_position,
-            .frustum_buffer_index = frustum_buffer->GetDescriptorIndex(),
-            .grass_buffer_index = grass_buffer->GetDescriptorIndex(),
+            .frustum_buffer_index = frustum_buffer_srv->GetDescriptorIndex(),
+            .grass_buffer_index = grass_buffer_srv->GetDescriptorIndex(),
             .grass_patch_count = grass_count,
         };
         constant_buffer->Write(&scene_buffer_data, 0, sizeof(ConstantBufferInfo));
@@ -187,7 +203,7 @@ int main()
         command->ClearRenderTarget(render_target, {0.0f, 0.0f, 0.0f, 0.0f});
         command->BindShader(grass_shader);
         command->BindConstantBuffer(constant_buffer, 1);
-        command->BindRenderTargets(std::array{render_target}, {});
+        command->BindRenderTargets(render_target, depth_stencil);
         const struct PushConstant
         {
             float wind_speed;
@@ -262,10 +278,17 @@ int main()
         context->Present(false);
     }
 
-    context->GetGraphicsQueue()->WaitIdle();
+    context->DestroyBuffer(constant_buffer);
+    context->DestroyShader(grass_shader);
+    context->DestroyBuffer(grass_buffer);
+    context->DestroyBuffer(frustum_buffer);
+    context->DestroyShaderResource(grass_buffer_srv);
+    context->DestroyShaderResource(frustum_buffer_srv);
+
+    Swift::DestroyContext(context);
 }
 
-void BuildGrass(const std::shared_ptr<Swift::IBuffer>& grass_buffer, const GrassSettings& settings, uint32_t& grass_count)
+void BuildGrass(Swift::IBuffer* grass_buffer, const GrassSettings& settings, uint32_t& grass_count)
 {
     grass_count = settings.patch_x * settings.patch_y;
     std::vector<GrassPatch> grass_patches;

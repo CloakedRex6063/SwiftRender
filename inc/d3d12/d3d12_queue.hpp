@@ -17,7 +17,7 @@ namespace Swift::D3D12
         void* GetQueue() override { return m_queue; }
         void Wait(uint64_t fence_value) override;
         void WaitIdle() override;
-        uint64_t Execute(const std::span<const std::shared_ptr<ICommand>>& commands) override;
+        uint64_t Execute(std::span<ICommand*> commands) override;
 
     private:
         uint64_t m_fence_value = 0;

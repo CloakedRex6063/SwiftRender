@@ -44,7 +44,7 @@ GLFWwindow* Window::GetHandle() const { return m_window; }
 
 glm::uvec2 Window::GetSize() const
 {
-    int width, height;
+    int width = 0, height = 0;
     glfwGetWindowSize(m_window, &width, &height);
     return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 }

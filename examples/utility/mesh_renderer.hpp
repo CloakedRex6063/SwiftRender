@@ -1,6 +1,12 @@
 #pragma once
 #include "swift_builders.hpp"
 
+struct TextureView
+{
+    Swift::ITexture* texture;
+    Swift::ITextureSRV* texture_srv;
+};
+
 struct MeshRenderer
 {
     uint32_t m_vertex_buffer;
@@ -11,7 +17,7 @@ struct MeshRenderer
     int m_material_index;
     uint32_t m_transform_index;
 
-    void Draw(const std::shared_ptr<Swift::ICommand>& command) const
+    void Draw(Swift::ICommand* command) const
     {
         const struct PushConstants
         {
@@ -36,43 +42,57 @@ struct MeshRenderer
 
 struct MeshBuffers
 {
-    std::shared_ptr<Swift::IBuffer> m_vertex_buffer;
-    std::shared_ptr<Swift::IBuffer> m_mesh_buffer;
-    std::shared_ptr<Swift::IBuffer> m_mesh_vertex_buffer;
-    std::shared_ptr<Swift::IBuffer> m_mesh_triangle_buffer;
+    Swift::IBuffer* m_vertex_buffer;
+    Swift::IBufferSRV* m_vertex_buffer_srv;
+    Swift::IBuffer* m_mesh_buffer;
+    Swift::IBufferSRV* m_mesh_buffer_srv;
+    Swift::IBuffer* m_mesh_vertex_buffer;
+    Swift::IBufferSRV* m_mesh_vertex_buffer_srv;
+    Swift::IBuffer* m_mesh_triangle_buffer;
+    Swift::IBufferSRV* m_mesh_triangle_buffer_srv;
 };
 
-inline std::vector<MeshBuffers> CreateMeshBuffers(const std::shared_ptr<Swift::IContext>& context,
+inline std::vector<MeshBuffers> CreateMeshBuffers(Swift::IContext* context,
                                                   const std::span<Mesh>& meshes)
 {
     std::vector<MeshBuffers> mesh_buffers;
     for (auto& mesh : meshes)
     {
-        const auto vertex_buffer = Swift::BufferBuilder(context, Swift::BufferType::eStructuredBuffer)
-                                       .SetElementSize(sizeof(Vertex))
-                                       .SetNumElements(mesh.vertices.size())
-                                       .SetData(mesh.vertices.data())
-                                       .Build();
-        const auto meshlet_buffer = Swift::BufferBuilder(context, Swift::BufferType::eStructuredBuffer)
-                                        .SetElementSize(sizeof(meshopt_Meshlet))
-                                        .SetNumElements(mesh.meshlets.size())
-                                        .SetData(mesh.meshlets.data())
-                                        .Build();
-        const auto mesh_vertex_buffer = Swift::BufferBuilder(context, Swift::BufferType::eStructuredBuffer)
-                                            .SetElementSize(sizeof(uint32_t))
-                                            .SetNumElements(mesh.meshlet_vertices.size())
+        auto *const vertex_buffer =
+            Swift::BufferBuilder(context, sizeof(Vertex) * mesh.vertices.size()).SetData(mesh.vertices.data()).Build();
+        auto *const vertex_buffer_srv = context->CreateShaderResource(
+            vertex_buffer,
+            Swift::BufferSRVCreateInfo{.num_elements = static_cast<uint32_t>(mesh.vertices.size()),
+                                       .element_size = sizeof(Vertex)});
+        auto *const meshlet_buffer =
+            Swift::BufferBuilder(context, sizeof(meshopt_Meshlet) * mesh.meshlets.size()).SetData(mesh.meshlets.data()).Build();
+        auto *const meshlet_buffer_srv = context->CreateShaderResource(
+            meshlet_buffer,
+            Swift::BufferSRVCreateInfo{.num_elements = static_cast<uint32_t>(mesh.meshlets.size()),
+                                       .element_size = sizeof(meshopt_Meshlet)});
+        auto *const mesh_vertex_buffer = Swift::BufferBuilder(context, sizeof(uint32_t) * mesh.meshlet_vertices.size())
                                             .SetData(mesh.meshlet_vertices.data())
                                             .Build();
-        const auto mesh_triangle_buffer = Swift::BufferBuilder(context, Swift::BufferType::eStructuredBuffer)
-                                              .SetElementSize(sizeof(uint32_t))
-                                              .SetNumElements(mesh.meshlet_triangles.size())
+        auto *const mesh_vertex_buffer_srv = context->CreateShaderResource(
+            mesh_vertex_buffer,
+            Swift::BufferSRVCreateInfo{.num_elements = static_cast<uint32_t>(mesh.meshlet_vertices.size()),
+                                       .element_size = sizeof(uint32_t)});
+        auto *const mesh_triangle_buffer = Swift::BufferBuilder(context, sizeof(uint32_t) * mesh.meshlet_triangles.size())
                                               .SetData(mesh.meshlet_triangles.data())
                                               .Build();
+        auto *const mesh_triangle_buffer_srv = context->CreateShaderResource(
+            mesh_triangle_buffer,
+            Swift::BufferSRVCreateInfo{.num_elements = static_cast<uint32_t>(mesh.meshlet_triangles.size()),
+                                       .element_size = sizeof(uint32_t)});
         const auto mesh_buffer = MeshBuffers{
             .m_vertex_buffer = vertex_buffer,
+            .m_vertex_buffer_srv = vertex_buffer_srv,
             .m_mesh_buffer = meshlet_buffer,
+            .m_mesh_buffer_srv = meshlet_buffer_srv,
             .m_mesh_vertex_buffer = mesh_vertex_buffer,
+            .m_mesh_vertex_buffer_srv = mesh_vertex_buffer_srv,
             .m_mesh_triangle_buffer = mesh_triangle_buffer,
+            .m_mesh_triangle_buffer_srv = mesh_triangle_buffer_srv,
         };
         mesh_buffers.emplace_back(mesh_buffer);
     }
@@ -80,20 +100,19 @@ inline std::vector<MeshBuffers> CreateMeshBuffers(const std::shared_ptr<Swift::I
 }
 
 inline std::vector<MeshRenderer> CreateMeshRenderers(const std::span<const Node> nodes,
-                                              const std::span<const Mesh> meshes,
-                                              const std::span<const MeshBuffers> mesh_buffers)
+                                                     const std::span<const Mesh> meshes,
+                                                     const std::span<const MeshBuffers> mesh_buffers)
 {
     std::vector<MeshRenderer> mesh_renderers;
     for (const auto& node : nodes)
     {
         const auto& mesh = meshes[node.mesh_index];
-        const auto& [m_vertex_buffer, m_mesh_buffer, m_mesh_vertex_buffer, m_mesh_triangle_buffer] =
-            mesh_buffers[node.mesh_index];
+        const auto& mesh_buffer = mesh_buffers[node.mesh_index];
         MeshRenderer mesh_renderer{
-            .m_vertex_buffer = m_vertex_buffer->GetDescriptorIndex(),
-            .m_mesh_buffer = m_mesh_buffer->GetDescriptorIndex(),
-            .m_mesh_vertex_buffer = m_mesh_vertex_buffer->GetDescriptorIndex(),
-            .m_mesh_triangle_buffer = m_mesh_triangle_buffer->GetDescriptorIndex(),
+            .m_vertex_buffer = mesh_buffer.m_vertex_buffer_srv->GetDescriptorIndex(),
+            .m_mesh_buffer = mesh_buffer.m_mesh_buffer_srv->GetDescriptorIndex(),
+            .m_mesh_vertex_buffer = mesh_buffer.m_mesh_vertex_buffer_srv->GetDescriptorIndex(),
+            .m_mesh_triangle_buffer = mesh_buffer.m_mesh_triangle_buffer_srv->GetDescriptorIndex(),
             .m_meshlet_count = static_cast<uint32_t>(mesh.meshlets.size()),
             .m_material_index = mesh.material_index,
             .m_transform_index = node.transform_index,
@@ -103,45 +122,76 @@ inline std::vector<MeshRenderer> CreateMeshRenderers(const std::span<const Node>
     return mesh_renderers;
 }
 
-inline std::vector<std::shared_ptr<Swift::ITexture>> CreateTextures(const std::shared_ptr<Swift::IContext>& context,
-                                                                    const std::span<Texture> textures,
-                                                                    std::span<Material> materials)
+inline std::vector<TextureView> CreateTextures(Swift::IContext* context,
+                                               const std::span<Texture> textures,
+                                               std::span<Material> materials)
 {
-    std::vector<std::shared_ptr<Swift::ITexture>> output_textures;
+    std::vector<TextureView> output_textures;
     for (auto& texture : textures)
     {
-        const auto t = Swift::TextureBuilder(context, texture.width, texture.height)
+        auto *const t = Swift::TextureBuilder(context, texture.width, texture.height)
                            .SetFormat(texture.format)
                            .SetArraySize(texture.array_size)
                            .SetMipmapLevels(texture.mip_levels)
-                           .SetFlags(Swift::TextureFlags::eShaderResource)
                            .SetData(texture.pixels.data())
                            .Build();
-        output_textures.emplace_back(t);
+        auto *const srv = context->CreateShaderResource(t);
+        output_textures.emplace_back(TextureView{t, srv});
     }
 
     for (auto& material : materials)
     {
         if (material.albedo_index != -1)
         {
-            material.albedo_index = output_textures[material.albedo_index]->GetDescriptorIndex();
+            material.albedo_index = output_textures[material.albedo_index].texture_srv->GetDescriptorIndex();
         }
         if (material.metal_rough_index != -1)
         {
-            material.metal_rough_index = output_textures[material.metal_rough_index]->GetDescriptorIndex();
+            material.metal_rough_index = output_textures[material.metal_rough_index].texture_srv->GetDescriptorIndex();
         }
         if (material.occlusion_index != -1)
         {
-            material.occlusion_index = output_textures[material.occlusion_index]->GetDescriptorIndex();
+            material.occlusion_index = output_textures[material.occlusion_index].texture_srv->GetDescriptorIndex();
         }
         if (material.emissive_index != -1)
         {
-            material.emissive_index = output_textures[material.emissive_index]->GetDescriptorIndex();
+            material.emissive_index = output_textures[material.emissive_index].texture_srv->GetDescriptorIndex();
         }
         if (material.normal_index != -1)
         {
-            material.normal_index = output_textures[material.normal_index]->GetDescriptorIndex();
+            material.normal_index = output_textures[material.normal_index].texture_srv->GetDescriptorIndex();
         }
     }
     return output_textures;
+}
+
+inline void DestroyMeshBuffers(Swift::IContext* context, std::span<const MeshBuffers> mesh_buffers)
+{
+    for (const auto& [m_vertex_buffer,
+                      m_vertex_buffer_srv,
+                      m_mesh_buffer,
+                      m_mesh_buffer_srv,
+                      m_mesh_vertex_buffer,
+                      m_mesh_vertex_buffer_srv,
+                      m_mesh_triangle_buffer,
+                      m_mesh_triangle_buffer_srv] : mesh_buffers)
+    {
+        context->DestroyBuffer(m_mesh_buffer);
+        context->DestroyShaderResource(m_mesh_buffer_srv);
+        context->DestroyBuffer(m_vertex_buffer);
+        context->DestroyShaderResource(m_vertex_buffer_srv);
+        context->DestroyBuffer(m_mesh_vertex_buffer);
+        context->DestroyShaderResource(m_mesh_vertex_buffer_srv);
+        context->DestroyBuffer(m_mesh_triangle_buffer);
+        context->DestroyShaderResource(m_mesh_triangle_buffer_srv);
+    }
+}
+
+inline void DestroyTextures(Swift::IContext* context, const std::span<const TextureView> textures)
+{
+    for (const auto& [texture, texture_srv] : textures)
+    {
+        context->DestroyTexture(texture);
+        context->DestroyShaderResource(texture_srv);
+    }
 }

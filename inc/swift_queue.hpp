@@ -16,7 +16,8 @@ namespace Swift
         virtual void* GetQueue() = 0;
         virtual void Wait(uint64_t fence_value) = 0;
         virtual void WaitIdle() = 0;
-        virtual uint64_t Execute(const std::span<const std::shared_ptr<ICommand>>& commands) = 0;
+        virtual uint64_t Execute(std::span<ICommand*> commands) = 0;
+        virtual uint64_t Execute(ICommand* command) { return Execute(std::span{&command, 1}); }
 
     protected:
         SWIFT_CONSTRUCT(IQueue);

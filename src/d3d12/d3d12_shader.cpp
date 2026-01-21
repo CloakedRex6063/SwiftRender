@@ -66,7 +66,7 @@ Swift::D3D12::Shader::Shader(ID3D12Device14* device, const ComputeShaderCreateIn
     CreateRootSignature(device, create_info.static_samplers, create_info.descriptors);
     const D3D12_SHADER_BYTECODE bytecode = {
         .pShaderBytecode = create_info.code.data(),
-        .BytecodeLength = create_info.code.size() * sizeof(bytecode),
+        .BytecodeLength = create_info.code.size() * sizeof(uint8_t),
     };
 
     const D3D12_COMPUTE_PIPELINE_STATE_DESC pso_desc = {
@@ -75,9 +75,19 @@ Swift::D3D12::Shader::Shader(ID3D12Device14* device, const ComputeShaderCreateIn
     };
     [[maybe_unused]]
     const auto result = device->CreateComputePipelineState(&pso_desc, IID_PPV_ARGS(&m_pso));
+    if (result)
+    {
+        printf("%ld", result);
+    }
 }
 
-Swift::D3D12::Shader::~Shader() { m_pso->Release(); }
+Swift::D3D12::Shader::~Shader()
+{
+    if (m_pso)
+    {
+        m_pso->Release();
+    }
+}
 
 void Swift::D3D12::Shader::CreateRootSignature(ID3D12Device14* device,
                                                std::span<const SamplerDescriptor> samplers,
@@ -110,8 +120,10 @@ void Swift::D3D12::Shader::CreateRootSignature(ID3D12Device14* device,
         root_params.emplace_back(param_desc);
     }
     std::vector<D3D12_STATIC_SAMPLER_DESC> sampler_descs;
-    for (auto& [min_filter, mag_filter, wrap_u, wrap_y, wrap_w] : samplers)
+
+    for (uint32_t i = 0; i < samplers.size(); ++i)
     {
+        const auto& [min_filter, mag_filter, wrap_u, wrap_y, wrap_w] = samplers[i];
         D3D12_STATIC_SAMPLER_DESC static_sampler_desc = {
             .Filter = ToFilter(min_filter, mag_filter),
             .AddressU = ToWrap(wrap_u),
@@ -119,13 +131,13 @@ void Swift::D3D12::Shader::CreateRootSignature(ID3D12Device14* device,
             .AddressW = ToWrap(wrap_w),
             .MipLODBias = 0,
             .MaxAnisotropy = D3D12_DEFAULT_MAX_ANISOTROPY,
-            .ComparisonFunc = D3D12_COMPARISON_FUNC_GREATER,
+            .ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS,
             .BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK,
             .MinLOD = 0,
             .MaxLOD = 13,
-            .ShaderRegister = 0,
+            .ShaderRegister = i,
             .RegisterSpace = 0,
-            .ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL,
+            .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
         };
         sampler_descs.emplace_back(static_sampler_desc);
     }
@@ -139,8 +151,8 @@ void Swift::D3D12::Shader::CreateRootSignature(ID3D12Device14* device,
             .Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED,
         }};
 
-    ID3DBlob* error_blob;
-    ID3DBlob* root_signature_blob;
+    ID3DBlob* error_blob = nullptr;
+    ID3DBlob* root_signature_blob = nullptr;
     if (const auto result = D3D12SerializeVersionedRootSignature(&root_signature_desc, &root_signature_blob, &error_blob);
         result != S_OK)
     {

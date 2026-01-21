@@ -4,7 +4,6 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include "directx/d3d12.h"
-#include "directx/d3dx12.h"
 #include "d3d12_queue.hpp"
 #include "dxgi1_6.h"
 #include "d3d12_descriptor.hpp"
@@ -17,25 +16,48 @@ namespace Swift::D3D12
     public:
         explicit Context(const ContextCreateInfo& create_info);
         ~Context() override;
+        SWIFT_NO_COPY(Context);
+        SWIFT_NO_MOVE(Context);
 
         [[nodiscard]] void* GetDevice() const override;
         [[nodiscard]] void* GetAdapter() const override;
         [[nodiscard]] void* GetSwapchain() const override;
         [[nodiscard]] IDXGIFactory7* GetFactory() const { return m_factory; }
-        [[nodiscard]] std::shared_ptr<DescriptorHeap> GetRTVHeap() { return m_rtv_heap; }
-        [[nodiscard]] std::shared_ptr<DescriptorHeap> GetDSVHeap() { return m_dsv_heap; }
-        [[nodiscard]] std::shared_ptr<DescriptorHeap> GetCBVSRVUAVHeap() { return m_cbv_srv_uav_heap; }
+        [[nodiscard]] DescriptorHeap* GetRTVHeap() const { return m_rtv_heap; }
+        [[nodiscard]] DescriptorHeap* GetDSVHeap() const { return m_dsv_heap; }
+        [[nodiscard]] DescriptorHeap* GetCBVSRVUAVHeap() const { return m_cbv_srv_uav_heap; }
 
-        std::shared_ptr<ICommand> CreateCommand(QueueType queue_type) override;
-        std::shared_ptr<IQueue> CreateQueue(const QueueCreateInfo& info) override;
-        std::shared_ptr<IBuffer> CreateBuffer(const BufferCreateInfo& info) override;
-        std::shared_ptr<ITexture> CreateTexture(const TextureCreateInfo& info) override;
+        ICommand* CreateCommand(QueueType queue_type) override;
+        IQueue* CreateQueue(const QueueCreateInfo& info) override;
+        IBuffer* CreateBuffer(const BufferCreateInfo& info) override;
+        ITexture* CreateTexture(const TextureCreateInfo& info) override;
+        IRenderTarget* CreateRenderTarget(ITexture* texture, uint32_t mip = 0) override;
+        IDepthStencil* CreateDepthStencil(ITexture* texture, uint32_t mip = 0) override;
+        ITextureSRV* CreateShaderResource(ITexture* texture, uint32_t most_detailed_mip = 0, uint32_t mip_levels = 1) override;
+        IBufferSRV* CreateShaderResource(IBuffer* buffer, const BufferSRVCreateInfo& srv_create_info) override;
+        ITextureUAV* CreateUnorderedAccessView(ITexture* texture, uint32_t mip = 0) override;
+        IBufferUAV* CreateUnorderedAccessView(IBuffer* buffer, const BufferUAVCreateInfo& uav_create_info) override;
+        IShader* CreateShader(const GraphicsShaderCreateInfo& info) override;
+        IShader* CreateShader(const ComputeShaderCreateInfo& info) override;
         std::shared_ptr<IResource> CreateResource(const BufferCreateInfo& info) override;
         std::shared_ptr<IResource> CreateResource(const TextureCreateInfo& info) override;
-        std::shared_ptr<IShader> CreateShader(const GraphicsShaderCreateInfo& info) override;
-        std::shared_ptr<IShader> CreateShader(const ComputeShaderCreateInfo& info) override;
+
+        void DestroyCommand(ICommand* command) override;
+        void DestroyQueue(IQueue* queue) override;
+        void DestroyBuffer(IBuffer* buffer) override;
+        void DestroyTexture(ITexture* texture) override;
+        void DestroyShader(IShader* shader) override;
+        void DestroyRenderTarget(IRenderTarget* render_target) override;
+        void DestroyDepthStencil(IDepthStencil* depth_stencil) override;
+        void DestroyShaderResource(ITextureSRV* srv) override;
+        void DestroyShaderResource(IBufferSRV* srv) override;
+        void DestroyUnorderedAccessView(IBufferUAV* uav) override;
+        void DestroyUnorderedAccessView(ITextureUAV* uav) override;
+
+        void UpdateTextureRegion(ITexture* texture, const TextureUpdateRegion& texture_region) override;
 
         void Present(bool vsync) override;
+        void ResizeBuffers(uint32_t width, uint32_t height) override;
 
     private:
         void CreateBackend();
@@ -45,14 +67,16 @@ namespace Swift::D3D12
         void CreateQueues();
         void CreateTextures(const ContextCreateInfo& create_info);
         void CreateSwapchain(const ContextCreateInfo& create_info);
+        void CreateMipMapShader();
 
         IDXGIAdapter4* m_adapter = nullptr;
         IDXGIFactory7* m_factory = nullptr;
         ID3D12Device14* m_device = nullptr;
-        std::shared_ptr<Swapchain> m_swapchain = nullptr;
-        std::shared_ptr<DescriptorHeap> m_rtv_heap{};
-        std::shared_ptr<DescriptorHeap> m_dsv_heap{};
-        std::shared_ptr<DescriptorHeap> m_cbv_srv_uav_heap{};
+        Swapchain* m_swapchain = nullptr;
+        DescriptorHeap* m_rtv_heap{};
+        DescriptorHeap* m_dsv_heap{};
+        DescriptorHeap* m_cbv_srv_uav_heap{};
+        IShader* m_mipmap_shader{};
         DXGI_ADAPTER_DESC3 m_adapter_desc{};
     };
 }  // namespace Swift::D3D12

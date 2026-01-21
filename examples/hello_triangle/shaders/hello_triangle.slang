@@ -15,8 +15,8 @@ void mesh_main(
 {
     const float3 positions[3] = {
         float3( 0.0,  0.5, 0.0),
-        float3( 0.5, -0.5, 0.0),
-        float3(-0.5, -0.5, 0.0)
+        float3(-0.5, -0.5, 0.0),
+        float3( 0.5, -0.5, 0.0)
     };
     
     const float3 colors[3] = {
