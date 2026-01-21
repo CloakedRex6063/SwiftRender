@@ -124,10 +124,7 @@ Swift::D3D12::BufferUAV::BufferUAV(Context* context, IBuffer* buffer, const Buff
     device->CreateUnorderedAccessView(resource, nullptr, &uav_desc, m_data.cpu_handle);
 }
 
-Swift::D3D12::BufferCBV::BufferCBV(Context* context,
-                                   IBuffer* buffer,
-                                   const uint32_t size,
-                                   const uint32_t offset)
+Swift::D3D12::BufferCBV::BufferCBV(Context* context, IBuffer* buffer, const uint32_t size, const uint32_t offset)
     : IBufferCBV(buffer), D3D12Descriptor(context)
 {
     const auto& cbv_heap = context->GetCBVSRVUAVHeap();
@@ -164,6 +161,25 @@ Swift::D3D12::DescriptorHeap::DescriptorHeap(ID3D12Device14* device,
     {
         m_gpu_base = m_heap->GetGPUDescriptorHandleForHeapStart();
     }
+    switch (heap_type)
+    {
+        case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+            m_heap->SetName(L"CBV_SRV_UAV Heap");
+            break;
+        case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+            m_heap->SetName(L"RTV Heap");
+            break;
+        case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+            m_heap->SetName(L"DSV Heap");
+            break;
+        default:
+            break;
+    }
+}
+
+Swift::D3D12::DescriptorHeap::~DescriptorHeap()
+{
+    m_heap->Release();
 }
 
 Swift::D3D12::DescriptorData Swift::D3D12::DescriptorHeap::Allocate()

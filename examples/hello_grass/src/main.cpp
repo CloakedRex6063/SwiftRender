@@ -285,6 +285,8 @@ int main()
     context->DestroyShaderResource(grass_buffer_srv);
     context->DestroyShaderResource(frustum_buffer_srv);
 
+    imgui.Destroy();
+
     Swift::DestroyContext(context);
 }
 

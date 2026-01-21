@@ -63,6 +63,8 @@ Swift::D3D12::Resource::Resource(ID3D12Device14* device, const TextureCreateInfo
                                                         D3D12_RESOURCE_STATE_COMMON,
                                                         p_clear_value,
                                                         IID_PPV_ARGS(&m_resource));
+    auto name = std::wstring{info.name.begin(), info.name.end()};
+    m_resource->SetName(name.c_str());
 }
 
 Swift::D3D12::Resource::Resource(ID3D12Device14* device, const BufferCreateInfo& info)
@@ -98,6 +100,8 @@ Swift::D3D12::Resource::Resource(ID3D12Device14* device, const BufferCreateInfo&
                                                         D3D12_RESOURCE_STATE_COMMON,
                                                         nullptr,
                                                         IID_PPV_ARGS(&m_resource));
+    auto name = std::wstring{info.name.begin(), info.name.end()};
+    m_resource->SetName(name.c_str());
 }
 
 Swift::D3D12::Resource::~Resource()

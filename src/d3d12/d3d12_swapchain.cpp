@@ -25,6 +25,12 @@ Swift::D3D12::Swapchain::Swapchain(IDXGIFactory7* factory, ID3D12CommandQueue* q
     swapchain->QueryInterface(IID_PPV_ARGS(&m_swapchain));
 }
 
+Swift::D3D12::Swapchain::~Swapchain()
+{
+    m_swapchain->SetFullscreenState(false, nullptr);
+    m_swapchain->Release();
+}
+
 void Swift::D3D12::Swapchain::Present(const bool m_vsync) const
 {
     [[maybe_unused]]

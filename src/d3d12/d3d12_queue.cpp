@@ -2,7 +2,7 @@
 
 #include "d3d12_helpers.hpp"
 
-Swift::D3D12::Queue::Queue(ID3D12Device14* device, const QueueCreateInfo info)
+Swift::D3D12::Queue::Queue(ID3D12Device14* device, const QueueCreateInfo& info)
 {
     const D3D12_COMMAND_QUEUE_DESC queue_desc = {
         .Type = ToCommandType(info.type),
@@ -12,6 +12,8 @@ Swift::D3D12::Queue::Queue(ID3D12Device14* device, const QueueCreateInfo info)
     };
     device->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&m_queue));
     device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
+    std::wstring name{info.name.begin(), info.name.end()};
+    m_queue->SetName(name.c_str());
 }
 
 Swift::D3D12::Queue::~Queue()

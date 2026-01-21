@@ -11,7 +11,7 @@ namespace Swift::D3D12
     class Command final : public ICommand
     {
     public:
-        Command(IContext* context, DescriptorHeap* cbv_heap, QueueType type);
+        Command(IContext* context, DescriptorHeap* cbv_heap, QueueType type, std::string_view debug_name);
         ~Command() override;
         SWIFT_NO_COPY(Command);
         SWIFT_NO_MOVE(Command);

@@ -311,6 +311,11 @@ namespace Swift
             m_static_samplers = samplers;
             return *this;
         }
+        GraphicsShaderBuilder& SetName(const std::string_view name)
+        {
+            m_name = name;
+            return *this;
+        }
 
         IShader* Build() const
         {
@@ -350,6 +355,7 @@ namespace Swift
         PolygonMode m_polygon_mode = PolygonMode::eTriangle;
         std::vector<Descriptor> m_descriptors{};
         std::vector<SamplerDescriptor> m_static_samplers{};
+        std::string_view m_name;
     };
 
     struct BufferBuilder

@@ -87,6 +87,10 @@ Swift::D3D12::Shader::~Shader()
     {
         m_pso->Release();
     }
+    if (m_root_signature)
+    {
+        m_root_signature->Release();
+    }
 }
 
 void Swift::D3D12::Shader::CreateRootSignature(ID3D12Device14* device,

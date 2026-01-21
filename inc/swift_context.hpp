@@ -22,7 +22,7 @@ namespace Swift
         [[nodiscard]] virtual void* GetAdapter() const = 0;
         [[nodiscard]] virtual void* GetSwapchain() const = 0;
 
-        virtual ICommand* CreateCommand(QueueType type) = 0;
+        virtual ICommand* CreateCommand(QueueType type, std::string_view debug_name = "") = 0;
         virtual IQueue* CreateQueue(const QueueCreateInfo& info) = 0;
         virtual IBuffer* CreateBuffer(const BufferCreateInfo& info) = 0;
         virtual ITexture* CreateTexture(const TextureCreateInfo& info) = 0;

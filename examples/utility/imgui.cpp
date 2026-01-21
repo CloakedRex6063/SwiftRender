@@ -48,7 +48,7 @@ ImguiBackend::ImguiBackend(Swift::IContext* context, const Window& window)
     ImGui_ImplDX12_Init(&init_info);
 }
 
-ImguiBackend::~ImguiBackend()
+void ImguiBackend::Destroy()
 {
     ImGui_ImplDX12_Shutdown();
     ImGui_ImplGlfw_Shutdown();

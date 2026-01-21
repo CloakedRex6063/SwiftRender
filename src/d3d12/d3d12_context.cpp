@@ -28,10 +28,17 @@ namespace Swift::D3D12
     {
         m_graphics_queue->WaitIdle();
 
+        delete m_swapchain;
+
         for (auto* queue : m_queues)
         {
             queue->WaitIdle();
             DestroyQueue(queue);
+        }
+
+        for (auto* shader : m_shaders)
+        {
+            DestroyShader(shader);
         }
 
         for (auto* texture : m_textures)
@@ -74,9 +81,27 @@ namespace Swift::D3D12
             DestroyDepthStencil(texture);
         }
 
+        for (auto* command : m_commands)
+        {
+            DestroyCommand(command);
+        }
+
+        delete m_rtv_heap;
+        delete m_dsv_heap;
+        delete m_cbv_srv_uav_heap;
+
         m_factory->Release();
-        m_device->Release();
         m_adapter->Release();
+
+#ifdef SWIFT_DEBUG
+        ID3D12DebugDevice* debug_device = nullptr;
+        m_device->QueryInterface(
+            IID_PPV_ARGS(&debug_device)
+        );
+        debug_device->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
+        debug_device->Release();
+#endif
+        m_device->Release();
     }
 
     void* Context::GetDevice() const { return m_device; }
@@ -85,9 +110,9 @@ namespace Swift::D3D12
 
     void* Context::GetSwapchain() const { return m_swapchain->GetSwapchain(); }
 
-    ICommand* Context::CreateCommand(const QueueType queue_type)
+    ICommand* Context::CreateCommand(const QueueType queue_type, const std::string_view debug_name)
     {
-        m_commands.push_back(new Command(this, m_cbv_srv_uav_heap, queue_type));
+        m_commands.push_back(new Command(this, m_cbv_srv_uav_heap, queue_type, debug_name));
         return m_commands.back();
     }
 
@@ -382,9 +407,9 @@ namespace Swift::D3D12
         m_factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&m_adapter));
 
 #ifdef SWIFT_DEBUG
-        ID3D12Debug6* debug_controller = nullptr;
-        D3D12GetDebugInterface(IID_PPV_ARGS(&debug_controller));
-        debug_controller->EnableDebugLayer();
+        D3D12GetDebugInterface(IID_PPV_ARGS(&m_debug_controller));
+        m_debug_controller->EnableDebugLayer();
+        m_debug_controller->Release();
 #endif
 
         m_adapter->GetDesc3(&m_adapter_desc);
@@ -462,8 +487,8 @@ namespace Swift::D3D12
 
     void Context::CreateQueues()
     {
-        m_graphics_queue = CreateQueue({.type = QueueType::eGraphics, .priority = QueuePriority::eHigh});
-        m_copy_queue = CreateQueue({.type = QueueType::eTransfer, .priority = QueuePriority::eNormal});
+        m_graphics_queue = CreateQueue({.type = QueueType::eGraphics, .priority = QueuePriority::eHigh, .name = "Swift Graphics Queue"});
+        m_copy_queue = CreateQueue({.type = QueueType::eTransfer, .priority = QueuePriority::eNormal, .name = "Swift Transfer Queue"});
     }
 
     void Context::CreateTextures(const ContextCreateInfo& create_info)
@@ -504,6 +529,7 @@ namespace Swift::D3D12
             .code = gen_mips_code,
             .descriptors = {},
             .static_samplers = sampler_descriptors,
+            .name = "Mip Map Shader"
         };
         m_mipmap_shader = CreateShader(compute_shader_create_info);
     }

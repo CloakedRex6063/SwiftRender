@@ -7,7 +7,7 @@
 #include "d3d12/d3d12_shader.hpp"
 #include "d3d12/d3d12_texture.hpp"
 
-Swift::D3D12::Command::Command(IContext* context, DescriptorHeap* cbv_heap, const QueueType type)
+Swift::D3D12::Command::Command(IContext* context, DescriptorHeap* cbv_heap, const QueueType type, std::string_view debug_name)
     : m_context(static_cast<Context*>(context)), m_cbv_srv_uav_heap(cbv_heap)
 {
     auto* const device = static_cast<ID3D12Device14*>(context->GetDevice());

@@ -63,6 +63,7 @@ int main()
                              .SetPolygonMode(Swift::PolygonMode::eTriangle)
                              .SetDescriptors(descriptors)
                              .SetStaticSamplers(sampler_descriptors)
+                             .SetName("PBR Shader")
                              .Build();
 
     auto* const constant_buffer = Swift::BufferBuilder(context, 65536).Build();
@@ -107,9 +108,9 @@ int main()
             context->DestroyTexture(depth_texture);
             context->DestroyDepthStencil(depth_stencil);
             depth_texture = Swift::TextureBuilder(context, size.x, size.y)
-                                      .SetFlags(EnumFlags(Swift::TextureFlags::eDepthStencil))
-                                      .SetFormat(Swift::Format::eD32F)
-                                      .Build();
+                                .SetFlags(EnumFlags(Swift::TextureFlags::eDepthStencil))
+                                .SetFormat(Swift::Format::eD32F)
+                                .Build();
             depth_stencil = context->CreateDepthStencil(depth_texture);
         });
 
@@ -234,6 +235,8 @@ int main()
     context->DestroyShader(shader);
     DestroyTextures(context, textures);
     DestroyMeshBuffers(context, mesh_buffers);
+
+    imgui.Destroy();
 
     Swift::DestroyContext(context);
 }

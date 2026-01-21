@@ -6,7 +6,7 @@ class ImguiBackend
 {
 public:
     ImguiBackend(Swift::IContext* context, const Window& window);
-    ~ImguiBackend();
+    void Destroy();
     void BeginFrame();
     void Render(Swift::ICommand* command);
 

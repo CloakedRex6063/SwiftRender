@@ -90,6 +90,7 @@ namespace Swift::D3D12
     {
     public:
         DescriptorHeap(ID3D12Device14* device, D3D12_DESCRIPTOR_HEAP_TYPE heap_type, uint32_t count);
+        ~DescriptorHeap();
 
         DescriptorData Allocate();
         void Free(const DescriptorData& descriptor);

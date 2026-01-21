@@ -187,9 +187,10 @@ namespace Swift
         std::span<const uint8_t> pixel_code;
         DepthStencilState depth_stencil_state;
         RasterizerState rasterizer_state;
-        PolygonMode polygon_mode = Swift::PolygonMode::eTriangle;
+        PolygonMode polygon_mode = PolygonMode::eTriangle;
         std::span<const Descriptor> descriptors;
         std::span<const SamplerDescriptor> static_samplers;
+        std::string_view name;
     };
 
     struct ComputeShaderCreateInfo
@@ -197,6 +198,7 @@ namespace Swift
         std::span<const uint8_t> code;
         std::span<const Descriptor> descriptors;
         std::span<const SamplerDescriptor> static_samplers;
+        std::string_view name;
     };
 
     enum class ResourceState
@@ -299,6 +301,7 @@ namespace Swift
     {
         QueueType type;
         QueuePriority priority;
+        std::string_view name;
     };
 
     enum class ShaderError

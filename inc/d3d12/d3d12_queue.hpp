@@ -11,7 +11,7 @@ namespace Swift::D3D12
         SWIFT_NO_COPY(Queue);
         SWIFT_NO_MOVE(Queue);
 
-        Queue(ID3D12Device14* device, QueueCreateInfo info);
+        Queue(ID3D12Device14* device, const QueueCreateInfo& info);
         ~Queue() override;
 
         void* GetQueue() override { return m_queue; }

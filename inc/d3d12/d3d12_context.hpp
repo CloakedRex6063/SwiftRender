@@ -27,7 +27,7 @@ namespace Swift::D3D12
         [[nodiscard]] DescriptorHeap* GetDSVHeap() const { return m_dsv_heap; }
         [[nodiscard]] DescriptorHeap* GetCBVSRVUAVHeap() const { return m_cbv_srv_uav_heap; }
 
-        ICommand* CreateCommand(QueueType queue_type) override;
+        ICommand* CreateCommand(QueueType queue_type, std::string_view debug_name = "") override;
         IQueue* CreateQueue(const QueueCreateInfo& info) override;
         IBuffer* CreateBuffer(const BufferCreateInfo& info) override;
         ITexture* CreateTexture(const TextureCreateInfo& info) override;
@@ -72,6 +72,7 @@ namespace Swift::D3D12
         IDXGIAdapter4* m_adapter = nullptr;
         IDXGIFactory7* m_factory = nullptr;
         ID3D12Device14* m_device = nullptr;
+        ID3D12Debug6* m_debug_controller = nullptr;
         Swapchain* m_swapchain = nullptr;
         DescriptorHeap* m_rtv_heap{};
         DescriptorHeap* m_dsv_heap{};
