@@ -88,6 +88,11 @@ namespace Swift::D3D12
             DestroyCommand(command);
         }
 
+        for (auto* heap : m_heaps)
+        {
+            DestroyHeap(heap);
+        }
+
         delete m_rtv_heap;
         delete m_dsv_heap;
         delete m_cbv_srv_uav_heap;
