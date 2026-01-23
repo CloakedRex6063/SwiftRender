@@ -44,9 +44,9 @@ namespace Swift
 
     struct BufferSRVCreateInfo
     {
-        uint32_t num_elements;
-        uint32_t element_size;
-        uint32_t first_element;
+        uint32_t num_elements = 1;
+        uint32_t element_size = 0;
+        uint32_t first_element = 0;
     };
 
     using BufferUAVCreateInfo = BufferSRVCreateInfo;

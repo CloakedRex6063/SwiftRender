@@ -26,11 +26,11 @@ Swift::D3D12::Heap::~Heap() { m_heap->Release(); }
 std::shared_ptr<Swift::IResource> Swift::D3D12::Heap::CreateResource(const BufferCreateInfo& info, uint64_t offset)
 {
     auto* device = static_cast<ID3D12Device14*>(m_context->GetDevice());
-    return std::make_shared<Resource>(device, info, m_heap);
+    return std::make_shared<Resource>(device, info, m_heap, offset);
 }
 
 std::shared_ptr<Swift::IResource> Swift::D3D12::Heap::CreateResource(const TextureCreateInfo& info, uint64_t offset)
 {
     auto* device = static_cast<ID3D12Device14*>(m_context->GetDevice());
-    return std::make_shared<Resource>(device, info, m_heap);
+    return std::make_shared<Resource>(device, info, m_heap, offset);
 }

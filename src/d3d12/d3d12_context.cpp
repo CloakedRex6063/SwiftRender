@@ -117,28 +117,24 @@ namespace Swift::D3D12
 
     ICommand* Context::CreateCommand(const QueueType queue_type, const std::string_view debug_name)
     {
-        m_commands.push_back(new Command(this, m_cbv_srv_uav_heap, queue_type, debug_name));
-        return m_commands.back();
+        return CreateObject([&] { return new Command(this, m_cbv_srv_uav_heap, queue_type, debug_name); }, m_commands, m_free_commands);
     }
 
     IQueue* Context::CreateQueue(const QueueCreateInfo& info)
     {
-        m_queues.emplace_back(new Queue(m_device, info));
-        return m_queues.back();
+        return CreateObject([&] { return new Queue(m_device, info); }, m_queues, m_free_queues);
     }
 
     IBuffer* Context::CreateBuffer(const BufferCreateInfo& info)
     {
-        m_buffers.emplace_back(new Buffer(this, m_cbv_srv_uav_heap, info));
-        return m_buffers.back();
+        return CreateObject([&] { return new Buffer(this, m_cbv_srv_uav_heap, info); }, m_buffers, m_free_buffers);
     }
 
     ITexture* Context::CreateTexture(const TextureCreateInfo& info)
     {
         auto create_info = info;
         create_info.mip_levels = info.mip_levels == 0 ? CalculateMaxMips(info.width, info.height) : info.mip_levels;
-        m_textures.emplace_back(new Texture(this, create_info));
-        auto* texture = m_textures.back();
+        auto* texture = CreateObject([&] { return new Texture(this, create_info); }, m_textures, m_free_textures);
 
         if (create_info.data)
         {
@@ -163,7 +159,7 @@ namespace Swift::D3D12
             auto* const copy_command = CreateCommand(QueueType::eTransfer);
             copy_command->Begin();
             copy_command->CopyBufferToTexture(this, {upload_buffer, texture, create_info.mip_levels});
-            copy_command->ResourceBarrier(texture->GetResource(), ResourceState::eCommon);
+            copy_command->TransitionResource(texture->GetResource(), ResourceState::eCommon);
             copy_command->End();
 
             const auto value = m_copy_queue->Execute(copy_command);
@@ -178,7 +174,7 @@ namespace Swift::D3D12
                 std::vector<ITextureSRV*> texture_srvs;
                 std::vector<ITextureUAV*> texture_uavs;
 
-                const auto command = CreateCommand(QueueType::eCompute);
+                auto *const command = CreateCommand(QueueType::eCompute);
                 command->Begin();
 
                 command->BindShader(m_mipmap_shader);
@@ -348,13 +344,13 @@ namespace Swift::D3D12
         m_frame_index = m_swapchain->GetFrameIndex();
     }
 
-    uint32_t Context::CalculateTextureSize(const TextureCreateInfo& info)
+    uint32_t Context::CalculateAlignedTextureSize(const TextureCreateInfo& info)
     {
-        return GetTextureSize(m_device, info);
+        return Align(GetTextureSize(m_device, info), D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
     }
-    uint32_t Context::CalculateBufferSize(const BufferCreateInfo& info)
+    uint32_t Context::CalculateAlignedBufferSize(const BufferCreateInfo& info)
     {
-        return GetBufferSize(m_device, info);
+        return Align(GetBufferSize(m_device, info), D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
     }
 
     void Context::CreateBackend()

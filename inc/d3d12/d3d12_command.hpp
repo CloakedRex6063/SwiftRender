@@ -33,7 +33,7 @@ namespace Swift::D3D12
         void BindRenderTargets(std::span<IRenderTarget*> render_targets, IDepthStencil* depth_stencil) override;
         void ClearRenderTarget(IRenderTarget* render_target, const std::array<float, 4>& color)  override;
         void ClearDepthStencil(IDepthStencil* depth_stencil, float depth, uint8_t stencil)  override;
-        void ResourceBarrier(const std::shared_ptr<IResource>& resource_handle, ResourceState new_state)  override;
+        void TransitionResource(const std::shared_ptr<IResource>& resource_handle, ResourceState new_state)  override;
         void UAVBarrier(const std::shared_ptr<IResource>& resource_handle)  override;
 
     private:

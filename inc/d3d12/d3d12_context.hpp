@@ -60,8 +60,8 @@ namespace Swift::D3D12
 
         void Present(bool vsync) override;
         void ResizeBuffers(uint32_t width, uint32_t height) override;
-        uint32_t CalculateTextureSize(const TextureCreateInfo& info) override;
-        uint32_t CalculateBufferSize(const BufferCreateInfo& info) override;
+        uint32_t CalculateAlignedTextureSize(const TextureCreateInfo& info) override;
+        uint32_t CalculateAlignedBufferSize(const BufferCreateInfo& info) override;
 
     private:
         void CreateBackend();

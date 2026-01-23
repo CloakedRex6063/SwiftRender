@@ -45,10 +45,14 @@ int main()
         command->Begin();
         command->SetViewport(Swift::Viewport{.dimensions = float_size});
         command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
+        command->TransitionResource(render_target->GetTexture()->GetResource(), Swift::ResourceState::eRenderTarget);
         command->ClearRenderTarget(render_target, {0.0f, 0.0f, 0.0f, 0.0f});
         command->BindShader(triangle_shader);
         command->BindRenderTargets(render_target, {});
         command->DispatchMesh(1, 1, 1);
+
+        command->TransitionResource(context->GetCurrentSwapchainTexture()->GetResource(), Swift::ResourceState::ePresent);
+
         command->End();
 
         context->Present(true);

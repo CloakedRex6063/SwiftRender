@@ -39,12 +39,7 @@ void Swift::D3D12::Command::Begin()
 
 void Swift::D3D12::Command::End()
 {
-    if (m_list->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT)
-    {
-        ResourceBarrier(m_context->GetCurrentSwapchainTexture()->GetResource(), ResourceState::ePresent);
-    }
-    [[maybe_unused]]
-    const auto result = m_list->Close();
+    m_list->Close();
 }
 
 void Swift::D3D12::Command::SetViewport(const Viewport& viewport)
@@ -178,9 +173,6 @@ void Swift::D3D12::Command::CopyTextureRegion(const TextureCopyRegion& region)
     auto* dst_resource = static_cast<ID3D12Resource*>(region.dst_texture->GetResource()->GetResource());
     auto* src_resource = static_cast<ID3D12Resource*>(region.src_texture->GetResource()->GetResource());
 
-    ResourceBarrier(region.dst_texture->GetResource(), ResourceState::eCopyDest);
-    ResourceBarrier(region.src_texture->GetResource(), ResourceState::eCopySource);
-
     const D3D12_TEXTURE_COPY_LOCATION src_location = {
         .pResource = src_resource,
         .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
@@ -239,14 +231,12 @@ void Swift::D3D12::Command::BindRenderTargets(const std::span<IRenderTarget*> re
 void Swift::D3D12::Command::ClearRenderTarget(IRenderTarget* render_target, const std::array<float, 4>& color)
 {
     auto* dx_render_target = static_cast<RenderTarget*>(render_target);
-    ResourceBarrier(dx_render_target->GetTexture()->GetResource(), ResourceState::eRenderTarget);
     m_list->ClearRenderTargetView(dx_render_target->GetDescriptorData().cpu_handle, color.data(), 0, nullptr);
 }
 
 void Swift::D3D12::Command::ClearDepthStencil(IDepthStencil* depth_stencil, const float depth, const uint8_t stencil)
 {
     auto* dx_depth_stencil = static_cast<DepthStencil*>(depth_stencil);
-    ResourceBarrier(depth_stencil->GetTexture()->GetResource(), ResourceState::eDepthWrite);
     m_list->ClearDepthStencilView(dx_depth_stencil->GetDescriptorData().cpu_handle,
                                   D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
                                   depth,
@@ -255,7 +245,7 @@ void Swift::D3D12::Command::ClearDepthStencil(IDepthStencil* depth_stencil, cons
                                   nullptr);
 }
 
-void Swift::D3D12::Command::ResourceBarrier(const std::shared_ptr<IResource>& resource_handle, const ResourceState new_state)
+void Swift::D3D12::Command::TransitionResource(const std::shared_ptr<IResource>& resource_handle, const ResourceState new_state)
 {
     auto* dx_resource = static_cast<Resource*>(resource_handle.get());
     const auto new_dx_state = ToResourceState(new_state);

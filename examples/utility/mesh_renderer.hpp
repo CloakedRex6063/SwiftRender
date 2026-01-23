@@ -134,12 +134,14 @@ inline std::vector<TextureView> CreateTextures(Swift::IContext* context,
                                    .SetFormat(texture.format)
                                    .SetArraySize(texture.array_size)
                                    .SetMipmapLevels(0)
-                                   .SetHeap(heap, offset)
-                                   .SetData(texture.pixels.data());
-        offset = context->CalculateTextureSize(texture_builder.GetBuildInfo());
+                                   .SetData(texture.pixels.data())
+                                   .SetName(texture.name);
+        auto info = texture_builder.GetBuildInfo();
+        texture_builder.SetResource(heap->CreateResource(info, offset));
+        offset += context->CalculateAlignedTextureSize(info);
         auto* t = texture_builder.Build();
 
-        auto* const srv = context->CreateShaderResource(t);
+        auto* srv = context->CreateShaderResource(t);
         output_textures.emplace_back(TextureView{t, srv});
     }
 

@@ -58,8 +58,8 @@ namespace Swift
 
         virtual void Present(bool vsync) = 0;
         virtual void ResizeBuffers(uint32_t width, uint32_t height) = 0;
-        virtual uint32_t CalculateTextureSize(const TextureCreateInfo& info) = 0;
-        virtual uint32_t CalculateBufferSize(const BufferCreateInfo& info) = 0;
+        virtual uint32_t CalculateAlignedTextureSize(const TextureCreateInfo& info) = 0;
+        virtual uint32_t CalculateAlignedBufferSize(const BufferCreateInfo& info) = 0;
 
         std::array<ITexture*, 3>& GetSwapchainTextures() { return m_swapchain_textures; }
         std::array<IRenderTarget*, 3>& GetSwapchainRenderTargets() { return m_swapchain_render_targets; }

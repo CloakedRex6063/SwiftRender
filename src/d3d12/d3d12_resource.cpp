@@ -117,7 +117,7 @@ ID3D12Resource* Swift::D3D12::Resource::CreatePlacedResource(ID3D12Device14* dev
                                                              const BufferCreateInfo& info)
 {
     const auto resource_info = GetResourceDesc(info);
-    ID3D12Resource* resource;
+    ID3D12Resource* resource = nullptr;
     device->CreatePlacedResource(heap, offset, &resource_info, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&resource));
     return resource;
 }
@@ -128,7 +128,7 @@ ID3D12Resource* Swift::D3D12::Resource::CreatePlacedResource(ID3D12Device14* dev
                                                              const TextureCreateInfo& info)
 {
     const auto resource_info = GetResourceDesc(info);
-    ID3D12Resource* resource;
+    ID3D12Resource* resource = nullptr;
     device->CreatePlacedResource(heap, offset, &resource_info, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&resource));
     return resource;
 }

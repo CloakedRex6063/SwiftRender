@@ -327,6 +327,10 @@ int main()
         command->Begin();
         command->SetViewport(Swift::Viewport{.dimensions = float_size});
         command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
+
+        command->TransitionResource(render_target->GetTexture()->GetResource(), Swift::ResourceState::eRenderTarget);
+        command->TransitionResource(depth_texture->GetResource(), Swift::ResourceState::eDepthWrite);
+
         command->ClearRenderTarget(render_target, {0.0f, 0.0f, 0.0f, 0.0f});
         command->ClearDepthStencil(depth_stencil, 1.f, 0.f);
         command->BindShader(shader);
@@ -336,6 +340,9 @@ int main()
         {
             mesh.Draw(command);
         }
+
+        command->TransitionResource(context->GetCurrentSwapchainTexture()->GetResource(), Swift::ResourceState::ePresent);
+
         command->End();
 
         context->Present(false);

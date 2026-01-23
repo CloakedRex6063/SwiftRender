@@ -104,13 +104,6 @@ namespace Swift
             return *this;
         }
 
-        TextureBuilder& SetHeap(IHeap* heap, const uint32_t offset)
-        {
-            m_heap = heap;
-            m_offset = offset;
-            return *this;
-        }
-
         TextureBuilder& SetResource(const std::shared_ptr<IResource>& resource)
         {
             m_resource = resource;
@@ -133,13 +126,9 @@ namespace Swift
             };
         }
 
-        [[nodiscard]] ITexture* Build()
+        [[nodiscard]] ITexture* Build() const
         {
             const auto info = GetBuildInfo();
-            if (m_heap)
-            {
-                m_resource = m_heap->CreateResource(info, m_offset);
-            }
             return m_context->CreateTexture(info);
         }
 
@@ -432,10 +421,14 @@ namespace Swift
             return *this;
         }
 
+        BufferCreateInfo GetBuildInfo() const
+        {
+            return {.size = m_size, .data = m_data, .type = m_buffer_type, .resource = m_resource, .name = m_name};
+        }
+
         IBuffer* Build() const
         {
-            return m_context->CreateBuffer(
-                {.size = m_size, .data = m_data, .type = m_buffer_type, .resource = m_resource, .name = m_name});
+            return m_context->CreateBuffer(GetBuildInfo());
         }
 
     private:

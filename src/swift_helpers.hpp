@@ -31,6 +31,12 @@ namespace Swift
         }
     }
 
+    inline uint64_t Align(const uint64_t value, const uint64_t alignment)
+    {
+        return value + alignment - 1 & ~(alignment - 1);
+    }
+
+
     inline int CalculateMaxMips(const int width, const int height)
     {
         const int max_dim = std::max(width, height);

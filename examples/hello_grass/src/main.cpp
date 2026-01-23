@@ -69,6 +69,7 @@ int main()
     const auto formats = std::vector{Swift::Format::eRGBA8_UNORM};
     const auto grass_shader_create_info = Swift::GraphicsShaderCreateInfo{
         .rtv_formats = formats,
+        .dsv_format = Swift::Format::eD32F,
         .amplify_code = amplify_code,
         .mesh_code = mesh_code,
         .pixel_code = pixel_code,
@@ -95,7 +96,7 @@ int main()
         uint32_t grass_patch_count;
         glm::float2 padding;
     };
-    constexpr Swift::BufferCreateInfo constant_create_info{
+    const Swift::BufferCreateInfo constant_create_info{
         .size = 65536,
     };
     auto* const constant_buffer = context->CreateBuffer(constant_create_info);
@@ -118,7 +119,7 @@ int main()
         Plane far_face;
     };
 
-    constexpr Swift::BufferCreateInfo frustum_create_info{
+    const Swift::BufferCreateInfo frustum_create_info{
         .size = sizeof(Frustum),
     };
     auto* frustum_buffer = context->CreateBuffer(frustum_create_info);
@@ -128,11 +129,11 @@ int main()
                                                                  .element_size = sizeof(Frustum),
                                                              });
 
-    constexpr Swift::BufferCreateInfo grass_info{
+    const Swift::BufferCreateInfo grass_info{
         .size = 1'000'000 * sizeof(GrassPatch),
     };
     auto* grass_buffer = context->CreateBuffer(grass_info);
-    auto* grass_buffer_srv = context->CreateShaderResource(frustum_buffer,
+    auto* grass_buffer_srv = context->CreateShaderResource(grass_buffer,
                                                            Swift::BufferSRVCreateInfo{
                                                                .num_elements = 1'000'000,
                                                                .element_size = sizeof(GrassPatch),
@@ -200,7 +201,12 @@ int main()
         command->Begin();
         command->SetViewport(Swift::Viewport{.dimensions = float_size});
         command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
+
+        command->TransitionResource(render_target->GetTexture()->GetResource(), Swift::ResourceState::eRenderTarget);
+        command->TransitionResource(depth_texture->GetResource(), Swift::ResourceState::eDepthWrite);
+
         command->ClearRenderTarget(render_target, {0.0f, 0.0f, 0.0f, 0.0f});
+        command->ClearDepthStencil(depth_stencil, 1.0f, 0);
         command->BindShader(grass_shader);
         command->BindConstantBuffer(constant_buffer, 1);
         command->BindRenderTargets(render_target, depth_stencil);
@@ -272,6 +278,8 @@ int main()
         ImGui::End();
 
         imgui.Render(command);
+
+        command->TransitionResource(render_target->GetTexture()->GetResource(), Swift::ResourceState::ePresent);
 
         command->End();
 

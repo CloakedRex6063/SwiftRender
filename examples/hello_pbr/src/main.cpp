@@ -71,11 +71,8 @@ int main()
     const auto mesh_buffers = CreateMeshBuffers(context, helmet.meshes);
     std::vector<MeshRenderer> mesh_renderers = CreateMeshRenderers(helmet.nodes, helmet.meshes, mesh_buffers);
 
-    auto* texture_heap = context->CreateHeap(Swift::HeapCreateInfo{
-        .type = Swift::HeapType::eGPU_Upload,
-        .size = 1'000'000'000,
-        .debug_name = "Texture Heap"
-    });
+    auto* texture_heap = context->CreateHeap(
+        Swift::HeapCreateInfo{.type = Swift::HeapType::eGPU_Upload, .size = 1'000'000'000, .debug_name = "Texture Heap"});
     const auto textures = CreateTextures(context, texture_heap, helmet.textures, helmet.materials);
 
     auto* const material_buffer =
@@ -177,6 +174,10 @@ int main()
         command->Begin();
         command->SetViewport(Swift::Viewport{.dimensions = float_size});
         command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
+
+        command->TransitionResource(render_target->GetTexture()->GetResource(), Swift::ResourceState::eRenderTarget);
+        command->TransitionResource(depth_texture->GetResource(), Swift::ResourceState::eDepthWrite);
+
         command->ClearRenderTarget(render_target, {0.0f, 0.0f, 0.0f, 0.0f});
         command->ClearDepthStencil(depth_stencil, 1.f, 0.f);
         command->BindShader(shader);
@@ -223,6 +224,8 @@ int main()
 
         ImGui::End();
         imgui.Render(command);
+
+        command->TransitionResource(context->GetCurrentSwapchainTexture()->GetResource(), Swift::ResourceState::ePresent);
 
         command->End();
 
