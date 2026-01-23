@@ -33,7 +33,7 @@ namespace Swift::D3D12
         ITexture* CreateTexture(const TextureCreateInfo& info) override;
         IRenderTarget* CreateRenderTarget(ITexture* texture, uint32_t mip = 0) override;
         IDepthStencil* CreateDepthStencil(ITexture* texture, uint32_t mip = 0) override;
-        ITextureSRV* CreateShaderResource(ITexture* texture, uint32_t most_detailed_mip = 0, uint32_t mip_levels = 1) override;
+        ITextureSRV* CreateShaderResource(ITexture* texture, uint32_t mip_levels = 0, uint32_t most_detailed_mip = 0) override;
         IBufferSRV* CreateShaderResource(IBuffer* buffer, const BufferSRVCreateInfo& srv_create_info) override;
         ITextureUAV* CreateUnorderedAccessView(ITexture* texture, uint32_t mip = 0) override;
         IBufferUAV* CreateUnorderedAccessView(IBuffer* buffer, const BufferUAVCreateInfo& uav_create_info) override;
@@ -41,6 +41,7 @@ namespace Swift::D3D12
         IShader* CreateShader(const ComputeShaderCreateInfo& info) override;
         std::shared_ptr<IResource> CreateResource(const BufferCreateInfo& info) override;
         std::shared_ptr<IResource> CreateResource(const TextureCreateInfo& info) override;
+        IHeap* CreateHeap(const HeapCreateInfo& heap_create_info) override;
 
         void DestroyCommand(ICommand* command) override;
         void DestroyQueue(IQueue* queue) override;
@@ -53,11 +54,14 @@ namespace Swift::D3D12
         void DestroyShaderResource(IBufferSRV* srv) override;
         void DestroyUnorderedAccessView(IBufferUAV* uav) override;
         void DestroyUnorderedAccessView(ITextureUAV* uav) override;
+        void DestroyHeap(IHeap* heap) override;
 
         void UpdateTextureRegion(ITexture* texture, const TextureUpdateRegion& texture_region) override;
 
         void Present(bool vsync) override;
         void ResizeBuffers(uint32_t width, uint32_t height) override;
+        uint32_t CalculateTextureSize(const TextureCreateInfo& info) override;
+        uint32_t CalculateBufferSize(const BufferCreateInfo& info) override;
 
     private:
         void CreateBackend();

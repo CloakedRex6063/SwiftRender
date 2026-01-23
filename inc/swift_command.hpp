@@ -37,7 +37,7 @@ namespace Swift
         virtual void ClearRenderTarget(IRenderTarget* texture_handle, const std::array<float, 4>& color) = 0;
         virtual void ClearDepthStencil(IDepthStencil* texture_handle, float depth, uint8_t stencil) = 0;
         virtual void ResourceBarrier(const std::shared_ptr<IResource>& resource_handle, ResourceState new_state) = 0;
-        virtual void UAVBarrier(IResource* resource_handle) = 0;
+        virtual void UAVBarrier(const std::shared_ptr<IResource>& resource_handle) = 0;
 
     protected:
         SWIFT_CONSTRUCT(ICommand);

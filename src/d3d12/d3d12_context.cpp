@@ -1,4 +1,6 @@
 #include "d3d12/d3d12_context.hpp"
+#include "d3d12/d3d12_helpers.hpp"
+#include "d3d12/d3d12_heap.hpp"
 #include "d3d12/d3d12_buffer.hpp"
 #include "d3d12/d3d12_command.hpp"
 #include "d3d12/d3d12_queue.hpp"
@@ -41,16 +43,6 @@ namespace Swift::D3D12
             DestroyShader(shader);
         }
 
-        for (auto* texture : m_textures)
-        {
-            DestroyTexture(texture);
-        }
-
-        for (auto* buffer : m_buffers)
-        {
-            DestroyBuffer(buffer);
-        }
-
         for (auto* buffer : m_buffer_srvs)
         {
             DestroyShaderResource(buffer);
@@ -81,6 +73,16 @@ namespace Swift::D3D12
             DestroyDepthStencil(texture);
         }
 
+        for (auto* buffer : m_buffers)
+        {
+            DestroyBuffer(buffer);
+        }
+
+        for (auto* texture : m_textures)
+        {
+            DestroyTexture(texture);
+        }
+
         for (auto* command : m_commands)
         {
             DestroyCommand(command);
@@ -95,9 +97,7 @@ namespace Swift::D3D12
 
 #ifdef SWIFT_DEBUG
         ID3D12DebugDevice* debug_device = nullptr;
-        m_device->QueryInterface(
-            IID_PPV_ARGS(&debug_device)
-        );
+        m_device->QueryInterface(IID_PPV_ARGS(&debug_device));
         debug_device->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
         debug_device->Release();
 #endif
@@ -130,75 +130,35 @@ namespace Swift::D3D12
 
     ITexture* Context::CreateTexture(const TextureCreateInfo& info)
     {
-        m_textures.emplace_back(new Texture(this, info));
+        auto create_info = info;
+        create_info.mip_levels = info.mip_levels == 0 ? CalculateMaxMips(info.width, info.height) : info.mip_levels;
+        m_textures.emplace_back(new Texture(this, create_info));
         auto* texture = m_textures.back();
 
-        // if (info.gen_mipmaps && info.mip_levels > 1)
-        // {
-        //     const auto command = CreateCommand(QueueType::eCompute);
-        //     command->Begin();
-        //
-        //     command->BindShader(m_mipmap_shader);
-        //
-        //     for (uint32_t src_mip = 0; src_mip < info.mip_levels - 1; src_mip += 4)
-        //     {
-        //         const uint32_t remaining_mips = info.mip_levels - src_mip - 1;
-        //         const uint32_t num_mips_this_dispatch = std::min(4u, remaining_mips);
-        //
-        //         const uint32_t src_width = std::max(1u, info.width >> src_mip);
-        //         const uint32_t src_height = std::max(1u, info.height >> src_mip);
-        //
-        //         struct PushConstant
-        //         {
-        //             uint32_t mip1_index;
-        //             uint32_t mip2_index;
-        //             uint32_t mip3_index;
-        //             uint32_t mip4_index;
-        //             std::array<float, 2> texel_size;
-        //             uint32_t src_index;
-        //             uint32_t src_mip_level;
-        //             uint32_t num_mip_levels;
-        //             std::array<float, 3> padding;
-        //         };
-        //
-        //         PushConstant pc{
-        //             .mip1_index = texture->GetUAVDescriptorIndex(src_mip + 2),
-        //             .mip2_index = num_mips_this_dispatch >= 2 ? texture->GetUAVDescriptorIndex(src_mip + 3) : 0,
-        //             .mip3_index = num_mips_this_dispatch >= 3 ? texture->GetUAVDescriptorIndex(src_mip + 4) : 0,
-        //             .mip4_index = num_mips_this_dispatch >= 4 ? texture->GetUAVDescriptorIndex(src_mip + 5) : 0,
-        //             .texel_size = {1.0f / static_cast<float>(src_width), 1.0f / static_cast<float>(src_height)},
-        //             .src_index = texture->GetSRVDescriptorIndex(src_mip),
-        //             .src_mip_level = src_mip,
-        //             .num_mip_levels = num_mips_this_dispatch,
-        //         };
-        //         command->PushConstants(&pc, sizeof(PushConstant));
-        //
-        //         // Dispatch size is based on mip1
-        //         const uint32_t dstMip1Width = std::max(1u, src_width >> 1);
-        //         const uint32_t dstMip1Height = std::max(1u, src_height >> 1);
-        //
-        //         const uint32_t dispatchX = (dstMip1Width + 7) / 8;
-        //         const uint32_t dispatchY = (dstMip1Height + 7) / 8;
-        //
-        //         command->DispatchCompute(dispatchX, dispatchY, 1);
-        //
-        //         command->UAVBarrier(texture->GetResource());
-        //     }
-        //
-        //     command->End();
-        // }
-
-        if (info.data)
+        if (create_info.data)
         {
-            const uint32_t size = GetTextureSize(info);
+            if (create_info.mip_levels != info.mip_levels)
+            {
+                if (info.mip_levels)
+                {
+                    create_info.mip_levels = info.mip_levels;
+                }
+                else
+                {
+                    create_info.mip_levels = 1;
+                }
+            }
+
+            const uint32_t size = GetTextureSize(m_device, create_info);
             const BufferCreateInfo buffer_info = {
                 .size = size,
-                .data = info.data,
+                .data = create_info.data,
             };
             auto* const upload_buffer = CreateBuffer(buffer_info);
             auto* const copy_command = CreateCommand(QueueType::eTransfer);
             copy_command->Begin();
-            copy_command->CopyBufferToTexture(this, {upload_buffer, texture});
+            copy_command->CopyBufferToTexture(this, {upload_buffer, texture, create_info.mip_levels});
+            copy_command->ResourceBarrier(texture->GetResource(), ResourceState::eCommon);
             copy_command->End();
 
             const auto value = m_copy_queue->Execute(copy_command);
@@ -206,6 +166,58 @@ namespace Swift::D3D12
 
             DestroyCommand(copy_command);
             DestroyBuffer(upload_buffer);
+
+            create_info.mip_levels = info.mip_levels == 0 ? CalculateMaxMips(info.width, info.height) : info.mip_levels;
+            if (create_info.mip_levels > 1)
+            {
+                std::vector<ITextureSRV*> texture_srvs;
+                std::vector<ITextureUAV*> texture_uavs;
+
+                const auto command = CreateCommand(QueueType::eCompute);
+                command->Begin();
+
+                command->BindShader(m_mipmap_shader);
+
+                for (uint32_t src_mip = 0; src_mip < create_info.mip_levels - 1; src_mip++)
+                {
+                    texture_srvs.emplace_back(CreateShaderResource(texture, 1, src_mip));
+                    texture_uavs.emplace_back(CreateUnorderedAccessView(texture, src_mip + 1));
+
+                    struct PushConstant
+                    {
+                        uint32_t mip1_index;
+                        uint32_t src_index;
+                        std::array<float, 2> texel_size;
+                    };
+
+                    const uint32_t dst_width = std::max(create_info.width >> (src_mip + 1), 1u);
+                    const uint32_t dst_height = std::max(create_info.height >> (src_mip + 1), 1u);
+
+                    PushConstant pc{
+                        .mip1_index = texture_uavs[src_mip]->GetDescriptorIndex(),
+                        .src_index = texture_srvs[src_mip]->GetDescriptorIndex(),
+                        .texel_size = {1.0f / static_cast<float>(dst_width), 1.0f / static_cast<float>(dst_height)}};
+                    command->PushConstants(&pc, sizeof(PushConstant));
+
+                    command->DispatchCompute(std::max(dst_width / 8u, 1u), std::max(dst_height / 8u, 1u), 1);
+
+                    command->UAVBarrier(texture->GetResource());
+                }
+
+                command->End();
+                const auto fence_value = GetComputeQueue()->Execute(command);
+                GetComputeQueue()->Wait(fence_value);
+
+                for (auto* texture_uav : texture_uavs)
+                {
+                    DestroyUnorderedAccessView(texture_uav);
+                }
+
+                for (auto* texture_srv : texture_srvs)
+                {
+                    DestroyShaderResource(texture_srv);
+                }
+            }
         }
 
         return texture;
@@ -213,47 +225,41 @@ namespace Swift::D3D12
 
     IRenderTarget* Context::CreateRenderTarget(ITexture* texture, const uint32_t mip)
     {
-        m_render_targets.emplace_back(new RenderTarget(this, texture, mip));
-        return m_render_targets.back();
+        return CreateObject([&] { return new RenderTarget(this, texture, mip); }, m_render_targets, m_free_render_targets);
     }
 
-    IDepthStencil* Context::CreateDepthStencil(ITexture* texture, uint32_t mip)
+    IDepthStencil* Context::CreateDepthStencil(ITexture* texture, const uint32_t mip)
     {
-        m_depth_stencils.emplace_back(new DepthStencil(this, texture, mip));
-        return m_depth_stencils.back();
+        return CreateObject([&] { return new DepthStencil(this, texture, mip); }, m_depth_stencils, m_free_depth_stencils);
     }
 
-    ITextureSRV* Context::CreateShaderResource(ITexture* texture, const uint32_t most_detailed_mip, const uint32_t mip_levels)
+    ITextureSRV* Context::CreateShaderResource(ITexture* texture, const uint32_t mip_levels, const uint32_t most_detailed_mip)
     {
-        m_texture_srvs.emplace_back(new TextureSRV(this, texture, most_detailed_mip, mip_levels));
-        return m_texture_srvs.back();
+        return CreateObject([&] { return new TextureSRV(this, texture, most_detailed_mip, mip_levels); },
+                            m_texture_srvs,
+                            m_free_texture_srvs);
     }
     IBufferSRV* Context::CreateShaderResource(IBuffer* buffer, const BufferSRVCreateInfo& srv_create_info)
     {
-        m_buffer_srvs.emplace_back(new BufferSRV(this, buffer, srv_create_info));
-        return m_buffer_srvs.back();
+        return CreateObject([&] { return new BufferSRV(this, buffer, srv_create_info); }, m_buffer_srvs, m_free_buffer_srvs);
     }
-    ITextureUAV* Context::CreateUnorderedAccessView(ITexture* texture, uint32_t mip)
+    ITextureUAV* Context::CreateUnorderedAccessView(ITexture* texture, const uint32_t mip)
     {
-        m_texture_uavs.emplace_back(new TextureUAV(this, texture, mip));
-        return m_texture_uavs.back();
+        return CreateObject([&] { return new TextureUAV(this, texture, mip); }, m_texture_uavs, m_free_texture_uavs);
     }
     IBufferUAV* Context::CreateUnorderedAccessView(IBuffer* buffer, const BufferUAVCreateInfo& uav_create_info)
     {
-        m_buffer_uavs.emplace_back(new BufferUAV(this, buffer, uav_create_info));
-        return m_buffer_uavs.back();
+        return CreateObject([&] { return new BufferUAV(this, buffer, uav_create_info); }, m_buffer_uavs, m_free_buffer_uavs);
     }
 
     IShader* Context::CreateShader(const GraphicsShaderCreateInfo& info)
     {
-        m_shaders.emplace_back(new Shader(m_device, info));
-        return m_shaders.back();
+        return CreateObject([&] { return new Shader(m_device, info); }, m_shaders, m_free_shaders);
     }
 
     IShader* Context::CreateShader(const ComputeShaderCreateInfo& info)
     {
-        m_shaders.emplace_back(new Shader(m_device, info));
-        return m_shaders.back();
+        return CreateObject([&] { return new Shader(m_device, info); }, m_shaders, m_free_shaders);
     }
 
     std::shared_ptr<IResource> Context::CreateResource(const BufferCreateInfo& info)
@@ -266,94 +272,30 @@ namespace Swift::D3D12
         return std::make_shared<Resource>(m_device, info);
     }
 
-    void Context::DestroyCommand(ICommand* command)
+    IHeap* Context::CreateHeap(const HeapCreateInfo& heap_create_info)
     {
-        if (const auto it = std::ranges::find(m_commands, command); it != m_commands.end())
-        {
-            delete *it;
-            *it = nullptr;
-        }
+        return CreateObject([&] { return new Heap(this, heap_create_info); }, m_heaps, m_free_heaps);
     }
-    void Context::DestroyQueue(IQueue* queue)
-    {
-        if (const auto it = std::ranges::find(m_queues, queue); it != m_queues.end())
-        {
-            delete *it;
-            *it = nullptr;
-        }
-    }
-    void Context::DestroyBuffer(IBuffer* buffer)
-    {
-        if (const auto it = std::ranges::find(m_buffers, buffer); it != m_buffers.end())
-        {
-            delete *it;
-            *it = nullptr;
-        }
-    }
-    void Context::DestroyTexture(ITexture* texture)
-    {
-        if (const auto it = std::ranges::find(m_textures, texture); it != m_textures.end())
-        {
-            delete *it;
-            *it = nullptr;
-        }
-    }
-    void Context::DestroyShader(IShader* shader)
-    {
-        if (const auto it = std::ranges::find(m_shaders, shader); it != m_shaders.end())
-        {
-            delete *it;
-            *it = nullptr;
-        }
-    }
+
+    void Context::DestroyCommand(ICommand* command) { DestroyObject(command, m_commands, m_free_commands); }
+    void Context::DestroyQueue(IQueue* queue) { DestroyObject(queue, m_queues, m_free_queues); }
+    void Context::DestroyBuffer(IBuffer* buffer) { DestroyObject(buffer, m_buffers, m_free_buffers); }
+    void Context::DestroyTexture(ITexture* texture) { DestroyObject(texture, m_textures, m_free_textures); }
+    void Context::DestroyShader(IShader* shader) { DestroyObject(shader, m_shaders, m_free_shaders); }
     void Context::DestroyRenderTarget(IRenderTarget* render_target)
     {
-        if (const auto it = std::ranges::find(m_render_targets, render_target); it != m_render_targets.end())
-        {
-            delete *it;
-            *it = nullptr;
-        }
+        DestroyObject(render_target, m_render_targets, m_free_render_targets);
     }
     void Context::DestroyDepthStencil(IDepthStencil* depth_stencil)
     {
-        if (const auto it = std::ranges::find(m_depth_stencils, depth_stencil); it != m_depth_stencils.end())
-        {
-            delete *it;
-            *it = nullptr;
-        }
+        DestroyObject(depth_stencil, m_depth_stencils, m_free_depth_stencils);
     }
-    void Context::DestroyShaderResource(ITextureSRV* srv)
-    {
-        if (const auto it = std::ranges::find(m_texture_srvs, srv); it != m_texture_srvs.end())
-        {
-            delete *it;
-            *it = nullptr;
-        }
-    }
-    void Context::DestroyShaderResource(IBufferSRV* srv)
-    {
-        if (const auto it = std::ranges::find(m_buffer_srvs, srv); it != m_buffer_srvs.end())
-        {
-            delete *it;
-            *it = nullptr;
-        }
-    }
-    void Context::DestroyUnorderedAccessView(IBufferUAV* uav)
-    {
-        if (const auto it = std::ranges::find(m_buffer_uavs, uav); it != m_buffer_uavs.end())
-        {
-            delete *it;
-            *it = nullptr;
-        }
-    }
-    void Context::DestroyUnorderedAccessView(ITextureUAV* uav)
-    {
-        if (const auto it = std::ranges::find(m_texture_uavs, uav); it != m_texture_uavs.end())
-        {
-            delete *it;
-            *it = nullptr;
-        }
-    }
+    void Context::DestroyShaderResource(ITextureSRV* srv) { DestroyObject(srv, m_texture_srvs, m_free_texture_srvs); }
+    void Context::DestroyShaderResource(IBufferSRV* srv) { DestroyObject(srv, m_buffer_srvs, m_free_buffer_srvs); }
+    void Context::DestroyUnorderedAccessView(IBufferUAV* uav) { DestroyObject(uav, m_buffer_uavs, m_free_buffer_uavs); }
+    void Context::DestroyUnorderedAccessView(ITextureUAV* uav) { DestroyObject(uav, m_texture_uavs, m_free_texture_uavs); }
+
+    void Context::DestroyHeap(IHeap* heap) { DestroyObject(heap, m_heaps, m_free_heaps); }
 
     void Context::UpdateTextureRegion(ITexture* texture, const TextureUpdateRegion& texture_region) {}
 
@@ -399,6 +341,15 @@ namespace Swift::D3D12
             m_swapchain_render_targets[i] = CreateRenderTarget(m_swapchain_textures[i], 0);
         }
         m_frame_index = m_swapchain->GetFrameIndex();
+    }
+
+    uint32_t Context::CalculateTextureSize(const TextureCreateInfo& info)
+    {
+        return GetTextureSize(m_device, info);
+    }
+    uint32_t Context::CalculateBufferSize(const BufferCreateInfo& info)
+    {
+        return GetBufferSize(m_device, info);
     }
 
     void Context::CreateBackend()
@@ -487,8 +438,12 @@ namespace Swift::D3D12
 
     void Context::CreateQueues()
     {
-        m_graphics_queue = CreateQueue({.type = QueueType::eGraphics, .priority = QueuePriority::eHigh, .name = "Swift Graphics Queue"});
-        m_copy_queue = CreateQueue({.type = QueueType::eTransfer, .priority = QueuePriority::eNormal, .name = "Swift Transfer Queue"});
+        m_graphics_queue =
+            CreateQueue({.type = QueueType::eGraphics, .priority = QueuePriority::eHigh, .name = "Swift Graphics Queue"});
+        m_compute_queue =
+            CreateQueue({.type = QueueType::eCompute, .priority = QueuePriority::eNormal, .name = "Swift Compute Queue"});
+        m_copy_queue =
+            CreateQueue({.type = QueueType::eTransfer, .priority = QueuePriority::eNormal, .name = "Swift Transfer Queue"});
     }
 
     void Context::CreateTextures(const ContextCreateInfo& create_info)
@@ -529,7 +484,7 @@ namespace Swift::D3D12
             .code = gen_mips_code,
             .descriptors = {},
             .static_samplers = sampler_descriptors,
-            .name = "Mip Map Shader"
+            .name = "Mip Map Shader",
         };
         m_mipmap_shader = CreateShader(compute_shader_create_info);
     }

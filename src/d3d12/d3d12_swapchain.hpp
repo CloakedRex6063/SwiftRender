@@ -1,6 +1,7 @@
 #pragma once
 #include "swift_context.hpp"
 #include "swift_macros.hpp"
+#define NOMINMAX
 #include "directx/d3d12.h"
 #include "dxgi1_6.h"
 

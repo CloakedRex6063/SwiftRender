@@ -75,7 +75,14 @@ void Swift::D3D12::Command::BindConstantBuffer(IBuffer* buffer, const uint32_t s
 
 void Swift::D3D12::Command::PushConstants(const void* data, const uint32_t size, const uint32_t offset)
 {
-    m_list->SetGraphicsRoot32BitConstants(0, size / sizeof(uint32_t), data, offset);
+    if (m_type == QueueType::eCompute)
+    {
+        m_list->SetComputeRoot32BitConstants(0, size / sizeof(uint32_t), data, offset);
+    }
+    else if (m_type == QueueType::eGraphics)
+    {
+        m_list->SetGraphicsRoot32BitConstants(0, size / sizeof(uint32_t), data, offset);
+    }
 }
 
 void Swift::D3D12::Command::BindShader(IShader* shader)
@@ -127,7 +134,7 @@ void Swift::D3D12::Command::CopyBufferToTexture(const IContext* context, const B
         .Width = texture->GetSize()[0],
         .Height = texture->GetSize()[1],
         .DepthOrArraySize = static_cast<uint16_t>(texture->GetArraySize()),
-        .MipLevels = static_cast<uint16_t>(texture->GetMipLevels()),
+        .MipLevels = region.mip_levels,
         .Format = ToDXGIFormat(texture->GetFormat()),
         .SampleDesc = sample_desc,
         .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
@@ -135,14 +142,14 @@ void Swift::D3D12::Command::CopyBufferToTexture(const IContext* context, const B
 
     device->GetCopyableFootprints(&texture_desc,
                                   0,
-                                  texture->GetMipLevels(),
+                                  region.mip_levels,
                                   0,
                                   layouts.data(),
                                   num_rows.data(),
                                   row_size_in_bytes.data(),
                                   &total_bytes);
 
-    for (uint32_t i = 0; i < texture->GetMipLevels(); ++i)
+    for (uint32_t i = 0; i < region.mip_levels; ++i)
     {
         const D3D12_TEXTURE_COPY_LOCATION src_location = {
             .pResource = src_resource,
@@ -265,9 +272,9 @@ void Swift::D3D12::Command::ResourceBarrier(const std::shared_ptr<IResource>& re
     m_list->ResourceBarrier(1, &barrier);
 }
 
-void Swift::D3D12::Command::UAVBarrier(IResource* resource_handle)
+void Swift::D3D12::Command::UAVBarrier(const std::shared_ptr<IResource>& resource_handle)
 {
-    auto* dx_resource = static_cast<Resource*>(resource_handle);
+    auto* dx_resource = static_cast<Resource*>(resource_handle.get());
     const auto barrier = D3D12_RESOURCE_BARRIER{.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV,
                                                 .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
                                                 .UAV = {

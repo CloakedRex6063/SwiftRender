@@ -10,7 +10,7 @@ option(SWIFT_EXAMPLES "Build the examples" OFF)
 add_library(${PROJECT_NAME} STATIC)
 target_include_directories(${PROJECT_NAME} PUBLIC inc)
 target_include_directories(${PROJECT_NAME} PRIVATE src)
-file(GLOB_RECURSE SWIFT_SOURCES src/*.cpp)
+file(GLOB_RECURSE SWIFT_SOURCES CONFIGURE_DEPENDS src/*.cpp)
 target_sources(${PROJECT_NAME} PRIVATE ${SWIFT_SOURCES})
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -30,3 +30,12 @@ add_subdirectory(extern)
 if(SWIFT_EXAMPLES)
     add_subdirectory(examples)
 endif ()
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+add_custom_target(run_python_script
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/shaders/gen_shaders.py
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Generating Internal Shaders"
+)
+add_dependencies(${PROJECT_NAME} run_python_script)

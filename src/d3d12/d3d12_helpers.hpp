@@ -1,4 +1,5 @@
 #pragma once
+#include "swift_helpers.hpp"
 #include "swift_structs.hpp"
 #include "directx/d3d12.h"
 
@@ -16,6 +17,22 @@ namespace Swift::D3D12
                 return D3D12_COMMAND_LIST_TYPE_COPY;
         }
         return D3D12_COMMAND_LIST_TYPE_DIRECT;
+    }
+
+    constexpr D3D12_HEAP_TYPE ToHeapType(const HeapType type) noexcept
+    {
+        switch (type)
+        {
+            case HeapType::eUpload:
+                return D3D12_HEAP_TYPE_UPLOAD;
+            case HeapType::eGPU:
+                return D3D12_HEAP_TYPE_DEFAULT;
+            case HeapType::eGPU_Upload:
+                return D3D12_HEAP_TYPE_GPU_UPLOAD;
+            case HeapType::eReadback:
+                return D3D12_HEAP_TYPE_READBACK;
+        }
+        return D3D12_HEAP_TYPE_GPU_UPLOAD;
     }
 
     constexpr D3D12_ROOT_PARAMETER_TYPE ToDescriptorType(const DescriptorType type) noexcept
@@ -266,5 +283,74 @@ namespace Swift::D3D12
                       0,
                       nullptr);
         return errorText;
+    }
+
+    inline uint32_t GetBufferSize(ID3D12Device* device, const BufferCreateInfo& info)
+    {
+        uint64_t total_size = 0;
+
+        const D3D12_RESOURCE_DESC resource_info = {
+            .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
+            .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+            .Width = info.size,
+            .Height = 1,
+            .DepthOrArraySize = 1,
+            .MipLevels = 1,
+            .Format = DXGI_FORMAT_UNKNOWN,
+            .SampleDesc = {1, 0},
+            .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+            .Flags = D3D12_RESOURCE_FLAG_NONE,
+        };
+
+        device->GetCopyableFootprints(&resource_info, 0, 1, 0, nullptr, nullptr, nullptr, &total_size);
+
+        return total_size;
+    }
+
+    inline uint32_t GetTextureSize(ID3D12Device14* device, const TextureCreateInfo& create_info)
+    {
+        uint64_t total_size = 0;
+
+        auto info = create_info;
+
+        auto flags = D3D12_RESOURCE_FLAG_NONE;
+        if (info.flags & TextureFlags::eRenderTarget)
+        {
+            flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        }
+        if (info.flags & TextureFlags::eDepthStencil)
+        {
+            flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        }
+        const auto sample_desc = info.msaa ? DXGI_SAMPLE_DESC{info.msaa->samples, info.msaa->quality} : DXGI_SAMPLE_DESC{1, 0};
+
+        if (info.mip_levels == 0)
+        {
+            info.mip_levels = CalculateMaxMips(create_info.width, create_info.height);
+        }
+
+        const D3D12_RESOURCE_DESC resource_info = {
+            .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+            .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+            .Width = info.width,
+            .Height = info.height,
+            .DepthOrArraySize = info.array_size,
+            .MipLevels = info.mip_levels,
+            .Format = ToDXGIFormat(info.format),
+            .SampleDesc = sample_desc,
+            .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
+            .Flags = flags,
+        };
+
+        device->GetCopyableFootprints(&resource_info,
+                                      0,
+                                      info.mip_levels * info.array_size,
+                                      0,
+                                      nullptr,
+                                      nullptr,
+                                      nullptr,
+                                      &total_size);
+
+        return total_size;
     }
 }  // namespace Swift::D3D12

@@ -6,6 +6,7 @@
 #include "swift_shader.hpp"
 #include "swift_structs.hpp"
 #include "swift_descriptor.hpp"
+#include "swift_heap.hpp"
 
 namespace Swift
 {
@@ -31,11 +32,12 @@ namespace Swift
         virtual IRenderTarget* CreateRenderTarget(ITexture* texture, uint32_t mip = 0) = 0;
         virtual IDepthStencil* CreateDepthStencil(ITexture* texture, uint32_t mip = 0) = 0;
         virtual ITextureSRV* CreateShaderResource(ITexture* texture,
-                                                  uint32_t most_detailed_mip = 0,
-                                                  uint32_t mip_levels = 1) = 0;
+                                                  uint32_t mip_levels = 0,
+                                                  uint32_t most_detailed_mip = 0) = 0;
         virtual IBufferSRV* CreateShaderResource(IBuffer* buffer, const BufferSRVCreateInfo& create_info) = 0;
         virtual ITextureUAV* CreateUnorderedAccessView(ITexture* texture, uint32_t mip = 0) = 0;
         virtual IBufferUAV* CreateUnorderedAccessView(IBuffer* buffer, const BufferUAVCreateInfo& create_info) = 0;
+        virtual IHeap* CreateHeap(const HeapCreateInfo& heap_create_info) = 0;
         virtual std::shared_ptr<IResource> CreateResource(const BufferCreateInfo& info) = 0;
         virtual std::shared_ptr<IResource> CreateResource(const TextureCreateInfo& info) = 0;
 
@@ -50,11 +52,14 @@ namespace Swift
         virtual void DestroyShaderResource(IBufferSRV* srv) = 0;
         virtual void DestroyUnorderedAccessView(IBufferUAV* uav) = 0;
         virtual void DestroyUnorderedAccessView(ITextureUAV* uav) = 0;
+        virtual void DestroyHeap(IHeap* heap) = 0;
 
         virtual void UpdateTextureRegion(ITexture* texture, const TextureUpdateRegion& texture_region) = 0;
 
         virtual void Present(bool vsync) = 0;
         virtual void ResizeBuffers(uint32_t width, uint32_t height) = 0;
+        virtual uint32_t CalculateTextureSize(const TextureCreateInfo& info) = 0;
+        virtual uint32_t CalculateBufferSize(const BufferCreateInfo& info) = 0;
 
         std::array<ITexture*, 3>& GetSwapchainTextures() { return m_swapchain_textures; }
         std::array<IRenderTarget*, 3>& GetSwapchainRenderTargets() { return m_swapchain_render_targets; }
@@ -62,11 +67,13 @@ namespace Swift
         IRenderTarget* GetCurrentRenderTarget() const { return m_swapchain_render_targets[m_frame_index]; }
         ICommand* GetCurrentCommand() const { return m_frame_data[m_frame_index].command; }
         IQueue* GetGraphicsQueue() const { return m_graphics_queue; }
+        IQueue* GetComputeQueue() const { return m_compute_queue; }
         IQueue* GetCopyQueue() const { return m_copy_queue; }
 
     protected:
         AdapterDescription m_adapter_description{};
         IQueue* m_graphics_queue = nullptr;
+        IQueue* m_compute_queue = nullptr;
         IQueue* m_copy_queue = nullptr;
 
         auto& GetFrameData() { return m_frame_data[m_frame_index]; }
@@ -103,5 +110,7 @@ namespace Swift
         std::vector<uint32_t> m_free_texture_uavs;
         std::vector<IBufferUAV*> m_buffer_uavs;
         std::vector<uint32_t> m_free_buffer_uavs;
+        std::vector<IHeap*> m_heaps;
+        std::vector<uint32_t> m_free_heaps;
     };
 }  // namespace Swift

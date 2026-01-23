@@ -104,15 +104,22 @@ namespace Swift
             return *this;
         }
 
+        TextureBuilder& SetHeap(IHeap* heap, const uint32_t offset)
+        {
+            m_heap = heap;
+            m_offset = offset;
+            return *this;
+        }
+
         TextureBuilder& SetResource(const std::shared_ptr<IResource>& resource)
         {
             m_resource = resource;
             return *this;
         }
 
-        [[nodiscard]] ITexture* Build() const
+        TextureCreateInfo GetBuildInfo() const
         {
-            const TextureCreateInfo info{
+            return {
                 .width = m_width,
                 .height = m_height,
                 .mip_levels = m_mip_levels,
@@ -124,6 +131,15 @@ namespace Swift
                 .resource = m_resource,
                 .name = m_name,
             };
+        }
+
+        [[nodiscard]] ITexture* Build()
+        {
+            const auto info = GetBuildInfo();
+            if (m_heap)
+            {
+                m_resource = m_heap->CreateResource(info, m_offset);
+            }
             return m_context->CreateTexture(info);
         }
 
@@ -139,6 +155,8 @@ namespace Swift
         std::string_view m_name;
         const void* m_data = nullptr;
         std::optional<MSAA> m_msaa;
+        IHeap* m_heap = nullptr;
+        uint32_t m_offset = 0;
     };
 
     struct DescriptorBuilder
@@ -214,6 +232,24 @@ namespace Swift
             return *this;
         }
 
+        SamplerDescriptorBuilder& SetMinLod(const float min_lod)
+        {
+            m_min_lod = min_lod;
+            return *this;
+        }
+
+        SamplerDescriptorBuilder& SetMaxLod(const float max_lod)
+        {
+            m_max_lod = max_lod;
+            return *this;
+        }
+
+        SamplerDescriptorBuilder& SetBorderColor(const BorderColor color)
+        {
+            m_border_color = color;
+            return *this;
+        }
+
         [[nodiscard]] SamplerDescriptor Build() const
         {
             return {
@@ -222,6 +258,9 @@ namespace Swift
                 .wrap_u = m_wrap_u,
                 .wrap_y = m_wrap_y,
                 .wrap_w = m_wrap_w,
+                .min_lod = m_min_lod,
+                .max_lod = m_max_lod,
+                .border_color = m_border_color,
             };
         }
 
@@ -231,6 +270,9 @@ namespace Swift
         Wrap m_wrap_u = Wrap::eRepeat;
         Wrap m_wrap_y = Wrap::eRepeat;
         Wrap m_wrap_w = Wrap::eRepeat;
+        float m_min_lod = 0;
+        float m_max_lod = 13;
+        BorderColor m_border_color = BorderColor::eBlack;
     };
 
     struct GraphicsShaderBuilder
@@ -392,13 +434,8 @@ namespace Swift
 
         IBuffer* Build() const
         {
-            return m_context->CreateBuffer({
-                .size = m_size,
-                .data = m_data,
-                .type = m_buffer_type,
-                .resource = m_resource,
-                .name = m_name
-            });
+            return m_context->CreateBuffer(
+                {.size = m_size, .data = m_data, .type = m_buffer_type, .resource = m_resource, .name = m_name});
         }
 
     private:

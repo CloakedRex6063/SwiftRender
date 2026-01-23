@@ -2,6 +2,7 @@
 
 #include "swift_descriptor.hpp"
 #include "swift_structs.hpp"
+#define NOMINMAX
 #include "directx/d3d12.h"
 #include "vector"
 

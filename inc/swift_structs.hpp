@@ -60,6 +60,7 @@ namespace Swift
     enum class BufferType : uint32_t
     {
         eDefault,
+        eUpload,
         eReadback,
     };
 
@@ -142,6 +143,12 @@ namespace Swift
         eClampToEdge,
     };
 
+    enum class BorderColor
+    {
+        eBlack,
+        eWhite,
+    };
+
     struct SamplerDescriptor
     {
         Filter min_filter = Filter::eLinear;
@@ -149,6 +156,9 @@ namespace Swift
         Wrap wrap_u = Wrap::eRepeat;
         Wrap wrap_y = Wrap::eRepeat;
         Wrap wrap_w = Wrap::eRepeat;
+        float min_lod = 0;
+        float max_lod = 13;
+        BorderColor border_color = BorderColor::eBlack;
     };
 
     enum class DepthTest
@@ -201,6 +211,21 @@ namespace Swift
         std::string_view name;
     };
 
+    enum class HeapType
+    {
+        eUpload,
+        eGPU,
+        eGPU_Upload,
+        eReadback
+    };
+
+    struct HeapCreateInfo
+    {
+        HeapType type;
+        uint64_t size;
+        std::string_view debug_name = " ";
+    };
+
     enum class ResourceState
     {
         eCommon,
@@ -242,7 +267,7 @@ namespace Swift
     {
         IBuffer* src_buffer;
         ITexture* dst_texture;
-        uint32_t mip_levels;
+        uint16_t mip_levels = 1;
     };
 
     struct TextureRegion
@@ -282,7 +307,6 @@ namespace Swift
         Format format = Format::eRGBA8_UNORM;
         const void* data = nullptr;
         std::optional<MSAA> msaa = std::nullopt;
-        bool gen_mipmaps = false;
         EnumFlags<TextureFlags> flags;
         std::shared_ptr<IResource> resource = nullptr;
         std::string_view name;

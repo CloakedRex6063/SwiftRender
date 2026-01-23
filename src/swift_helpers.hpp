@@ -1,40 +1,40 @@
 #pragma once
 #include "swift_structs.hpp"
+#include "cmath"
 
 namespace Swift
 {
-    inline uint32_t GetBytesPerPixel(const Format format)
+    template<typename CreationFunc, typename T>
+    T* CreateObject(CreationFunc&& func, std::vector<T*>& objects, std::vector<uint32_t>& free_objects)
     {
-        switch (format)
+        if (!free_objects.empty())
         {
-            case Format::eRGBA8_UNORM:
-                return 4;
-            case Format::eRGBA16F:
-                return 8;
-            case Format::eRGBA32F:
-                return 16;
-            default:
-                return 4;
+            uint32_t index = free_objects.back();
+            free_objects.pop_back();
+
+            objects[index] = func();
+            return objects[index];
+        }
+
+        objects.emplace_back(func());
+        return objects.back();
+    }
+
+    template<typename T>
+    void DestroyObject(T* object, std::vector<T*>& objects, std::vector<uint32_t>& free_objects)
+    {
+        if (auto it = std::ranges::find(objects, object); it != objects.end())
+        {
+            delete *it;
+            *it = nullptr;
+            free_objects.emplace_back(std::distance(objects.begin(), it));
         }
     }
 
-    inline uint32_t GetTextureSize(const TextureCreateInfo& texture)
+    inline int CalculateMaxMips(const int width, const int height)
     {
-        uint32_t total_size = 0;
-        uint32_t mip_width = texture.width;
-        uint32_t mip_height = texture.height;
-        const uint32_t bpp = GetBytesPerPixel(texture.format);
-
-        for (uint16_t i = 0; i < texture.mip_levels; ++i)
-        {
-            total_size += mip_width * mip_height * bpp;
-
-            mip_width = std::max(1u, mip_width / 2);
-            mip_height = std::max(1u, mip_height / 2);
-        }
-
-        total_size *= texture.array_size;
-        return total_size;
+        const int max_dim = std::max(width, height);
+        return static_cast<int>(std::floor(std::log2(max_dim))) + 1;
     }
 
     inline std::array<uint32_t, 3> CalculateDispatchGroups(const uint32_t total_groups)

@@ -1,6 +1,7 @@
 #pragma once
 #include "swift_shader.hpp"
 #include "swift_structs.hpp"
+#define NOMINMAX
 #include "directx/d3d12.h"
 #include "span"
 

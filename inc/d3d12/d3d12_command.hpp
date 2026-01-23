@@ -1,5 +1,4 @@
 #pragma once
-
 #include "swift_command.hpp"
 #include "swift_macros.hpp"
 #include "d3d12_descriptor.hpp"
@@ -35,7 +34,7 @@ namespace Swift::D3D12
         void ClearRenderTarget(IRenderTarget* render_target, const std::array<float, 4>& color)  override;
         void ClearDepthStencil(IDepthStencil* depth_stencil, float depth, uint8_t stencil)  override;
         void ResourceBarrier(const std::shared_ptr<IResource>& resource_handle, ResourceState new_state)  override;
-        void UAVBarrier(IResource* resource_handle)  override;
+        void UAVBarrier(const std::shared_ptr<IResource>& resource_handle)  override;
 
     private:
         Context* m_context;

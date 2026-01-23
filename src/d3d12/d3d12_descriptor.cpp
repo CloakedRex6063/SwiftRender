@@ -49,14 +49,18 @@ Swift::D3D12::BufferCBV::~BufferCBV() { m_context->GetCBVSRVUAVHeap()->Free(m_da
 Swift::D3D12::TextureSRV::TextureSRV(Context* context,
                                      ITexture* texture,
                                      const uint32_t most_detailed_mip,
-                                     const uint32_t mip_levels)
+                                     uint32_t mip_levels)
     : ITextureSRV(texture), D3D12Descriptor(context)
 {
+    if (mip_levels == 0)
+    {
+        mip_levels = texture->GetMipLevels();
+    }
     auto* device = static_cast<ID3D12Device*>(context->GetDevice());
     auto* const resource = static_cast<ID3D12Resource*>(texture->GetResource()->GetResource());
     const auto& srv_heap = context->GetCBVSRVUAVHeap();
     m_data = srv_heap->Allocate();
-    D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {
+    const D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {
         .Format = ToDXGIFormat(texture->GetFormat()),
         .ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D,
         .Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,

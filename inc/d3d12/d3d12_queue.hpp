@@ -1,6 +1,7 @@
 #pragma once
 #include "swift_queue.hpp"
 #include "swift_structs.hpp"
+#define NOMINMAX
 #include "directx/d3d12.h"
 
 namespace Swift::D3D12

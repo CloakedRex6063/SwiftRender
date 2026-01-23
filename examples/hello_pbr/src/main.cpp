@@ -70,7 +70,13 @@ int main()
 
     const auto mesh_buffers = CreateMeshBuffers(context, helmet.meshes);
     std::vector<MeshRenderer> mesh_renderers = CreateMeshRenderers(helmet.nodes, helmet.meshes, mesh_buffers);
-    const auto textures = CreateTextures(context, helmet.textures, helmet.materials);
+
+    auto* texture_heap = context->CreateHeap(Swift::HeapCreateInfo{
+        .type = Swift::HeapType::eGPU_Upload,
+        .size = 1'000'000'000,
+        .debug_name = "Texture Heap"
+    });
+    const auto textures = CreateTextures(context, texture_heap, helmet.textures, helmet.materials);
 
     auto* const material_buffer =
         Swift::BufferBuilder(context, sizeof(Material) * helmet.materials.size()).SetData(helmet.materials.data()).Build();
@@ -220,7 +226,7 @@ int main()
 
         command->End();
 
-        context->Present(true);
+        context->Present(false);
     }
 
     context->DestroyBuffer(point_light_buffer);
@@ -235,6 +241,7 @@ int main()
     context->DestroyShader(shader);
     DestroyTextures(context, textures);
     DestroyMeshBuffers(context, mesh_buffers);
+    context->DestroyHeap(texture_heap);
 
     imgui.Destroy();
 

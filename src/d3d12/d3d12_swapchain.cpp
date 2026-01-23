@@ -4,7 +4,7 @@
 
 Swift::D3D12::Swapchain::Swapchain(IDXGIFactory7* factory, ID3D12CommandQueue* queue, const ContextCreateInfo& create_info)
 {
-    const auto hwnd = static_cast<HWND>(create_info.native_window_handle);
+    auto *const hwnd = static_cast<HWND>(create_info.native_window_handle);
     constexpr auto format = Format::eRGBA8_UNORM;
     const DXGI_SWAP_CHAIN_DESC1 swapchain_desc = {
         .Width = create_info.width,
@@ -19,7 +19,7 @@ Swift::D3D12::Swapchain::Swapchain(IDXGIFactory7* factory, ID3D12CommandQueue* q
         .AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED,
         .Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING,
     };
-    IDXGISwapChain1* swapchain;
+    IDXGISwapChain1* swapchain = nullptr;
 
     factory->CreateSwapChainForHwnd(queue, hwnd, &swapchain_desc, nullptr, nullptr, &swapchain);
     swapchain->QueryInterface(IID_PPV_ARGS(&m_swapchain));
