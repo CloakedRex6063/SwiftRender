@@ -20,9 +20,9 @@ public:
     float m_move_speed = 10.f;
     float m_look_speed = 1.f;
 
-    glm::vec3 GetUpVector() { return m_world_matrix[1]; }
-    glm::vec3 GetRightVector() { return m_world_matrix[0]; }
-    glm::vec3 GetForwardVector() { return -m_world_matrix[2]; }
+    glm::vec3 GetUpVector() const { return m_world_matrix[1]; }
+    glm::vec3 GetRightVector() const { return m_world_matrix[0]; }
+    glm::vec3 GetForwardVector() const { return -m_world_matrix[2]; }
 
 private:
     glm::mat4 m_world_matrix{};

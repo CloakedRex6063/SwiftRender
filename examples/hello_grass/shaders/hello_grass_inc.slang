@@ -109,7 +109,7 @@ float2 RandomPointInCircle(uint seed, float radius)
 
 float2 RandomPointInCircle(float3 position, float radius)
 {
-    uint seed = Hash(position);
+    uint seed = uint(Hash(position));
     return RandomPointInCircle(seed, radius);
 }
 
@@ -155,12 +155,11 @@ float3 ApplyWind(float3 position)
     float wind_dir = Noise2D(position.xz * 0.05 + 0.05 * PushConstants.time);
     wind_dir = Remap(wind_dir, 0.0, 1.0, 0.0, 2.0 * PI);
     float wind_noise_sample = Noise2D(position.xz * 0.25 + PushConstants.time * PushConstants.wind_speed);
-    float wind_lean_angle = EaseIn(wind_noise_sample, 2.0) * 1.0;
-    float wind_lean_amount = EaseIn(sin(wind_lean_angle), 2.0) * 1.25 * PushConstants.wind_strength;
+    float wind_lean_angle = EaseIn(wind_noise_sample, 2) * 1.0;
+    float wind_lean_amount = EaseIn(sin(wind_lean_angle), 2) * 1.25 * PushConstants.wind_strength;
     float3 wind_direction = float3(cos(wind_dir), 0, sin(wind_dir));
     return wind_direction * wind_lean_amount;
 }
-
 
 void MakePersistentLength(in float3 v0, inout float3 v1, inout float3 v2, in float height)
 {

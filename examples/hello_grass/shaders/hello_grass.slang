@@ -187,12 +187,12 @@ float4 pixel_main(Vertex input) : SV_TARGET
 
     float3 base_color = float3(0.05, 0.2, 0.01);
     float3 tip_color = float3(0.5, 0.5, 0.1);
-    float3 grass_color = lerp(base_color, tip_color, EaseIn(input.uv.y, 4.0));
+    float3 grass_color = lerp(base_color, tip_color, EaseIn(input.uv.y, 4));
 
     float selfshadow = pow(input.uv.y, 1.5);
 
     float ao_for_density = lerp(1.0, 0.25, input.density);
-    float ao = lerp(ao_for_density, 1.0, EaseIn(input.uv.y, 2.0));
+    float ao = lerp(ao_for_density, 1.0, EaseIn(input.uv.y, 2));
 
     float occlusion = ao * selfshadow;
 

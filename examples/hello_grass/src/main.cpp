@@ -31,6 +31,27 @@ struct GrassPatch
 
 void BuildGrass(Swift::IBuffer* grass_buffer, const GrassSettings& settings, uint32_t& grass_count);
 
+struct Plane
+{
+    glm::vec3 normal{};
+    float distance{};
+};
+
+struct Frustum
+{
+    Plane top_face;
+    Plane bottom_face;
+
+    Plane left_face;
+    Plane right_face;
+
+    Plane near_face;
+    Plane far_face;
+};
+
+Plane CreatePlane(const glm::vec3& position, const glm::vec3& normal);
+Frustum CreateFrustum(const Camera& camera, float near_plane, float far_plane);
+
 int main()
 {
     auto window = Window();
@@ -101,24 +122,6 @@ int main()
     };
     auto* const constant_buffer = context->CreateBuffer(constant_create_info);
 
-    struct Plane
-    {
-        glm::vec3 normal{};
-        float distance{};
-    };
-
-    struct Frustum
-    {
-        Plane top_face;
-        Plane bottom_face;
-
-        Plane left_face;
-        Plane right_face;
-
-        Plane near_face;
-        Plane far_face;
-    };
-
     const Swift::BufferCreateInfo frustum_create_info{
         .size = sizeof(Frustum),
     };
@@ -188,6 +191,9 @@ int main()
         time += delta_time;
 
         camera.Tick(window, input, delta_time);
+
+        Frustum frustum = CreateFrustum(camera, near_plane, far_plane);
+        frustum_buffer->Write(&frustum, 0, sizeof(Frustum));
 
         const ConstantBufferInfo scene_buffer_data{
             .view_proj = camera.m_proj_matrix * camera.m_view_matrix,
@@ -296,6 +302,37 @@ int main()
     imgui.Destroy();
 
     Swift::DestroyContext(context);
+}
+
+Plane CreatePlane(const glm::vec3& position, const glm::vec3& normal)
+{
+    return {
+        .normal = glm::normalize(normal),
+        .distance = glm::dot(glm::normalize(normal), position),
+    };
+}
+
+Frustum CreateFrustum(const Camera& camera, float near_plane, float far_plane)
+{
+    Frustum frustum{};
+    const auto camera_pos = camera.m_position;
+
+    const auto forward = camera.GetForwardVector();
+    const auto right = camera.GetRightVector();
+    const auto up = camera.GetUpVector();
+    const float half_v_side = far_plane * tanf(camera.m_fov * .5f);
+    const float half_h_side = half_v_side * camera.m_aspect_ratio;
+    const glm::vec3 front_mult_far = far_plane * forward;
+
+    frustum.near_face = CreatePlane(camera_pos + near_plane * forward, forward);
+    frustum.far_face = CreatePlane(camera_pos + front_mult_far, -forward);
+    frustum.right_face =
+        CreatePlane(camera_pos, glm::cross(front_mult_far - right * half_h_side, up));
+    frustum.left_face = CreatePlane(camera_pos, glm::cross(up, front_mult_far + right * half_h_side));
+    frustum.top_face = CreatePlane(camera_pos, glm::cross(right, front_mult_far - up * half_v_side));
+    frustum.bottom_face =
+        CreatePlane(camera_pos, glm::cross(front_mult_far + up * half_v_side, right));
+    return frustum;
 }
 
 void BuildGrass(Swift::IBuffer* grass_buffer, const GrassSettings& settings, uint32_t& grass_count)
