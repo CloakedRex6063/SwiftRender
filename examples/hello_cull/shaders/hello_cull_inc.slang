@@ -69,10 +69,12 @@ struct Frustum
     float4 planes[6];
 };
 
-struct BoundingSphere
+struct CullData
 {
     float3 center;
     float radius;
+    float3 cone_apex;
+    uint32_t cone_packed;
 };
 
 struct PushConstant
@@ -173,12 +175,12 @@ ApplyLight(float3 n, float3 h, float3 v, float3 l, float3 f0, float3 albedo, flo
     return (kd * albedo / PI + specular) * radiance * n_dot_l;
 }
 
-bool IsInFrustum(Frustum frustum, BoundingSphere sphere, float4x4 transform)
+bool IsVisible(Frustum frustum, CullData cull_data, float4x4 transform, float3 camera_position)
 {
-    float4 center = mul(transform, float4(sphere.center, 1));
+    float4 center = mul(transform, float4(cull_data.center, 1));
     var scale = GetScale(transform);
     var max_scale = max(scale.x, max(scale.y, scale.z));
-    var radius = sphere.radius * max_scale;
+    var radius = cull_data.radius * max_scale;
     for (int i = 0; i < 6; ++i)
     {
         if (dot(center, frustum.planes[i]) < -radius)
@@ -186,6 +188,27 @@ bool IsInFrustum(Frustum frustum, BoundingSphere sphere, float4x4 transform)
             return false;
         }
     }
+
+    int3 axis_s8 = int3(
+        int(cull_data.cone_packed << 24) >> 24,
+        int(cull_data.cone_packed << 16) >> 24,
+        int(cull_data.cone_packed <<  8) >> 24
+    );
+    int cutoff_s8 = int(cull_data.cone_packed) >> 24;
+
+    float3 cone_axis = float3(axis_s8) / 127.0;
+    float cone_cutoff = float(cutoff_s8) / 127.0;
+
+    if (cone_cutoff > 1.0)
+        return true;
+
+    float3 apex_world = mul(transform, float4(cull_data.cone_apex, 1.0)).xyz;
+    float3 axis_world = normalize(mul(transform, float4(cone_axis, 0.0))).xyz;
+    float3 view = normalize(camera_position - apex_world);
+
+    if (dot(view, -axis_world) > cone_cutoff)
+        return false;
+
     return true;
 }
 

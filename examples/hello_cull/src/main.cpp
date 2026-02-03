@@ -104,14 +104,14 @@ int main()
                                                                  .num_elements = 1,
                                                                  .element_size = sizeof(Frustum),
                                                              });
-
-    auto* const bounding_buffer = Swift::BufferBuilder(context, sizeof(BoundingSphere) * helmet.bounding_spheres.size())
-                                      .SetData(helmet.bounding_spheres.data())
+    
+    auto* const cull_data_buffer = Swift::BufferBuilder(context, sizeof(CullData) * helmet.cull_datas.size())
+                                      .SetData(helmet.cull_datas.data())
                                       .Build();
-    auto* bounding_buffer_srv = context->CreateShaderResource(bounding_buffer,
+    auto* cull_data_buffer_srv = context->CreateShaderResource(cull_data_buffer,
                                                               Swift::BufferSRVCreateInfo{
-                                                                  .num_elements = static_cast<uint32_t>(helmet.bounding_spheres.size()),
-                                                                  .element_size = sizeof(BoundingSphere),
+                                                                  .num_elements = static_cast<uint32_t>(helmet.cull_datas.size()),
+                                                                  .element_size = sizeof(CullData),
                                                               });
 
     auto* const point_light_buffer = Swift::BufferBuilder(context, sizeof(PointLight) * 100).Build();
@@ -193,7 +193,7 @@ int main()
             .point_light_count = static_cast<uint32_t>(point_lights.size()),
             .dir_light_count = static_cast<uint32_t>(dir_lights.size()),
             .frustum_buffer_index = frustum_buffer_srv->GetDescriptorIndex(),
-            .bounding_buffer_index = bounding_buffer_srv->GetDescriptorIndex(),
+            .bounding_buffer_index = cull_data_buffer_srv->GetDescriptorIndex(),
         };
         constant_buffer->Write(&scene_buffer_data, 0, sizeof(ConstantBufferInfo));
 

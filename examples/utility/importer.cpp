@@ -339,6 +339,12 @@ glm::mat4 Importer::GetLocalTransform(const tinygltf::Node& node)
     return T * R * S;
 }
 
+uint32_t Importer::PackCone(const meshopt_Bounds& bounds)
+{
+    return (uint32_t(uint8_t(bounds.cone_axis_s8[0])) << 0) | (uint32_t(uint8_t(bounds.cone_axis_s8[1])) << 8) |
+           (uint32_t(uint8_t(bounds.cone_axis_s8[2])) << 16) | (uint32_t(uint8_t(bounds.cone_cutoff_s8)) << 24);
+}
+
 std::vector<Mesh> Importer::LoadMesh(Model& model, const tinygltf::Model& tiny_model, const tinygltf::Mesh& mesh)
 {
     std::vector<Mesh> meshes;
@@ -350,18 +356,18 @@ std::vector<Mesh> Importer::LoadMesh(Model& model, const tinygltf::Model& tiny_m
 
         for (const auto& meshlet : meshlets)
         {
-            const meshopt_Bounds bounds = meshopt_computeMeshletBounds(
-                &meshlet_vertices[meshlet.vertex_offset],
-                &meshlet_triangles[meshlet.triangle_offset],
-                meshlet.triangle_count,
-                &vertices[0].position.x,
-                vertices.size(),
-                sizeof(Vertex)
-            );
+            const meshopt_Bounds bounds = meshopt_computeMeshletBounds(&meshlet_vertices[meshlet.vertex_offset],
+                                                                       &meshlet_triangles[meshlet.triangle_offset],
+                                                                       meshlet.triangle_count,
+                                                                       &vertices[0].position.x,
+                                                                       vertices.size(),
+                                                                       sizeof(Vertex));
 
-            model.bounding_spheres.push_back(BoundingSphere{
-                glm::vec3(bounds.center[0], bounds.center[1], bounds.center[2]),
-                bounds.radius
+            model.cull_datas.push_back(CullData{
+                .center = glm::vec3(bounds.center[0], bounds.center[1], bounds.center[2]),
+                .radius = bounds.radius,
+                .cone_apex = glm::vec3(bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2]),
+                .cone_packed = PackCone(bounds),
             });
         }
 

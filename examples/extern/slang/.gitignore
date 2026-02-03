@@ -6,3 +6,4 @@
 !lib/slang-compiler.lib
 !lib/slang-rt.lib
 !lib/slang.lib
+/bin/slang-glsl-module.bin

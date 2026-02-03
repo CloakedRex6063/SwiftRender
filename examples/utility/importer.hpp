@@ -72,10 +72,12 @@ struct Node
     int mesh_index;
 };
 
-struct BoundingSphere
+struct CullData
 {
     glm::vec3 center{};
     float radius{};
+    glm::vec3 cone_apex;
+    uint32_t cone_packed;
 };
 
 struct Model
@@ -86,7 +88,7 @@ struct Model
     std::vector<Sampler> samplers;
     std::vector<glm::mat4> transforms;
     std::vector<Node> nodes;
-    std::vector<BoundingSphere> bounding_spheres;
+    std::vector<CullData> cull_datas;
 };
 
 class Importer
@@ -125,6 +127,7 @@ private:
     static Texture LoadTexture(const tinygltf::Model& model, const tinygltf::Texture& texture);
 
     static glm::mat4 GetLocalTransform(const tinygltf::Node& node);
+    static uint32_t PackCone(const meshopt_Bounds& bounds);
 
     static std::vector<Mesh> LoadMesh(Model& model, const tinygltf::Model& tiny_model, const tinygltf::Mesh& mesh);
 

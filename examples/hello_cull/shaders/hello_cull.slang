@@ -20,8 +20,9 @@ void ampl_main(uint dtid: SV_DispatchThreadID, uint gtid: SV_GroupThreadID, uint
             var transform_buffer = DescriptorHandle<StructuredBuffer<float4x4>>(GlobalConstants.transform_buffer_index);
             var transform = transform_buffer[PushConstants.transform_index];
             var frustum_buffer = DescriptorHandle<StructuredBuffer<Frustum>>(GlobalConstants.frustum_buffer_index);
-            var bounding_buffer = DescriptorHandle<StructuredBuffer<BoundingSphere>>(GlobalConstants.bounding_buffer_index);
-            visible = IsInFrustum(frustum_buffer[0], bounding_buffer[dtid + PushConstants.bounding_offset], transform);
+            var bounding_buffer = DescriptorHandle<StructuredBuffer<CullData>>(GlobalConstants.bounding_buffer_index);
+            var cull_data = bounding_buffer[dtid + PushConstants.bounding_offset];
+            visible = IsVisible(frustum_buffer[0], cull_data, transform, GlobalConstants.cam_pos);
         }
     }
     else
