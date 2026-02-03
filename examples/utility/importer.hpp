@@ -4,14 +4,16 @@
 #include "tiny_gltf.h"
 #include "span"
 #include "glm/fwd.hpp"
+#include "glm/vec3.hpp"
+#include "glm/vec4.hpp"
 
 struct Vertex
 {
-    std::array<float, 3> position;
+    glm::vec3 position;
     float uv_x;
-    std::array<float, 3> normal;
+    glm::vec3 normal;
     float uv_y;
-    std::array<float, 4> tangent;
+    glm::vec4 tangent;
 };
 
 struct Mesh
@@ -67,7 +69,13 @@ struct Node
 {
     std::string name;
     uint32_t transform_index;
-    uint32_t mesh_index;
+    int mesh_index;
+};
+
+struct BoundingSphere
+{
+    glm::vec3 center{};
+    float radius{};
 };
 
 struct Model
@@ -78,6 +86,7 @@ struct Model
     std::vector<Sampler> samplers;
     std::vector<glm::mat4> transforms;
     std::vector<Node> nodes;
+    std::vector<BoundingSphere> bounding_spheres;
 };
 
 class Importer
@@ -117,9 +126,9 @@ private:
 
     static glm::mat4 GetLocalTransform(const tinygltf::Node& node);
 
-    static std::vector<Mesh> LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mesh);
+    static std::vector<Mesh> LoadMesh(Model& model, const tinygltf::Model& tiny_model, const tinygltf::Mesh& mesh);
 
-    static Material LoadMaterial(const tinygltf::Model& model, const tinygltf::Material& material);
+    static Material LoadMaterial(const tinygltf::Material& material);
 
     static Sampler LoadSampler(const tinygltf::Sampler& sampler);
 

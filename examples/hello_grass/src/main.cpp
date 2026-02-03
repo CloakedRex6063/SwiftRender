@@ -211,7 +211,7 @@ int main()
         command->TransitionResource(render_target->GetTexture()->GetResource(), Swift::ResourceState::eRenderTarget);
         command->TransitionResource(depth_texture->GetResource(), Swift::ResourceState::eDepthWrite);
 
-        command->ClearRenderTarget(render_target, {0.0f, 0.0f, 0.0f, 0.0f});
+        command->ClearRenderTarget(render_target, {0.392f, 0.584f, 0.929f, 1.0f});
         command->ClearDepthStencil(depth_stencil, 1.0f, 0);
         command->BindShader(grass_shader);
         command->BindConstantBuffer(constant_buffer, 1);

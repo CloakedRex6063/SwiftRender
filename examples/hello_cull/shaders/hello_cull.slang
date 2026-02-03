@@ -1,23 +1,64 @@
-#include "hello_pbr_inc.slang"
+#include "hello_cull_inc.slang"
+
+struct TaskPayload
+{
+    uint meshlet_index[32];
+};
+
+groupshared TaskPayload s_Payload;
+
+[NumThreads(32, 1, 1)]
+[shader("amplification")]
+void ampl_main(uint dtid: SV_DispatchThreadID, uint gtid: SV_GroupThreadID, uint gid: SV_GroupID)
+{
+    bool visible = false;
+
+    if(bool(PushConstants.should_cull))
+    {
+        if(dtid < PushConstants.meshlet_count)
+        {
+            var transform_buffer = DescriptorHandle<StructuredBuffer<float4x4>>(GlobalConstants.transform_buffer_index);
+            var transform = transform_buffer[PushConstants.transform_index];
+            var frustum_buffer = DescriptorHandle<StructuredBuffer<Frustum>>(GlobalConstants.frustum_buffer_index);
+            var bounding_buffer = DescriptorHandle<StructuredBuffer<BoundingSphere>>(GlobalConstants.bounding_buffer_index);
+            visible = IsInFrustum(frustum_buffer[0], bounding_buffer[dtid + PushConstants.bounding_offset], transform);
+        }
+    }
+    else
+    {
+        visible = true;
+    }
+
+    if (visible)
+    {
+        uint index = WavePrefixCountBits(visible);
+        s_Payload.meshlet_index[index] = dtid;
+    }
+
+    uint visibleCount = WaveActiveCountBits(visible);
+    DispatchMesh(visibleCount, 1, 1, s_Payload);
+}
 
 [outputtopology("triangle")]
 [numthreads(128, 1, 1)]
 [shader("mesh")]
-void mesh_main(
-    uint gtid : SV_GroupThreadID,
-    uint gid  : SV_GroupID,
-    OutputVertices<OutVertex, 64> verts,
-    OutputIndices<uint3, 124> triangles)
+void mesh_main(uint gtid: SV_GroupThreadID,
+               uint gid: SV_GroupID,
+               in payload TaskPayload payload,
+               OutputVertices<OutVertex, 64> verts,
+               OutputIndices<uint3, 124> triangles)
 {
     var vertex_buffer = DescriptorHandle<StructuredBuffer<Vertex>>(PushConstants.vertex_buffer_index);
     var meshlet_buffer = DescriptorHandle<StructuredBuffer<Meshlet>>(PushConstants.mesh_buffer_index);
     var mesh_vertex_buffer = DescriptorHandle<StructuredBuffer<uint>>(PushConstants.mesh_vertex_buffer_index);
     var mesh_triangle_buffer = DescriptorHandle<StructuredBuffer<uint>>(PushConstants.mesh_triangle_buffer_index);
     var transform_buffer = DescriptorHandle<StructuredBuffer<float4x4>>(GlobalConstants.transform_buffer_index);
-    Meshlet meshlet = meshlet_buffer[gid];
+
+    uint meshlet_index = payload.meshlet_index[gid];
+    Meshlet meshlet = meshlet_buffer[meshlet_index];
     SetMeshOutputCounts(meshlet.vertex_count, meshlet.triangle_count);
 
-    if(gtid < meshlet.triangle_count)
+    if (gtid < meshlet.triangle_count)
     {
         uint packed = mesh_triangle_buffer[meshlet.triangle_offset + gtid];
         uint idx0 = (packed >> 0) & 0xFF;
@@ -26,7 +67,7 @@ void mesh_main(
         triangles[gtid] = uint3(idx0, idx1, idx2);
     }
 
-    if(gtid < meshlet.vertex_count)
+    if (gtid < meshlet.vertex_count)
     {
         uint vertex_index = meshlet.vertex_offset + gtid;
         vertex_index = mesh_vertex_buffer[vertex_index];
@@ -49,7 +90,7 @@ float4 pixel_main(OutVertex input) : SV_TARGET
     Material material = material_buffer[PushConstants.material_index];
 
     float3 albedo = material.albedo.rgb;
-    if(material.albedo_index != -1)
+    if (material.albedo_index != -1)
     {
         var albedo_texture = DescriptorHandle<Texture2D>(uint(material.albedo_index));
         albedo *= albedo_texture.Sample(samp, input.uv).rgb;
@@ -57,7 +98,7 @@ float4 pixel_main(OutVertex input) : SV_TARGET
 
     float metallic = material.metallic;
     float roughness = material.roughness;
-    if(material.metal_rough_index != -1)
+    if (material.metal_rough_index != -1)
     {
         var metal_rough_texture = DescriptorHandle<Texture2D>(uint(material.metal_rough_index));
         float3 mr = metal_rough_texture.Sample(samp, input.uv).rgb;
@@ -66,7 +107,7 @@ float4 pixel_main(OutVertex input) : SV_TARGET
     }
 
     float3 emissive = material.emissive;
-    if(material.emissive_index != -1)
+    if (material.emissive_index != -1)
     {
         var emissive_texture = DescriptorHandle<Texture2D>(uint(material.emissive_index));
         emissive *= emissive_texture.Sample(samp, input.uv).rgb;
@@ -79,7 +120,7 @@ float4 pixel_main(OutVertex input) : SV_TARGET
     f0 = lerp(f0, albedo, metallic);
 
     float occlusion = 1.0;
-    if(material.occlusion_index != -1)
+    if (material.occlusion_index != -1)
     {
         var occlusion_texture = DescriptorHandle<Texture2D>(uint(material.occlusion_index));
         occlusion *= occlusion_texture.Sample(samp, input.uv).r;
@@ -87,7 +128,7 @@ float4 pixel_main(OutVertex input) : SV_TARGET
 
     float3 lo = float3(0.0, 0.0, 0.0);
     var point_light_buffer = DescriptorHandle<StructuredBuffer<PointLight>>(GlobalConstants.point_light_buffer_index);
-    for(int i = 0; i < GlobalConstants.point_light_count; i++)
+    for (int i = 0; i < GlobalConstants.point_light_count; i++)
     {
         PointLight point_light = point_light_buffer[i];
         float3 l = normalize(point_light.position - world_pos);
@@ -99,7 +140,7 @@ float4 pixel_main(OutVertex input) : SV_TARGET
     };
 
     var dir_light_buffer = DescriptorHandle<StructuredBuffer<DirectionalLight>>(GlobalConstants.dir_light_buffer_index);
-    for(int i = 0; i < GlobalConstants.dir_light_count; i++)
+    for (int i = 0; i < GlobalConstants.dir_light_count; i++)
     {
         DirectionalLight dir_light = dir_light_buffer[i];
         float3 l = normalize(dir_light.direction);

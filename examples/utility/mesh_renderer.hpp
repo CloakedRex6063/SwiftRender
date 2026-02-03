@@ -16,8 +16,9 @@ struct MeshRenderer
     uint32_t m_meshlet_count;
     int m_material_index;
     uint32_t m_transform_index;
+    uint32_t m_bounding_offset;
 
-    void Draw(Swift::ICommand* command) const
+    void Draw(Swift::ICommand* command, const bool should_cull = false) const
     {
         const struct PushConstants
         {
@@ -27,6 +28,9 @@ struct MeshRenderer
             uint32_t mesh_triangle_buffer;
             int material_index;
             uint32_t transform_index;
+            uint32_t meshlet_count;
+            uint32_t bounding_offset;
+            uint32_t should_cull;
         } push_constants{
             .vertex_buffer = m_vertex_buffer,
             .meshlet_buffer = m_mesh_buffer,
@@ -34,9 +38,13 @@ struct MeshRenderer
             .mesh_triangle_buffer = m_mesh_triangle_buffer,
             .material_index = m_material_index,
             .transform_index = m_transform_index,
+            .meshlet_count = m_meshlet_count,
+            .bounding_offset = m_bounding_offset,
+            .should_cull = should_cull,
         };
         command->PushConstants(&push_constants, sizeof(PushConstants));
-        command->DispatchMesh(m_meshlet_count, 1, 1);
+        const uint32_t num_amp_groups = (m_meshlet_count + 31) / 32;
+        command->DispatchMesh(num_amp_groups, 1, 1);
     }
 };
 
@@ -103,6 +111,7 @@ inline std::vector<MeshRenderer> CreateMeshRenderers(const std::span<const Node>
                                                      const std::span<const MeshBuffers> mesh_buffers)
 {
     std::vector<MeshRenderer> mesh_renderers;
+    uint32_t bounding_offset = 0;
     for (const auto& node : nodes)
     {
         const auto& mesh = meshes[node.mesh_index];
@@ -115,7 +124,9 @@ inline std::vector<MeshRenderer> CreateMeshRenderers(const std::span<const Node>
             .m_meshlet_count = static_cast<uint32_t>(mesh.meshlets.size()),
             .m_material_index = mesh.material_index,
             .m_transform_index = node.transform_index,
+            .m_bounding_offset = bounding_offset,
         };
+        bounding_offset += mesh.meshlets.size();
         mesh_renderers.push_back(mesh_renderer);
     }
     return mesh_renderers;

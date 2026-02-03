@@ -32,7 +32,7 @@ Model Importer::LoadModel(const std::string_view path)
     Model m{};
     for (auto& mesh : model.meshes)
     {
-        auto meshes = LoadMesh(model, mesh);
+        auto meshes = LoadMesh(m, model, mesh);
         m.meshes.insert(m.meshes.end(), meshes.begin(), meshes.end());
     }
 
@@ -44,7 +44,7 @@ Model Importer::LoadModel(const std::string_view path)
 
     for (auto& material : model.materials)
     {
-        auto mat = LoadMaterial(model, material);
+        auto mat = LoadMaterial(material);
         m.materials.emplace_back(mat);
     }
 
@@ -89,15 +89,15 @@ std::vector<Vertex> Importer::LoadVertices(const tinygltf::Model& model,
     vertices.resize(num_pos);
     for (size_t i = 0; i < num_pos; ++i)
     {
-        Vertex& v = vertices[i];
+        auto& [position, uv_x, normal, uv_y, tangent] = vertices[i];
 
-        std::memcpy(v.position.data(), positions + i * 3, sizeof(float) * 3);
-        std::memcpy(v.normal.data(), normals + i * 3, sizeof(float) * 3);
+        std::memcpy(glm::value_ptr(position), positions + i * 3, sizeof(float) * 3);
+        std::memcpy(glm::value_ptr(normal), normals + i * 3, sizeof(float) * 3);
 
-        v.uv_x = tex_coords[i * 2 + 0];
-        v.uv_y = tex_coords[i * 2 + 1];
+        uv_x = tex_coords[i * 2 + 0];
+        uv_y = tex_coords[i * 2 + 1];
 
-        v.tangent = {0.f, 0.f, 0.f, 0.f};
+        tangent = {0.f, 0.f, 0.f, 0.f};
     }
     LoadTangents(vertices, indices);
 
@@ -203,7 +203,7 @@ void Importer::LoadNode(const tinygltf::Model& model,
         nodes.push_back(Node{
             .name = gltf_node.name,
             .transform_index = transform_idx,
-            .mesh_index = static_cast<uint32_t>(gltf_node.mesh),
+            .mesh_index = gltf_node.mesh,
         });
     }
 
@@ -339,15 +339,33 @@ glm::mat4 Importer::GetLocalTransform(const tinygltf::Node& node)
     return T * R * S;
 }
 
-std::vector<Mesh> Importer::LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mesh)
+std::vector<Mesh> Importer::LoadMesh(Model& model, const tinygltf::Model& tiny_model, const tinygltf::Mesh& mesh)
 {
     std::vector<Mesh> meshes;
     for (const auto& prim : mesh.primitives)
     {
-        auto indices = LoadIndices(model, prim);
-        const auto vertices = LoadVertices(model, prim, indices);
-        auto [meshlets, meshlet_vertices, mesh_triangles] = BuildMeshlets(vertices, indices);
-        const auto repacked_triangles = RepackMeshlets(meshlets, mesh_triangles);
+        auto indices = LoadIndices(tiny_model, prim);
+        const auto vertices = LoadVertices(tiny_model, prim, indices);
+        auto [meshlets, meshlet_vertices, meshlet_triangles] = BuildMeshlets(vertices, indices);
+
+        for (const auto& meshlet : meshlets)
+        {
+            const meshopt_Bounds bounds = meshopt_computeMeshletBounds(
+                &meshlet_vertices[meshlet.vertex_offset],
+                &meshlet_triangles[meshlet.triangle_offset],
+                meshlet.triangle_count,
+                &vertices[0].position.x,
+                vertices.size(),
+                sizeof(Vertex)
+            );
+
+            model.bounding_spheres.push_back(BoundingSphere{
+                glm::vec3(bounds.center[0], bounds.center[1], bounds.center[2]),
+                bounds.radius
+            });
+        }
+
+        const auto repacked_triangles = RepackMeshlets(meshlets, meshlet_triangles);
         Mesh m{
             .name = mesh.name,
             .meshlets = meshlets,
@@ -361,7 +379,7 @@ std::vector<Mesh> Importer::LoadMesh(const tinygltf::Model& model, const tinyglt
     return meshes;
 }
 
-Material Importer::LoadMaterial(const tinygltf::Model& model, const tinygltf::Material& material)
+Material Importer::LoadMaterial(const tinygltf::Material& material)
 {
     std::array<float, 4> albedo{};
     std::ranges::transform(material.pbrMetallicRoughness.baseColorFactor,

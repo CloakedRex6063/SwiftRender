@@ -1,3 +1,4 @@
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "camera.hpp"
 #include "input.hpp"
 #include "glm/detail/type_quat.hpp"
