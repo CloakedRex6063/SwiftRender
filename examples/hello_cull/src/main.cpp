@@ -56,7 +56,7 @@ int main()
     auto compute_shader = compiler.CompileShader("hzb.slang", ShaderStage::eCompute);
 
     Importer importer{};
-    auto helmet = importer.LoadModel("assets/Sponza.gltf");
+    auto helmet = importer.LoadModel("assets/cathedral.glb");
 
     std::vector<Swift::SamplerDescriptor> sampler_descriptors{};
     for (const auto& sampler : helmet.samplers)

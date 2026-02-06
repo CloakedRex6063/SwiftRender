@@ -103,14 +103,13 @@ void Swift::D3D12::Command::DispatchCompute(const uint32_t group_x, const uint32
     m_list->Dispatch(group_x, group_y, group_z);
 }
 
-void Swift::D3D12::Command::CopyBufferToTexture(const IContext* context, const BufferTextureCopyRegion& region)
+void Swift::D3D12::Command::CopyBufferToTexture(const IContext* context, const IBuffer* buffer, const ITexture* texture,
+                                                const uint16_t mip_levels, uint16_t array_size)
 {
-    auto* dst_resource = static_cast<ID3D12Resource*>(region.dst_texture->GetResource()->GetResource());
-    auto* src_resource = static_cast<ID3D12Resource*>(region.src_buffer->GetResource()->GetResource());
+    auto* dst_resource = static_cast<ID3D12Resource*>(texture->GetResource()->GetResource());
+    auto* src_resource = static_cast<ID3D12Resource*>(buffer->GetResource()->GetResource());
 
     auto* const device = static_cast<ID3D12Device14*>(context->GetDevice());
-
-    const auto& texture = region.dst_texture;
 
     std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> layouts(texture->GetMipLevels());
     std::vector<uint32_t> num_rows(texture->GetMipLevels());
@@ -126,7 +125,7 @@ void Swift::D3D12::Command::CopyBufferToTexture(const IContext* context, const B
         .Width = texture->GetSize()[0],
         .Height = texture->GetSize()[1],
         .DepthOrArraySize = static_cast<uint16_t>(texture->GetArraySize()),
-        .MipLevels = region.mip_levels,
+        .MipLevels = mip_levels,
         .Format = ToDXGIFormat(texture->GetFormat()),
         .SampleDesc = sample_desc,
         .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
@@ -134,27 +133,33 @@ void Swift::D3D12::Command::CopyBufferToTexture(const IContext* context, const B
 
     device->GetCopyableFootprints(&texture_desc,
                                   0,
-                                  region.mip_levels,
+                                  mip_levels * array_size,
                                   0,
                                   layouts.data(),
                                   num_rows.data(),
                                   row_size_in_bytes.data(),
                                   &total_bytes);
 
-    for (uint32_t i = 0; i < region.mip_levels; ++i)
+    for (uint32_t array_slice = 0; array_slice < array_size; ++array_slice)
     {
-        const D3D12_TEXTURE_COPY_LOCATION src_location = {
-            .pResource = src_resource,
-            .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-            .PlacedFootprint = layouts[i],
-        };
+        for (uint32_t mip_level = 0; mip_level < mip_levels; ++mip_level)
+        {
+            const uint32_t subresource_index = mip_level + array_slice * mip_levels;
 
-        D3D12_TEXTURE_COPY_LOCATION dst_location = {
-            .pResource = dst_resource,
-            .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-            .SubresourceIndex = i,
-        };
-        m_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, nullptr);
+            const D3D12_TEXTURE_COPY_LOCATION src_location = {
+                .pResource = src_resource,
+                .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+                .PlacedFootprint = layouts[subresource_index],
+            };
+
+            D3D12_TEXTURE_COPY_LOCATION dst_location = {
+                .pResource = dst_resource,
+                .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+                .SubresourceIndex = subresource_index,
+            };
+
+            m_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, nullptr);
+        }
     }
 }
 

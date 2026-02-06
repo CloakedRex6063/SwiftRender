@@ -27,7 +27,11 @@ namespace Swift::D3D12
         void BindShader(IShader* shader) override;
         void DispatchMesh(uint32_t group_x, uint32_t group_y, uint32_t group_z) override;
         void DispatchCompute(uint32_t group_x, uint32_t group_y, uint32_t group_z) override;
-        void CopyBufferToTexture(const IContext* context, const BufferTextureCopyRegion& region) override;
+        void CopyBufferToTexture(const IContext* context,
+                                 const IBuffer* buffer,
+                                 const ITexture* texture,
+                                 uint16_t mip_levels = 1,
+                                 uint16_t array_size = 1) override;
         void CopyResource(const std::shared_ptr<IResource>& src_resource,
                           const std::shared_ptr<IResource>& dst_resource) override;
         void CopyBufferRegion(const BufferCopyRegion& region) override;

@@ -154,7 +154,7 @@ namespace Swift::D3D12
             auto* const upload_buffer = CreateBuffer(buffer_info);
             auto* const copy_command = CreateCommand(QueueType::eTransfer);
             copy_command->Begin();
-            copy_command->CopyBufferToTexture(this, {upload_buffer, texture, create_info.mip_levels});
+            copy_command->CopyBufferToTexture(this, upload_buffer, texture, create_info.mip_levels);
             copy_command->TransitionResource(texture->GetResource(), ResourceState::eCommon);
             copy_command->End();
 

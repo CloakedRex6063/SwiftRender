@@ -263,13 +263,6 @@ namespace Swift
         uint64_t size;
     };
 
-    struct BufferTextureCopyRegion
-    {
-        IBuffer* src_buffer;
-        ITexture* dst_texture;
-        uint16_t mip_levels = 1;
-    };
-
     struct TextureRegion
     {
         std::array<uint32_t, 3> size;

@@ -26,7 +26,11 @@ namespace Swift
         virtual void BindShader(IShader* shader) = 0;
         virtual void DispatchMesh(uint32_t group_x, uint32_t group_y, uint32_t group_z) = 0;
         virtual void DispatchCompute(uint32_t group_x, uint32_t group_y, uint32_t group_z) = 0;
-        virtual void CopyBufferToTexture(const IContext* context, const BufferTextureCopyRegion& region) = 0;
+        virtual void CopyBufferToTexture(const IContext* context,
+                                         const IBuffer* buffer,
+                                         const ITexture* texture,
+                                         uint16_t mip_levels = 1,
+                                         uint16_t array_size = 1) = 0;
         virtual void CopyBufferRegion(const BufferCopyRegion& region) = 0;
         virtual void CopyResource(const std::shared_ptr<IResource>& src_resource,
                                   const std::shared_ptr<IResource>& dst_resource) = 0;
