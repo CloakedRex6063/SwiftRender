@@ -74,6 +74,12 @@ namespace Swift
             return *this;
         }
 
+        TextureBuilder& SetGenMipMaps(const bool gen_mipmaps)
+        {
+            m_gen_mipmaps = gen_mipmaps;
+            return *this;
+        }
+
         TextureBuilder& SetArraySize(const uint32_t array_size)
         {
             m_array_size = array_size;
@@ -118,6 +124,7 @@ namespace Swift
                 .mip_levels = m_mip_levels,
                 .array_size = m_array_size,
                 .format = m_format,
+                .gen_mipmaps = m_gen_mipmaps,
                 .data = m_data,
                 .msaa = m_msaa,
                 .flags = m_texture_flags,
@@ -138,6 +145,7 @@ namespace Swift
         uint32_t m_height = 0;
         uint16_t m_mip_levels = 1;
         uint16_t m_array_size = 1;
+        bool m_gen_mipmaps = false;
         Format m_format = Format::eRGBA8_UNORM;
         EnumFlags<TextureFlags> m_texture_flags = TextureFlags::eNone;
         std::shared_ptr<IResource> m_resource = nullptr;
@@ -384,6 +392,47 @@ namespace Swift
             .front_face = FrontFace::eCounterClockwise,
         };
         PolygonMode m_polygon_mode = PolygonMode::eTriangle;
+        std::vector<Descriptor> m_descriptors{};
+        std::vector<SamplerDescriptor> m_static_samplers{};
+        std::string_view m_name;
+    };
+
+    struct ComputeShaderBuilder
+    {
+        ComputeShaderBuilder(IContext* context, const std::vector<uint8_t>& code)
+        {
+            m_context = context;
+            m_code = code;
+        }
+        ComputeShaderBuilder& SetDescriptors(const std::vector<Descriptor>& descriptors)
+        {
+            m_descriptors = descriptors;
+            return *this;
+        }
+        ComputeShaderBuilder& SetStaticSamplers(const std::vector<SamplerDescriptor>& samplers)
+        {
+            m_static_samplers = samplers;
+            return *this;
+        }
+        ComputeShaderBuilder& SetName(const std::string_view name)
+        {
+            m_name = name;
+            return *this;
+        }
+
+        IShader* Build() const
+        {
+            return m_context->CreateShader(ComputeShaderCreateInfo{
+                .code = m_code,
+                .descriptors = m_descriptors,
+                .static_samplers = m_static_samplers,
+                .name = m_name,
+            });
+        }
+
+    private:
+        IContext* m_context;
+        std::vector<uint8_t> m_code;
         std::vector<Descriptor> m_descriptors{};
         std::vector<SamplerDescriptor> m_static_samplers{};
         std::string_view m_name;

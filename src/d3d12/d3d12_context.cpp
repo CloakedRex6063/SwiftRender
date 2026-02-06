@@ -117,7 +117,9 @@ namespace Swift::D3D12
 
     ICommand* Context::CreateCommand(const QueueType queue_type, const std::string_view debug_name)
     {
-        return CreateObject([&] { return new Command(this, m_cbv_srv_uav_heap, queue_type, debug_name); }, m_commands, m_free_commands);
+        return CreateObject([&] { return new Command(this, m_cbv_srv_uav_heap, queue_type, debug_name); },
+                            m_commands,
+                            m_free_commands);
     }
 
     IQueue* Context::CreateQueue(const QueueCreateInfo& info)
@@ -133,21 +135,15 @@ namespace Swift::D3D12
     ITexture* Context::CreateTexture(const TextureCreateInfo& info)
     {
         auto create_info = info;
+        create_info.flags |= info.gen_mipmaps ? TextureFlags::eUnorderedAccess : TextureFlags::eNone;
         create_info.mip_levels = info.mip_levels == 0 ? CalculateMaxMips(info.width, info.height) : info.mip_levels;
         auto* texture = CreateObject([&] { return new Texture(this, create_info); }, m_textures, m_free_textures);
 
         if (create_info.data)
         {
-            if (create_info.mip_levels != info.mip_levels)
+            if (create_info.gen_mipmaps)
             {
-                if (info.mip_levels)
-                {
-                    create_info.mip_levels = info.mip_levels;
-                }
-                else
-                {
-                    create_info.mip_levels = 1;
-                }
+                create_info.mip_levels = 1;
             }
 
             const uint32_t size = GetTextureSize(m_device, create_info);
@@ -168,13 +164,13 @@ namespace Swift::D3D12
             DestroyCommand(copy_command);
             DestroyBuffer(upload_buffer);
 
-            create_info.mip_levels = info.mip_levels == 0 ? CalculateMaxMips(info.width, info.height) : info.mip_levels;
-            if (create_info.mip_levels > 1)
+            if (create_info.gen_mipmaps)
             {
+                create_info.mip_levels = info.mip_levels == 0 ? CalculateMaxMips(info.width, info.height) : info.mip_levels;
                 std::vector<ITextureSRV*> texture_srvs;
                 std::vector<ITextureUAV*> texture_uavs;
 
-                auto *const command = CreateCommand(QueueType::eCompute);
+                auto* const command = CreateCommand(QueueType::eCompute);
                 command->Begin();
 
                 command->BindShader(m_mipmap_shader);

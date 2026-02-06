@@ -7,7 +7,7 @@ Swift::D3D12::RenderTarget::RenderTarget(Context* context, ITexture* texture, co
 {
     const auto& rtv_heap = context->GetRTVHeap();
     m_data = rtv_heap->Allocate();
-    const D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {.Format = ToDXGIFormat(texture->GetFormat()),
+    const D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {.Format = ToViewDXGIFormat(texture->GetFormat()),
                                                     .ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D,
                                                     .Texture2D = {
                                                         .MipSlice = mip,
@@ -61,7 +61,7 @@ Swift::D3D12::TextureSRV::TextureSRV(Context* context,
     const auto& srv_heap = context->GetCBVSRVUAVHeap();
     m_data = srv_heap->Allocate();
     const D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {
-        .Format = ToDXGIFormat(texture->GetFormat()),
+        .Format = ToViewDXGIFormat(texture->GetFormat()),
         .ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D,
         .Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
         .Texture2D =
@@ -97,7 +97,7 @@ Swift::D3D12::TextureUAV::TextureUAV(Context* context, ITexture* texture, const 
     m_data = cbv_heap->Allocate();
     auto* const resource = static_cast<ID3D12Resource*>(texture->GetResource()->GetResource());
     D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc = {
-        .Format = ToDXGIFormat(texture->GetFormat()),
+        .Format = ToViewDXGIFormat(texture->GetFormat()),
         .ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D,
         .Texture2D =
             {

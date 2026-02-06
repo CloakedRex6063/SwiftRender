@@ -92,7 +92,7 @@ D3D12_RESOURCE_DESC Swift::D3D12::Resource::GetResourceDesc(const TextureCreateI
     {
         flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     }
-    else
+    if (info.flags & TextureFlags::eUnorderedAccess)
     {
         flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     }
@@ -104,7 +104,7 @@ D3D12_RESOURCE_DESC Swift::D3D12::Resource::GetResourceDesc(const TextureCreateI
         .Height = info.height,
         .DepthOrArraySize = info.array_size,
         .MipLevels = info.mip_levels,
-        .Format = ToDXGIFormat(info.format),
+        .Format = ToResourceDXGIFormat(info.format),
         .SampleDesc = sample_desc,
         .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
         .Flags = flags,
@@ -196,7 +196,7 @@ ID3D12Resource* Swift::D3D12::Resource::CreateCommittedResource(ID3D12Device14* 
         p_clear_value = nullptr;
     }
 
-    ID3D12Resource* resource;
+    ID3D12Resource* resource = nullptr;
     device->CreateCommittedResource(&heap_properties,
                                     D3D12_HEAP_FLAG_NONE,
                                     &resource_info,

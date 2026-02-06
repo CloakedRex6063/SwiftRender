@@ -18,7 +18,7 @@ struct MeshRenderer
     uint32_t m_transform_index;
     uint32_t m_bounding_offset;
 
-    void Draw(Swift::ICommand* command, const bool should_cull = false) const
+    void Draw(Swift::ICommand* command, const bool should_cull = false, const uint32_t pass_index = 0) const
     {
         const struct PushConstants
         {
@@ -31,6 +31,7 @@ struct MeshRenderer
             uint32_t meshlet_count;
             uint32_t bounding_offset;
             uint32_t should_cull;
+            uint32_t pass_index;
         } push_constants{
             .vertex_buffer = m_vertex_buffer,
             .meshlet_buffer = m_mesh_buffer,
@@ -41,6 +42,7 @@ struct MeshRenderer
             .meshlet_count = m_meshlet_count,
             .bounding_offset = m_bounding_offset,
             .should_cull = should_cull,
+            .pass_index = pass_index,
         };
         command->PushConstants(&push_constants, sizeof(PushConstants));
         const uint32_t num_amp_groups = (m_meshlet_count + 31) / 32;
@@ -144,8 +146,9 @@ inline std::vector<TextureView> CreateTextures(Swift::IContext* context,
         auto texture_builder = Swift::TextureBuilder(context, texture.width, texture.height)
                                    .SetFormat(texture.format)
                                    .SetArraySize(texture.array_size)
-                                   .SetMipmapLevels(0)
+                                   .SetMipmapLevels(1)
                                    .SetData(texture.pixels.data())
+                                   .SetGenMipMaps(false)
                                    .SetName(texture.name);
         auto info = texture_builder.GetBuildInfo();
         texture_builder.SetResource(heap->CreateResource(info, offset));

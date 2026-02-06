@@ -85,6 +85,40 @@ namespace Swift::D3D12
         return D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
     }
 
+    constexpr DXGI_FORMAT ToViewDXGIFormat(const Format format) noexcept
+    {
+        switch (format)
+        {
+            case Format::eRGBA8_UNORM:
+                return DXGI_FORMAT_R8G8B8A8_UNORM;
+            case Format::eRGBA16F:
+                return DXGI_FORMAT_R16G16B16A16_FLOAT;
+            case Format::eRGBA32F:
+                return DXGI_FORMAT_R32G32B32A32_FLOAT;
+            case Format::eD32F:
+                return DXGI_FORMAT_R32_FLOAT;
+        }
+
+        return DXGI_FORMAT_UNKNOWN;
+    }
+
+    constexpr DXGI_FORMAT ToResourceDXGIFormat(const Format format) noexcept
+    {
+        switch (format)
+        {
+            case Format::eRGBA8_UNORM:
+                return DXGI_FORMAT_R8G8B8A8_UNORM;
+            case Format::eRGBA16F:
+                return DXGI_FORMAT_R16G16B16A16_FLOAT;
+            case Format::eRGBA32F:
+                return DXGI_FORMAT_R32G32B32A32_FLOAT;
+            case Format::eD32F:
+                return DXGI_FORMAT_R32_TYPELESS;
+        }
+
+        return DXGI_FORMAT_UNKNOWN;
+    }
+
     constexpr DXGI_FORMAT ToDXGIFormat(const Format format) noexcept
     {
         switch (format)

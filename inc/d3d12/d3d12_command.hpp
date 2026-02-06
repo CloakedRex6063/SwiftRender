@@ -28,13 +28,15 @@ namespace Swift::D3D12
         void DispatchMesh(uint32_t group_x, uint32_t group_y, uint32_t group_z) override;
         void DispatchCompute(uint32_t group_x, uint32_t group_y, uint32_t group_z) override;
         void CopyBufferToTexture(const IContext* context, const BufferTextureCopyRegion& region) override;
+        void CopyResource(const std::shared_ptr<IResource>& src_resource,
+                          const std::shared_ptr<IResource>& dst_resource) override;
         void CopyBufferRegion(const BufferCopyRegion& region) override;
         void CopyTextureRegion(const TextureCopyRegion& region) override;
         void BindRenderTargets(std::span<IRenderTarget*> render_targets, IDepthStencil* depth_stencil) override;
-        void ClearRenderTarget(IRenderTarget* render_target, const std::array<float, 4>& color)  override;
-        void ClearDepthStencil(IDepthStencil* depth_stencil, float depth, uint8_t stencil)  override;
-        void TransitionResource(const std::shared_ptr<IResource>& resource_handle, ResourceState new_state)  override;
-        void UAVBarrier(const std::shared_ptr<IResource>& resource_handle)  override;
+        void ClearRenderTarget(IRenderTarget* render_target, const std::array<float, 4>& color) override;
+        void ClearDepthStencil(IDepthStencil* depth_stencil, float depth, uint8_t stencil) override;
+        void TransitionResource(const std::shared_ptr<IResource>& resource_handle, ResourceState new_state) override;
+        void UAVBarrier(const std::shared_ptr<IResource>& resource_handle) override;
 
     private:
         Context* m_context;

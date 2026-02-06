@@ -37,10 +37,7 @@ void Swift::D3D12::Command::Begin()
     }
 }
 
-void Swift::D3D12::Command::End()
-{
-    m_list->Close();
-}
+void Swift::D3D12::Command::End() { m_list->Close(); }
 
 void Swift::D3D12::Command::SetViewport(const Viewport& viewport)
 {
@@ -82,7 +79,7 @@ void Swift::D3D12::Command::PushConstants(const void* data, const uint32_t size,
 
 void Swift::D3D12::Command::BindShader(IShader* shader)
 {
-    const auto *const dx_shader = static_cast<Shader*>(shader);
+    const auto* const dx_shader = static_cast<Shader*>(shader);
     if (m_type != QueueType::eTransfer)
     {
         const auto descriptor_heaps = std::array{m_cbv_srv_uav_heap->GetHeap()};
@@ -159,6 +156,14 @@ void Swift::D3D12::Command::CopyBufferToTexture(const IContext* context, const B
         };
         m_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, nullptr);
     }
+}
+
+void Swift::D3D12::Command::CopyResource(const std::shared_ptr<IResource>& src_resource,
+                                         const std::shared_ptr<IResource>& dst_resource)
+{
+    auto* src = static_cast<ID3D12Resource*>(src_resource->GetResource());
+    auto* dst = static_cast<ID3D12Resource*>(dst_resource->GetResource());
+    m_list->CopyResource(dst, src);
 }
 
 void Swift::D3D12::Command::CopyBufferRegion(const BufferCopyRegion& region)

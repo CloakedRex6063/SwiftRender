@@ -33,16 +33,30 @@ int main()
     auto* depth_texture = Swift::TextureBuilder(context, window_size[0], window_size[1])
                               .SetFlags(EnumFlags(Swift::TextureFlags::eDepthStencil))
                               .SetFormat(Swift::Format::eD32F)
+                              .SetMipmapLevels(0)
                               .Build();
     auto* depth_stencil = context->CreateDepthStencil(depth_texture);
+    auto* hzb = Swift::TextureBuilder(context, window_size[0], window_size[1])
+                    .SetFlags(EnumFlags(Swift::TextureFlags::eUnorderedAccess))
+                    .SetFormat(Swift::Format::eD32F)
+                    .SetMipmapLevels(0)
+                    .Build();
+    std::vector<Swift::ITextureSRV*> hzb_srvs{};
+    std::vector<Swift::ITextureUAV*> hzb_uavs{};
+    for (int i = 0; i < hzb->GetMipLevels() - 1; i++)
+    {
+        hzb_srvs.emplace_back(context->CreateShaderResource(hzb, i));
+        hzb_uavs.emplace_back(context->CreateUnorderedAccessView(hzb, i + 1));
+    }
 
     ShaderCompiler compiler{};
     auto ampl_shader = compiler.CompileShader("hello_cull.slang", ShaderStage::eAmplification);
     auto mesh_shader = compiler.CompileShader("hello_cull.slang", ShaderStage::eMesh);
     auto pixel_shader = compiler.CompileShader("hello_cull.slang", ShaderStage::ePixel);
+    auto compute_shader = compiler.CompileShader("hzb.slang", ShaderStage::eCompute);
 
     Importer importer{};
-    auto helmet = importer.LoadModel("assets/cathedral.glb");
+    auto helmet = importer.LoadModel("assets/Sponza.gltf");
 
     std::vector<Swift::SamplerDescriptor> sampler_descriptors{};
     for (const auto& sampler : helmet.samplers)
@@ -76,13 +90,18 @@ int main()
                              .SetName("PBR Shader")
                              .Build();
 
+    std::vector<Swift::SamplerDescriptor> samplers{};
+    samplers.emplace_back(Swift::SamplerDescriptor{});
+    auto* const hzb_shader =
+        Swift::ComputeShaderBuilder(context, compute_shader).SetStaticSamplers(samplers).SetName("HZB Mip Map Shader").Build();
+
     auto* const constant_buffer = Swift::BufferBuilder(context, 65536).Build();
 
     const auto mesh_buffers = CreateMeshBuffers(context, helmet.meshes);
     std::vector<MeshRenderer> mesh_renderers = CreateMeshRenderers(helmet.nodes, helmet.meshes, mesh_buffers);
 
     auto* texture_heap = context->CreateHeap(
-        Swift::HeapCreateInfo{.type = Swift::HeapType::eGPU_Upload, .size = 1'000'000'000, .debug_name = "Texture Heap"});
+        Swift::HeapCreateInfo{.type = Swift::HeapType::eGPU_Upload, .size = 4'000'000'000, .debug_name = "Texture Heap"});
     const auto textures = CreateTextures(context, texture_heap, helmet.textures, helmet.materials);
 
     auto* const material_buffer =
@@ -104,20 +123,22 @@ int main()
                                                                  .num_elements = 1,
                                                                  .element_size = sizeof(Frustum),
                                                              });
-    
-    auto* const cull_data_buffer = Swift::BufferBuilder(context, sizeof(CullData) * helmet.cull_datas.size())
-                                      .SetData(helmet.cull_datas.data())
-                                      .Build();
-    auto* cull_data_buffer_srv = context->CreateShaderResource(cull_data_buffer,
-                                                              Swift::BufferSRVCreateInfo{
-                                                                  .num_elements = static_cast<uint32_t>(helmet.cull_datas.size()),
-                                                                  .element_size = sizeof(CullData),
-                                                              });
+
+    auto* const cull_data_buffer =
+        Swift::BufferBuilder(context, sizeof(CullData) * helmet.cull_datas.size()).SetData(helmet.cull_datas.data()).Build();
+    auto* cull_data_buffer_srv =
+        context->CreateShaderResource(cull_data_buffer,
+                                      Swift::BufferSRVCreateInfo{
+                                          .num_elements = static_cast<uint32_t>(helmet.cull_datas.size()),
+                                          .element_size = sizeof(CullData),
+                                      });
 
     auto* const point_light_buffer = Swift::BufferBuilder(context, sizeof(PointLight) * 100).Build();
-    auto* const point_light_buffer_srv =
-        context->CreateShaderResource(point_light_buffer,
-                                      Swift::BufferSRVCreateInfo{.num_elements = 100, .element_size = sizeof(PointLight)});
+    auto* const point_light_buffer_srv = context->CreateShaderResource(point_light_buffer,
+                                                                       Swift::BufferSRVCreateInfo{
+                                                                           .num_elements = 100,
+                                                                           .element_size = sizeof(PointLight),
+                                                                       });
     auto* const dir_light_buffer = Swift::BufferBuilder(context, sizeof(DirectionalLight) * 100).Build();
     auto* const dir_light_buffer_srv = context->CreateShaderResource(
         dir_light_buffer,
@@ -125,22 +146,53 @@ int main()
     std::vector<PointLight> point_lights{};
     std::vector<DirectionalLight> dir_lights{};
 
+    std::vector<uint32_t> visibility(helmet.cull_datas.size(), 1);
+    auto* const visibility_buffer =
+        Swift::BufferBuilder(context, sizeof(uint32_t) * visibility.size()).SetData(visibility.data()).Build();
+    auto* const visibility_buffer_srv =
+        context->CreateShaderResource(visibility_buffer,
+                                      Swift::BufferSRVCreateInfo{
+                                          .num_elements = static_cast<uint32_t>(visibility.size()),
+                                          .element_size = sizeof(uint32_t),
+                                      });
+
     Camera camera{};
     Input input{window};
     ImguiBackend imgui{context, window};
 
     window.AddResizeCallback(
-        [&context, &depth_stencil, &depth_texture](const glm::uvec2 size)
+        [&context, &hzb, &hzb_srvs, &hzb_uavs, &depth_stencil, &depth_texture](const glm::uvec2 size)
         {
             context->GetGraphicsQueue()->WaitIdle();
             context->ResizeBuffers(size.x, size.y);
-            context->DestroyTexture(depth_texture);
             context->DestroyDepthStencil(depth_stencil);
+            context->DestroyTexture(depth_texture);
+
+            for (int i = 0; i < hzb->GetMipLevels() - 1; i++)
+            {
+                context->DestroyShaderResource(hzb_srvs[i]);
+                context->DestroyUnorderedAccessView(hzb_uavs[i]);
+            }
+            hzb_srvs.clear();
+            hzb_uavs.clear();
+            context->DestroyTexture(hzb);
+
             depth_texture = Swift::TextureBuilder(context, size.x, size.y)
                                 .SetFlags(EnumFlags(Swift::TextureFlags::eDepthStencil))
                                 .SetFormat(Swift::Format::eD32F)
+                                .SetMipmapLevels(0)
                                 .Build();
             depth_stencil = context->CreateDepthStencil(depth_texture);
+            hzb = Swift::TextureBuilder(context, size.x, size.y)
+                      .SetFlags(EnumFlags(Swift::TextureFlags::eUnorderedAccess))
+                      .SetFormat(Swift::Format::eD32F)
+                      .SetMipmapLevels(0)
+                      .Build();
+            for (int i = 0; i < hzb->GetMipLevels() - 1; i++)
+            {
+                hzb_srvs.emplace_back(context->CreateShaderResource(hzb, i));
+                hzb_uavs.emplace_back(context->CreateUnorderedAccessView(hzb, i + 1));
+            }
         });
 
     auto prev_time = std::chrono::high_resolution_clock::now();
@@ -170,6 +222,8 @@ int main()
         struct ConstantBufferInfo
         {
             glm::mat4 view_proj;
+            glm::mat4 view;
+            glm::mat4 proj;
             glm::float3 cam_pos;
             uint32_t material_buffer_index;
 
@@ -181,10 +235,12 @@ int main()
             uint32_t dir_light_count;
             uint32_t frustum_buffer_index;
             uint32_t bounding_buffer_index;
-            float padding;
+            uint32_t visibility_buffer_index;
         };
         const ConstantBufferInfo scene_buffer_data{
             .view_proj = camera.m_proj_matrix * camera.m_view_matrix,
+            .view = camera.m_view_matrix,
+            .proj = camera.m_proj_matrix,
             .cam_pos = camera.m_position,
             .material_buffer_index = material_buffer_srv->GetDescriptorIndex(),
             .transform_buffer_index = transforms_buffer_srv->GetDescriptorIndex(),
@@ -194,6 +250,7 @@ int main()
             .dir_light_count = static_cast<uint32_t>(dir_lights.size()),
             .frustum_buffer_index = frustum_buffer_srv->GetDescriptorIndex(),
             .bounding_buffer_index = cull_data_buffer_srv->GetDescriptorIndex(),
+            .visibility_buffer_index = visibility_buffer_srv->GetDescriptorIndex(),
         };
         constant_buffer->Write(&scene_buffer_data, 0, sizeof(ConstantBufferInfo));
 
@@ -224,7 +281,44 @@ int main()
 
         for (auto& mesh : mesh_renderers)
         {
-            mesh.Draw(command, should_cull);
+            mesh.Draw(command, should_cull, 0);
+        }
+
+        command->BindShader(hzb_shader);
+        auto size = depth_texture->GetSize();
+        command->TransitionResource(depth_texture->GetResource(), Swift::ResourceState::eCopySource);
+        command->TransitionResource(hzb->GetResource(), Swift::ResourceState::eCopyDest);
+        command->CopyResource(depth_texture->GetResource(), hzb->GetResource());
+        for (uint32_t src_mip = 0; src_mip < hzb->GetMipLevels() - 1; src_mip++)
+        {
+            struct PushConstant
+            {
+                uint32_t mip1_index;
+                uint32_t src_index;
+                std::array<float, 2> texel_size;
+            };
+
+            const uint32_t dst_width = std::max(size[0] >> (src_mip + 1), 1u);
+            const uint32_t dst_height = std::max(size[1] >> (src_mip + 1), 1u);
+
+            PushConstant pc{.mip1_index = hzb_uavs[src_mip]->GetDescriptorIndex(),
+                            .src_index = hzb_srvs[src_mip]->GetDescriptorIndex(),
+                            .texel_size = {1.0f / static_cast<float>(dst_width), 1.0f / static_cast<float>(dst_height)}};
+            command->PushConstants(&pc, sizeof(PushConstant));
+
+            command->DispatchCompute(std::max(dst_width / 8u, 1u), std::max(dst_height / 8u, 1u), 1);
+
+            command->UAVBarrier(hzb->GetResource());
+        }
+
+        command->TransitionResource(depth_texture->GetResource(), Swift::ResourceState::eDepthWrite);
+
+        command->BindShader(shader);
+
+        for (auto& mesh : mesh_renderers)
+        {
+            mesh.Draw(command, should_cull, 1);
+            command->UAVBarrier(hzb->GetResource());
         }
 
         imgui.BeginFrame();
@@ -309,13 +403,13 @@ Frustum CreateFrustum(const Camera& camera, float near_plane, float far_plane)
     auto vp = perspective * camera.m_view_matrix;
     vp = glm::transpose(vp);
     const Frustum frustum{.planes = {
-                        NormalizePlane(vp[3] + vp[0]),  // Left
-                        NormalizePlane(vp[3] - vp[0]),  // Right
-                        NormalizePlane(vp[3] + vp[1]),  // Bottom
-                        NormalizePlane(vp[3] - vp[1]),  // Top
-                        NormalizePlane(vp[2]),          // Near  (0-1 depth range)
-                        NormalizePlane(vp[3] - vp[2]),  // Far
-                    }};
+                              NormalizePlane(vp[3] + vp[0]),  // Left
+                              NormalizePlane(vp[3] - vp[0]),  // Right
+                              NormalizePlane(vp[3] + vp[1]),  // Bottom
+                              NormalizePlane(vp[3] - vp[1]),  // Top
+                              NormalizePlane(vp[2]),          // Near  (0-1 depth range)
+                              NormalizePlane(vp[3] - vp[2]),  // Far
+                          }};
 
     return frustum;
 }

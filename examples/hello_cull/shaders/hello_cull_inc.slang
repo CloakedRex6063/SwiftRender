@@ -83,18 +83,25 @@ struct PushConstant
     uint mesh_buffer_index;
     uint mesh_vertex_buffer_index;
     uint mesh_triangle_buffer_index;
+
     uint material_index;
     uint transform_index;
     uint meshlet_count;
     uint bounding_offset;
+
     uint should_cull;
+    uint pass_index;
+    uint hzb_index;
 };
 
 ConstantBuffer<PushConstant> PushConstants : register(b0);
+SamplerState samp : register(s0);
 
 struct GlobalConstant
 {
     float4x4 view_proj;
+    float4x4 view;
+    float4x4 proj;
 
     float3 cam_pos;
     uint material_buffer_index;
@@ -107,7 +114,7 @@ struct GlobalConstant
     uint dir_light_count;
     uint frustum_buffer_index;
     uint bounding_buffer_index;
-    float padding;
+    uint visibility_buffer_index;
 };
 ConstantBuffer<GlobalConstant> GlobalConstants : register(b1);
 
@@ -175,12 +182,53 @@ ApplyLight(float3 n, float3 h, float3 v, float3 l, float3 f0, float3 albedo, flo
     return (kd * albedo / PI + specular) * radiance * n_dot_l;
 }
 
-bool IsVisible(Frustum frustum, CullData cull_data, float4x4 transform, float3 camera_position)
+struct AABB
+{
+    float2 min;
+    float2 max;
+};
+
+AABB ProjectSphereToScreenAABB(float3 sphereCenter, float sphereRadius, float2 screenSize, out float min_z)
+{
+    float3 extends[8];
+    extends[0] = sphereCenter + float3(-1, -1, -1) * sphereRadius;
+    extends[1] = sphereCenter + float3(-1, -1,  1) * sphereRadius;
+    extends[2] = sphereCenter + float3(-1,  1, -1) * sphereRadius;
+    extends[3] = sphereCenter + float3(-1,  1,  1) * sphereRadius;
+    extends[4] = sphereCenter + float3( 1, -1, -1) * sphereRadius;
+    extends[5] = sphereCenter + float3( 1, -1,  1) * sphereRadius;
+    extends[6] = sphereCenter + float3( 1,  1, -1) * sphereRadius;
+    extends[7] = sphereCenter + float3( 1,  1,  1) * sphereRadius;
+
+    float2 minScreen = float2(1e10, 1e10);
+    float2 maxScreen = float2(-1e10, -1e10);
+
+    for (int i = 0; i < 8; i++)
+    {
+        float4 clip = mul(float4(extends[i], 1.0), GlobalConstants.view_proj);
+
+        if (clip.w <= 0.0) continue;
+
+        float3 ndc = clip.xyz / clip.w;
+        float3 uv = float3((ndc.x + 1) / 2, (1 - ndc.y) / 2, (ndc.z - 0.9) * 10);
+
+        minScreen = min(minScreen, uv.x);
+        maxScreen = max(maxScreen, uv.y);
+        min_z = min(min_z, uv.z);
+    }
+
+    AABB result;
+    result.min = minScreen;
+    result.max = maxScreen;
+    return result;
+}
+
+bool IsVisible(Frustum frustum, CullData cull_data, float4x4 transform, float3 camera_position, bool occlusion_culling)
 {
     float4 center = mul(transform, float4(cull_data.center, 1));
     var scale = GetScale(transform);
     var max_scale = max(scale.x, max(scale.y, scale.z));
-    var radius = cull_data.radius * max_scale;
+    float radius = cull_data.radius * max_scale;
     for (int i = 0; i < 6; ++i)
     {
         if (dot(center, frustum.planes[i]) < -radius)
@@ -189,11 +237,9 @@ bool IsVisible(Frustum frustum, CullData cull_data, float4x4 transform, float3 c
         }
     }
 
-    int3 axis_s8 = int3(
-        int(cull_data.cone_packed << 24) >> 24,
-        int(cull_data.cone_packed << 16) >> 24,
-        int(cull_data.cone_packed <<  8) >> 24
-    );
+    int3 axis_s8 = int3(int(cull_data.cone_packed << 24) >> 24,
+                        int(cull_data.cone_packed << 16) >> 24,
+                        int(cull_data.cone_packed << 8) >> 24);
     int cutoff_s8 = int(cull_data.cone_packed) >> 24;
 
     float3 cone_axis = float3(axis_s8) / 127.0;
@@ -209,7 +255,33 @@ bool IsVisible(Frustum frustum, CullData cull_data, float4x4 transform, float3 c
     if (dot(view, -axis_world) > cone_cutoff)
         return false;
 
-    return true;
+    if (!occlusion_culling)
+        return true;
+
+    var hzb = DescriptorHandle<Texture2D<float>>(uint(PushConstants.hzb_index));
+    float width, height;
+    hzb.GetDimensions(width, height);
+
+    float min_z = 1.0;
+    var aabb = ProjectSphereToScreenAABB(center.xyz, radius, float2(width, height), min_z);
+
+    float2 boxWidth = float2(aabb.max - aabb.min);
+    float2 texelSize = boxWidth * float2(width, height);
+    float maxDimension = max(texelSize.x, texelSize.y);
+
+    float mip = floor(log2(maxDimension));
+    mip = min(mip, 13);
+
+    float4 box = float4(aabb.min, aabb.max);
+
+    float4 sample1 = hzb.SampleLevel(samp, box.xy, mip);
+    float4 sample2 = hzb.SampleLevel(samp, box.zy, mip);
+    float4 sample3 = hzb.SampleLevel(samp, box.xw, mip);
+    float4 sample4 = hzb.SampleLevel(samp, box.zw, mip);
+
+    float max_z = max(max(max(sample1.x, sample2.x), sample3.x), sample4.x);
+
+    return min_z <= max_z + 0.001f;
 }
 
 float3 GetScale(float4x4 m)

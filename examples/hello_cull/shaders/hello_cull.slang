@@ -13,16 +13,37 @@ void ampl_main(uint dtid: SV_DispatchThreadID, uint gtid: SV_GroupThreadID, uint
 {
     bool visible = false;
 
-    if(bool(PushConstants.should_cull))
+    if (bool(PushConstants.should_cull) && dtid < PushConstants.meshlet_count)
     {
-        if(dtid < PushConstants.meshlet_count)
+        var transform_buffer = DescriptorHandle<StructuredBuffer<float4x4>>(GlobalConstants.transform_buffer_index);
+        var transform = transform_buffer[PushConstants.transform_index];
+        var frustum_buffer = DescriptorHandle<StructuredBuffer<Frustum>>(GlobalConstants.frustum_buffer_index);
+        var bounding_buffer = DescriptorHandle<StructuredBuffer<CullData>>(GlobalConstants.bounding_buffer_index);
+        var cull_data = bounding_buffer[dtid + PushConstants.bounding_offset];
+        var visibility_buffer = DescriptorHandle<RWStructuredBuffer<uint>>(GlobalConstants.visibility_buffer_index);
+        visible = bool(visibility_buffer[dtid + PushConstants.bounding_offset]);
+        if (PushConstants.pass_index == 0)
         {
-            var transform_buffer = DescriptorHandle<StructuredBuffer<float4x4>>(GlobalConstants.transform_buffer_index);
-            var transform = transform_buffer[PushConstants.transform_index];
-            var frustum_buffer = DescriptorHandle<StructuredBuffer<Frustum>>(GlobalConstants.frustum_buffer_index);
-            var bounding_buffer = DescriptorHandle<StructuredBuffer<CullData>>(GlobalConstants.bounding_buffer_index);
-            var cull_data = bounding_buffer[dtid + PushConstants.bounding_offset];
-            visible = IsVisible(frustum_buffer[0], cull_data, transform, GlobalConstants.cam_pos);
+            if (visible)
+            {
+                if(!IsVisible(frustum_buffer[0], cull_data, transform, GlobalConstants.cam_pos, false))
+                {
+                    visibility_buffer[dtid + PushConstants.bounding_offset] = 0;
+                }
+            }
+        }
+
+        if (PushConstants.pass_index == 1)
+        {
+            if (!visible)
+            {
+                visible = IsVisible(frustum_buffer[0], cull_data, transform, GlobalConstants.cam_pos, true);
+                visibility_buffer[dtid + PushConstants.bounding_offset] = visible;
+            }
+            else
+            {
+                visible = false;
+            }
         }
     }
     else
@@ -36,8 +57,8 @@ void ampl_main(uint dtid: SV_DispatchThreadID, uint gtid: SV_GroupThreadID, uint
         s_Payload.meshlet_index[index] = dtid;
     }
 
-    uint visibleCount = WaveActiveCountBits(visible);
-    DispatchMesh(visibleCount, 1, 1, s_Payload);
+    uint visible_count = WaveActiveCountBits(visible);
+    DispatchMesh(visible_count, 1, 1, s_Payload);
 }
 
 [outputtopology("triangle")]
@@ -81,8 +102,6 @@ void mesh_main(uint gtid: SV_GroupThreadID,
         verts[gtid].tangent = vertex.tangent;
     }
 }
-
-SamplerState samp : register(s0);
 
 [shader("pixel")]
 float4 pixel_main(OutVertex input) : SV_TARGET

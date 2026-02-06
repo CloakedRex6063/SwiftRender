@@ -28,6 +28,8 @@ namespace Swift
         virtual void DispatchCompute(uint32_t group_x, uint32_t group_y, uint32_t group_z) = 0;
         virtual void CopyBufferToTexture(const IContext* context, const BufferTextureCopyRegion& region) = 0;
         virtual void CopyBufferRegion(const BufferCopyRegion& region) = 0;
+        virtual void CopyResource(const std::shared_ptr<IResource>& src_resource,
+                                  const std::shared_ptr<IResource>& dst_resource) = 0;
         virtual void CopyTextureRegion(const TextureCopyRegion& region) = 0;
         virtual void BindRenderTargets(std::span<IRenderTarget*> render_targets, IDepthStencil* depth_stencil) = 0;
         virtual void BindRenderTargets(IRenderTarget* render_target, IDepthStencil* depth_stencil)

@@ -32,5 +32,8 @@ std::shared_ptr<Swift::IResource> Swift::D3D12::Heap::CreateResource(const Buffe
 std::shared_ptr<Swift::IResource> Swift::D3D12::Heap::CreateResource(const TextureCreateInfo& info, uint64_t offset)
 {
     auto* device = static_cast<ID3D12Device14*>(m_context->GetDevice());
-    return std::make_shared<Resource>(device, info, m_heap, offset);
+    auto create_info = info;
+    create_info.flags |= info.gen_mipmaps ? TextureFlags::eUnorderedAccess : TextureFlags::eNone;
+    create_info.mip_levels = info.mip_levels == 0 ? CalculateMaxMips(info.width, info.height) : info.mip_levels;
+    return std::make_shared<Resource>(device, create_info, m_heap, offset);
 }

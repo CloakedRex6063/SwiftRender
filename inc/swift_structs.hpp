@@ -293,9 +293,11 @@ namespace Swift
 
     enum class TextureFlags
     {
-        eNone,
-        eRenderTarget,
-        eDepthStencil,
+        eNone = 0,
+        eRenderTarget = 1 << 1,
+        eDepthStencil = 1 << 2,
+        eShaderResource = 1 << 3,
+        eUnorderedAccess = 1 << 4,
     };
 
     struct TextureCreateInfo
@@ -305,6 +307,7 @@ namespace Swift
         uint16_t mip_levels = 1;
         uint16_t array_size = 1;
         Format format = Format::eRGBA8_UNORM;
+        bool gen_mipmaps = false;
         const void* data = nullptr;
         std::optional<MSAA> msaa = std::nullopt;
         EnumFlags<TextureFlags> flags;
