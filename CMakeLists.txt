@@ -31,11 +31,11 @@ if(SWIFT_EXAMPLES)
     add_subdirectory(examples)
 endif ()
 
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
-
-add_custom_target(run_python_script
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/shaders/gen_shaders.py
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMENT "Generating Internal Shaders"
-)
-add_dependencies(${PROJECT_NAME} run_python_script)
+#find_package(Python3 REQUIRED COMPONENTS Interpreter)
+#
+#add_custom_target(run_python_script
+#        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/shaders/gen_shaders.py
+#        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+#        COMMENT "Generating Internal Shaders"
+#)
+#add_dependencies(${PROJECT_NAME} run_python_script)
