@@ -285,17 +285,17 @@ namespace Swift
             m_dsv_format = dsv_format;
             return *this;
         }
-        GraphicsShaderBuilder& SetMeshShader(const std::vector<uint8_t>& mesh_shader)
+        GraphicsShaderBuilder& SetMeshShader(const std::span<const uint8_t> mesh_shader)
         {
             m_mesh_code = mesh_shader;
             return *this;
         }
-        GraphicsShaderBuilder& SetPixelShader(const std::vector<uint8_t>& pixel_shader)
+        GraphicsShaderBuilder& SetPixelShader(const std::span<const uint8_t> pixel_shader)
         {
             m_pixel_code = pixel_shader;
             return *this;
         }
-        GraphicsShaderBuilder& SetAmplificationShader(const std::vector<uint8_t>& amplify_shader)
+        GraphicsShaderBuilder& SetAmplificationShader(const std::span<const uint8_t> amplify_shader)
         {
             m_amplify_code = amplify_shader;
             return *this;
@@ -377,9 +377,9 @@ namespace Swift
         IContext* m_context;
         std::vector<Format> m_rtv_formats{};
         std::optional<Format> m_dsv_format = std::nullopt;
-        std::vector<uint8_t> m_amplify_code;
-        std::vector<uint8_t> m_mesh_code;
-        std::vector<uint8_t> m_pixel_code;
+        std::span<const uint8_t> m_amplify_code;
+        std::span<const uint8_t> m_mesh_code;
+        std::span<const uint8_t> m_pixel_code;
         DepthStencilState m_depth_stencil_state{
             .depth_enable = false,
             .depth_write_enable = false,

@@ -60,16 +60,28 @@ Swift::D3D12::TextureSRV::TextureSRV(Context* context,
     auto* const resource = static_cast<ID3D12Resource*>(texture->GetResource()->GetResource());
     const auto& srv_heap = context->GetCBVSRVUAVHeap();
     m_data = srv_heap->Allocate();
-    const D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {
+    const bool is_cubemap = texture->GetArraySize() > 1;
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {
         .Format = ToViewDXGIFormat(texture->GetFormat()),
-        .ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D,
+        .ViewDimension = is_cubemap ? D3D12_SRV_DIMENSION_TEXTURECUBE : D3D12_SRV_DIMENSION_TEXTURE2D,
         .Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
-        .Texture2D =
-            {
-                .MostDetailedMip = most_detailed_mip,
-                .MipLevels = mip_levels,
-            },
     };
+
+    if (is_cubemap)
+    {
+        srv_desc.TextureCube = {
+            .MostDetailedMip = most_detailed_mip,
+            .MipLevels = mip_levels,
+        };
+    }
+    else
+    {
+        srv_desc.Texture2D = {
+            .MostDetailedMip = most_detailed_mip,
+            .MipLevels = mip_levels,
+        };
+    }
     device->CreateShaderResourceView(resource, &srv_desc, m_data.cpu_handle);
 }
 Swift::D3D12::BufferSRV::BufferSRV(Context* context, IBuffer* buffer, const BufferSRVCreateInfo& info)
