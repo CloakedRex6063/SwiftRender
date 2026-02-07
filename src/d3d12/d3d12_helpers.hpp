@@ -97,6 +97,34 @@ namespace Swift::D3D12
                 return DXGI_FORMAT_R32G32B32A32_FLOAT;
             case Format::eD32F:
                 return DXGI_FORMAT_R32_FLOAT;
+            case Format::eBC1_UNORM:
+                return DXGI_FORMAT_BC1_UNORM;
+            case Format::eBC1_UNORM_SRGB:
+                return DXGI_FORMAT_BC1_UNORM_SRGB;
+            case Format::eBC2_UNORM:
+                return DXGI_FORMAT_BC2_UNORM;
+            case Format::eBC2_UNORM_SRGB:
+                return DXGI_FORMAT_BC2_UNORM_SRGB;
+            case Format::eBC3_UNORM:
+                return DXGI_FORMAT_BC3_UNORM;
+            case Format::eBC3_UNORM_SRGB:
+                return DXGI_FORMAT_BC3_UNORM_SRGB;
+            case Format::eBC4_UNORM:
+                return DXGI_FORMAT_BC4_UNORM;
+            case Format::eBC4_SNORM:
+                return DXGI_FORMAT_BC4_SNORM;
+            case Format::eBC5_UNORM:
+                return DXGI_FORMAT_BC5_UNORM;
+            case Format::eBC5_SNORM:
+                return DXGI_FORMAT_BC5_SNORM;
+            case Format::eBC6H_UF16:
+                return DXGI_FORMAT_BC6H_UF16;
+            case Format::eBC6H_SF16:
+                return DXGI_FORMAT_BC6H_SF16;
+            case Format::eBC7_UNORM:
+                return DXGI_FORMAT_BC7_UNORM;
+            case Format::eBC7_UNORM_SRGB:
+                return DXGI_FORMAT_BC7_UNORM_SRGB;
         }
 
         return DXGI_FORMAT_UNKNOWN;
@@ -114,6 +142,34 @@ namespace Swift::D3D12
                 return DXGI_FORMAT_R32G32B32A32_FLOAT;
             case Format::eD32F:
                 return DXGI_FORMAT_R32_TYPELESS;
+            case Format::eBC1_UNORM:
+                return DXGI_FORMAT_BC1_UNORM;
+            case Format::eBC1_UNORM_SRGB:
+                return DXGI_FORMAT_BC1_UNORM_SRGB;
+            case Format::eBC2_UNORM:
+                return DXGI_FORMAT_BC2_UNORM;
+            case Format::eBC2_UNORM_SRGB:
+                return DXGI_FORMAT_BC2_UNORM_SRGB;
+            case Format::eBC3_UNORM:
+                return DXGI_FORMAT_BC3_UNORM;
+            case Format::eBC3_UNORM_SRGB:
+                return DXGI_FORMAT_BC3_UNORM_SRGB;
+            case Format::eBC4_UNORM:
+                return DXGI_FORMAT_BC4_UNORM;
+            case Format::eBC4_SNORM:
+                return DXGI_FORMAT_BC4_SNORM;
+            case Format::eBC5_UNORM:
+                return DXGI_FORMAT_BC5_UNORM;
+            case Format::eBC5_SNORM:
+                return DXGI_FORMAT_BC5_SNORM;
+            case Format::eBC6H_UF16:
+                return DXGI_FORMAT_BC6H_UF16;
+            case Format::eBC6H_SF16:
+                return DXGI_FORMAT_BC6H_SF16;
+            case Format::eBC7_UNORM:
+                return DXGI_FORMAT_BC7_UNORM;
+            case Format::eBC7_UNORM_SRGB:
+                return DXGI_FORMAT_BC7_UNORM_SRGB;
         }
 
         return DXGI_FORMAT_UNKNOWN;
@@ -131,6 +187,34 @@ namespace Swift::D3D12
                 return DXGI_FORMAT_R32G32B32A32_FLOAT;
             case Format::eD32F:
                 return DXGI_FORMAT_D32_FLOAT;
+            case Format::eBC1_UNORM:
+                return DXGI_FORMAT_BC1_UNORM;
+            case Format::eBC1_UNORM_SRGB:
+                return DXGI_FORMAT_BC1_UNORM_SRGB;
+            case Format::eBC2_UNORM:
+                return DXGI_FORMAT_BC2_UNORM;
+            case Format::eBC2_UNORM_SRGB:
+                return DXGI_FORMAT_BC2_UNORM_SRGB;
+            case Format::eBC3_UNORM:
+                return DXGI_FORMAT_BC3_UNORM;
+            case Format::eBC3_UNORM_SRGB:
+                return DXGI_FORMAT_BC3_UNORM_SRGB;
+            case Format::eBC4_UNORM:
+                return DXGI_FORMAT_BC4_UNORM;
+            case Format::eBC4_SNORM:
+                return DXGI_FORMAT_BC4_SNORM;
+            case Format::eBC5_UNORM:
+                return DXGI_FORMAT_BC5_UNORM;
+            case Format::eBC5_SNORM:
+                return DXGI_FORMAT_BC5_SNORM;
+            case Format::eBC6H_UF16:
+                return DXGI_FORMAT_BC6H_UF16;
+            case Format::eBC6H_SF16:
+                return DXGI_FORMAT_BC6H_SF16;
+            case Format::eBC7_UNORM:
+                return DXGI_FORMAT_BC7_UNORM;
+            case Format::eBC7_UNORM_SRGB:
+                return DXGI_FORMAT_BC7_UNORM_SRGB;
         }
 
         return DXGI_FORMAT_UNKNOWN;

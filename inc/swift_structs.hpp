@@ -40,6 +40,21 @@ namespace Swift
         eRGBA16F,
         eRGBA32F,
         eD32F,
+
+        eBC1_UNORM,
+        eBC1_UNORM_SRGB,
+        eBC2_UNORM,
+        eBC2_UNORM_SRGB,
+        eBC3_UNORM,
+        eBC3_UNORM_SRGB,
+        eBC4_UNORM,
+        eBC4_SNORM,
+        eBC5_UNORM,
+        eBC5_SNORM,
+        eBC6H_UF16,
+        eBC6H_SF16,
+        eBC7_UNORM,
+        eBC7_UNORM_SRGB,
     };
 
     struct BufferSRVCreateInfo
