@@ -104,16 +104,16 @@ void Swift::D3D12::Command::DispatchCompute(const uint32_t group_x, const uint32
 }
 
 void Swift::D3D12::Command::CopyBufferToTexture(const IContext* context, const IBuffer* buffer, const ITexture* texture,
-                                                const uint16_t mip_levels, uint16_t array_size)
+                                                const uint16_t mip_levels, const uint16_t array_size)
 {
     auto* dst_resource = static_cast<ID3D12Resource*>(texture->GetResource()->GetResource());
     auto* src_resource = static_cast<ID3D12Resource*>(buffer->GetResource()->GetResource());
 
     auto* const device = static_cast<ID3D12Device14*>(context->GetDevice());
 
-    std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> layouts(texture->GetMipLevels());
-    std::vector<uint32_t> num_rows(texture->GetMipLevels());
-    std::vector<uint64_t> row_size_in_bytes(texture->GetMipLevels());
+    std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> layouts(texture->GetMipLevels() * texture->GetArraySize());
+    std::vector<uint32_t> num_rows(texture->GetMipLevels() * texture->GetArraySize());
+    std::vector<uint64_t> row_size_in_bytes(texture->GetMipLevels() * texture->GetArraySize());
     uint64_t total_bytes = 0;
 
     // TODO: Handle msaa
@@ -152,7 +152,7 @@ void Swift::D3D12::Command::CopyBufferToTexture(const IContext* context, const I
                 .PlacedFootprint = layouts[subresource_index],
             };
 
-            D3D12_TEXTURE_COPY_LOCATION dst_location = {
+            const D3D12_TEXTURE_COPY_LOCATION dst_location = {
                 .pResource = dst_resource,
                 .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
                 .SubresourceIndex = subresource_index,
