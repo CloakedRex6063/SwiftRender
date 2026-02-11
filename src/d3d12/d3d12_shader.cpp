@@ -30,6 +30,10 @@ Swift::D3D12::Shader::Shader(ID3D12Device14* device, const GraphicsShaderCreateI
                 .FillMode = ToFillMode(create_info.rasterizer_state.fill_mode),
                 .CullMode = ToCullMode(create_info.rasterizer_state.cull_mode),
                 .FrontCounterClockwise = ToFrontFace(create_info.rasterizer_state.front_face),
+                .DepthBias = create_info.rasterizer_state.depth_bias,
+                .DepthBiasClamp = create_info.rasterizer_state.depth_bias_clamp,
+                .SlopeScaledDepthBias = create_info.rasterizer_state.slope_scaled_depth_bias,
+                .DepthClipEnable = create_info.rasterizer_state.depth_clip_enable,
             },
         .DepthStencilState =
             D3D12_DEPTH_STENCIL_DESC{
@@ -127,16 +131,16 @@ void Swift::D3D12::Shader::CreateRootSignature(ID3D12Device14* device,
 
     for (uint32_t i = 0; i < samplers.size(); ++i)
     {
-        const auto& [min_filter, mag_filter, wrap_u, wrap_y, wrap_w, min_lod, max_lod, border_color] = samplers[i];
+        const auto& [min_filter, mag_filter, wrap_u, wrap_y, wrap_w, min_lod, max_lod, border_color, comparison] = samplers[i];
         D3D12_STATIC_SAMPLER_DESC static_sampler_desc = {
-            .Filter = ToFilter(min_filter, mag_filter),
+            .Filter = ToFilter(min_filter, mag_filter, comparison !=  ComparisonFunc::eNever),
             .AddressU = ToWrap(wrap_u),
             .AddressV = ToWrap(wrap_y),
             .AddressW = ToWrap(wrap_w),
             .MipLODBias = 0,
             .MaxAnisotropy = D3D12_DEFAULT_MAX_ANISOTROPY,
-            .ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS,
-            .BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK,
+            .ComparisonFunc = ToComparisonFunc(comparison),
+            .BorderColor = ToBorderColor(border_color),
             .MinLOD = min_lod,
             .MaxLOD = max_lod,
             .ShaderRegister = i,

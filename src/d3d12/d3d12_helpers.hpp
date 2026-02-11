@@ -296,6 +296,42 @@ namespace Swift::D3D12
         return D3D12_COMPARISON_FUNC_ALWAYS;
     }
 
+    constexpr D3D12_COMPARISON_FUNC ToComparisonFunc(const ComparisonFunc test)
+    {
+        switch (test)
+        {
+            case ComparisonFunc::eAlways:
+                return D3D12_COMPARISON_FUNC_ALWAYS;
+            case ComparisonFunc::eNever:
+                return D3D12_COMPARISON_FUNC_NEVER;
+            case ComparisonFunc::eLess:
+                return D3D12_COMPARISON_FUNC_LESS;
+            case ComparisonFunc::eLessEqual:
+                return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+            case ComparisonFunc::eGreater:
+                return D3D12_COMPARISON_FUNC_GREATER;
+            case ComparisonFunc::eGreaterEqual:
+                return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+            case ComparisonFunc::eEqual:
+                return D3D12_COMPARISON_FUNC_EQUAL;
+            case ComparisonFunc::eNotEqual:
+                return D3D12_COMPARISON_FUNC_NOT_EQUAL;
+        }
+        return D3D12_COMPARISON_FUNC_ALWAYS;
+    }
+
+    constexpr D3D12_STATIC_BORDER_COLOR ToBorderColor(const BorderColor mode) noexcept
+    {
+        switch (mode)
+        {
+            case BorderColor::eBlack:
+                return D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+            case BorderColor::eWhite:
+                return D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+        }
+        return D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+    }
+
     constexpr D3D12_RESOURCE_STATES ToResourceState(const ResourceState state) noexcept
     {
         switch (state)
@@ -326,7 +362,7 @@ namespace Swift::D3D12
         return D3D12_RESOURCE_STATE_COMMON;
     }
 
-    constexpr D3D12_FILTER ToFilter(const Filter min_filter, const Filter mag_filter) noexcept
+    constexpr D3D12_FILTER ToFilter(const Filter min_filter, const Filter mag_filter, const bool comparison = false) noexcept
     {
         constexpr auto get_base = [](const Filter f) -> int
         {
@@ -364,7 +400,13 @@ namespace Swift::D3D12
         const int mag_type = get_base(mag_filter);
         const int mip_type = get_mip(min_filter);
 
-        return static_cast<D3D12_FILTER>((min_type << 4) | (mag_type << 2) | mip_type);
+        int filter = (min_type << 4) | (mag_type << 2) | mip_type;
+        if (comparison)
+        {
+            filter |= D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT; // 0x80
+        }
+
+        return static_cast<D3D12_FILTER>(filter);
     }
 
     static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eNearest) == D3D12_FILTER_MIN_MAG_MIP_POINT);
@@ -375,6 +417,14 @@ namespace Swift::D3D12
     static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eNearest) == D3D12_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR);
     static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eLinear) == D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT);
     static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eLinear) == D3D12_FILTER_MIN_MAG_MIP_LINEAR);
+    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eNearest, true) == D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT);
+    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eNearest, true) == D3D12_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR);
+    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eLinear, true) == D3D12_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT);
+    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eLinear, true) == D3D12_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR);
+    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eNearest, true) == D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT);
+    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eNearest, true) == D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR);
+    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eLinear, true) == D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT);
+    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eLinear, true) == D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR);
 
     constexpr D3D12_TEXTURE_ADDRESS_MODE ToWrap(const Wrap wrap) noexcept
     {

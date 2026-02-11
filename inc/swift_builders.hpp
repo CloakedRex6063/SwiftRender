@@ -340,6 +340,26 @@ namespace Swift
             m_polygon_mode = polygon_mode;
             return *this;
         }
+        GraphicsShaderBuilder& SetDepthBias(const int depth_bias)
+        {
+            m_rasterizer_state.depth_bias = depth_bias;
+            return *this;
+        }
+        GraphicsShaderBuilder& SetDepthBiasClamp(const float depth_bias_clamp)
+        {
+            m_rasterizer_state.depth_bias_clamp = depth_bias_clamp;
+            return *this;
+        }
+        GraphicsShaderBuilder& SetSlopeScaledDepthBias(const float slope_scaled_depth_bias)
+        {
+            m_rasterizer_state.slope_scaled_depth_bias = slope_scaled_depth_bias;
+            return *this;
+        }
+        GraphicsShaderBuilder& SetDepthBias(const bool depth_clip_enable)
+        {
+            m_rasterizer_state.depth_clip_enable = depth_clip_enable;
+            return *this;
+        }
         GraphicsShaderBuilder& SetDescriptors(const std::vector<Descriptor>& descriptors)
         {
             m_descriptors = descriptors;

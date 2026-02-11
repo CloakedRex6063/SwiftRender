@@ -164,6 +164,18 @@ namespace Swift
         eWhite,
     };
 
+    enum class ComparisonFunc
+    {
+        eAlways,
+        eNever,
+        eLess,
+        eLessEqual,
+        eGreater,
+        eGreaterEqual,
+        eEqual,
+        eNotEqual,
+    };
+
     struct SamplerDescriptor
     {
         Filter min_filter = Filter::eLinear;
@@ -174,6 +186,7 @@ namespace Swift
         float min_lod = 0;
         float max_lod = 13;
         BorderColor border_color = BorderColor::eBlack;
+        ComparisonFunc comparison_func = ComparisonFunc::eNever;
     };
 
     enum class DepthTest
@@ -201,6 +214,10 @@ namespace Swift
         FillMode fill_mode = FillMode::eSolid;
         CullMode cull_mode = CullMode::eBack;
         FrontFace front_face = FrontFace::eCounterClockwise;
+        int depth_bias = 0;
+        float depth_bias_clamp = 0;
+        float slope_scaled_depth_bias = 0;
+        bool depth_clip_enable = false;
     };
 
     struct GraphicsShaderCreateInfo
