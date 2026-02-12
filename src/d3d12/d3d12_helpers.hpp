@@ -1,6 +1,7 @@
 #pragma once
 #include "swift_helpers.hpp"
 #include "swift_structs.hpp"
+#include "swift_buffer.hpp"
 #include "directx/d3d12.h"
 
 namespace Swift::D3D12
@@ -403,7 +404,7 @@ namespace Swift::D3D12
         int filter = (min_type << 4) | (mag_type << 2) | mip_type;
         if (comparison)
         {
-            filter |= D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT; // 0x80
+            filter |= D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT;  // 0x80
         }
 
         return static_cast<D3D12_FILTER>(filter);
@@ -418,12 +419,18 @@ namespace Swift::D3D12
     static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eLinear) == D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT);
     static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eLinear) == D3D12_FILTER_MIN_MAG_MIP_LINEAR);
     static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eNearest, true) == D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT);
-    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eNearest, true) == D3D12_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR);
-    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eLinear, true) == D3D12_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT);
-    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eLinear, true) == D3D12_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR);
-    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eNearest, true) == D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT);
-    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eNearest, true) == D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR);
-    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eLinear, true) == D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT);
+    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eNearest, true) ==
+                  D3D12_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR);
+    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eLinear, true) ==
+                  D3D12_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT);
+    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eLinear, true) ==
+                  D3D12_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR);
+    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eNearest, true) ==
+                  D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT);
+    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eNearest, true) ==
+                  D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR);
+    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eLinear, true) ==
+                  D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT);
     static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eLinear, true) == D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR);
 
     constexpr D3D12_TEXTURE_ADDRESS_MODE ToWrap(const Wrap wrap) noexcept
@@ -520,5 +527,48 @@ namespace Swift::D3D12
                                       &total_size);
 
         return total_size;
+    }
+
+    inline void CopyTextureData(ID3D12Device14* device, Swift::IBuffer* buffer, const Swift::TextureCreateInfo& create_info)
+    {
+        uint32_t num_subresources = create_info.array_size * create_info.mip_levels;
+
+        std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(num_subresources);
+        std::vector<UINT> num_rows(num_subresources);
+        std::vector<UINT64> row_sizes(num_subresources);
+        UINT64 total_size = 0;
+
+        auto* src = static_cast<const char*>(create_info.data);
+        constexpr auto sample_desc = DXGI_SAMPLE_DESC{1, 0};
+
+        const D3D12_RESOURCE_DESC resource_desc = {
+            .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+            .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+            .Width = create_info.width,
+            .Height = create_info.height,
+            .DepthOrArraySize = static_cast<uint16_t>(create_info.array_size),
+            .MipLevels = create_info.mip_levels,
+            .Format = ToDXGIFormat(create_info.format),
+            .SampleDesc = sample_desc,
+            .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
+        };
+        device->GetCopyableFootprints(&resource_desc,
+                                      0,
+                                      num_subresources,
+                                      0,
+                                      footprints.data(),
+                                      num_rows.data(),
+                                      row_sizes.data(),
+                                      &total_size);
+
+        for (uint32_t i = 0; i < num_subresources; ++i)
+        {
+            for (uint32_t row = 0; row < num_rows[i]; ++row)
+            {
+                buffer->Write(src + row * row_sizes[i], footprints[i].Offset + row * footprints[i].Footprint.RowPitch, row_sizes[i]);
+            }
+
+            src += num_rows[i] * row_sizes[i];
+        }
     }
 }  // namespace Swift::D3D12

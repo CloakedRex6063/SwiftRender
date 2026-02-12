@@ -149,9 +149,9 @@ namespace Swift::D3D12
             const uint32_t size = GetTextureSize(m_device, create_info);
             const BufferCreateInfo buffer_info = {
                 .size = size,
-                .data = create_info.data,
             };
             auto* const upload_buffer = CreateBuffer(buffer_info);
+            CopyTextureData(m_device, upload_buffer, create_info);
             auto* const copy_command = CreateCommand(QueueType::eTransfer);
             copy_command->Begin();
             copy_command->CopyBufferToTexture(this, upload_buffer, texture, create_info.mip_levels, create_info.array_size);
