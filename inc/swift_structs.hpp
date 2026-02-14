@@ -273,6 +273,12 @@ namespace Swift
         eCopySource,
     };
 
+    enum class ShaderType
+    {
+        eGraphics,
+        eCompute,
+    };
+
     struct Viewport
     {
         std::array<float, 2> dimensions{};

@@ -62,33 +62,45 @@ void Swift::D3D12::Command::SetScissor(const Scissor& scissor)
 void Swift::D3D12::Command::BindConstantBuffer(IBuffer* buffer, const uint32_t slot)
 {
     const D3D12_GPU_VIRTUAL_ADDRESS gpu_address = buffer->GetResource()->GetVirtualAddress();
-    m_list->SetGraphicsRootConstantBufferView(slot, gpu_address);
+
+    switch (m_shader->GetShaderType())
+    {
+        case ShaderType::eGraphics:
+            m_list->SetGraphicsRootConstantBufferView(slot, gpu_address);
+            break;
+        case ShaderType::eCompute:
+            m_list->SetComputeRootConstantBufferView(slot, gpu_address);
+            break;
+    }
 }
 
 void Swift::D3D12::Command::PushConstants(const void* data, const uint32_t size, const uint32_t offset)
 {
-    if (m_type == QueueType::eCompute)
+    switch (m_shader->GetShaderType())
     {
-        m_list->SetComputeRoot32BitConstants(0, size / sizeof(uint32_t), data, offset);
-    }
-    else if (m_type == QueueType::eGraphics)
-    {
-        m_list->SetGraphicsRoot32BitConstants(0, size / sizeof(uint32_t), data, offset);
+        case ShaderType::eGraphics:
+            m_list->SetGraphicsRoot32BitConstants(0, size / sizeof(uint32_t), data, offset);
+            break;
+        case ShaderType::eCompute:
+            m_list->SetComputeRoot32BitConstants(0, size / sizeof(uint32_t), data, offset);
+            break;
     }
 }
 
 void Swift::D3D12::Command::BindShader(IShader* shader)
 {
+    m_shader = shader;
     const auto* const dx_shader = static_cast<Shader*>(shader);
-    if (m_type != QueueType::eTransfer)
+    const auto descriptor_heaps = std::array{m_cbv_srv_uav_heap->GetHeap()};
+    m_list->SetDescriptorHeaps(1, descriptor_heaps.data());
+    switch (shader->GetShaderType())
     {
-        const auto descriptor_heaps = std::array{m_cbv_srv_uav_heap->GetHeap()};
-        m_list->SetDescriptorHeaps(1, descriptor_heaps.data());
-        m_list->SetComputeRootSignature(dx_shader->m_root_signature);
-    }
-    if (m_type == QueueType::eGraphics)
-    {
-        m_list->SetGraphicsRootSignature(dx_shader->m_root_signature);
+        case ShaderType::eGraphics:
+            m_list->SetGraphicsRootSignature(dx_shader->m_root_signature);
+            break;
+        case ShaderType::eCompute:
+            m_list->SetComputeRootSignature(dx_shader->m_root_signature);
+            break;
     }
     m_list->SetPipelineState(static_cast<ID3D12PipelineState*>(shader->GetPipeline()));
 }

@@ -48,5 +48,6 @@ namespace Swift::D3D12
         ID3D12GraphicsCommandList10* m_list = nullptr;
         ID3D12CommandAllocator* m_allocator = nullptr;
         DescriptorHeap* m_cbv_srv_uav_heap;
+        IShader* m_shader;
     };
 }  // namespace Swift::D3D12
