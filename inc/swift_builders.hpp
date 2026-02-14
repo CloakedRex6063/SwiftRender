@@ -419,7 +419,7 @@ namespace Swift
 
     struct ComputeShaderBuilder
     {
-        ComputeShaderBuilder(IContext* context, const std::vector<uint8_t>& code)
+        ComputeShaderBuilder(IContext* context, const std::span<const uint8_t> code)
         {
             m_context = context;
             m_code = code;
@@ -452,7 +452,7 @@ namespace Swift
 
     private:
         IContext* m_context;
-        std::vector<uint8_t> m_code;
+        std::span<const uint8_t> m_code;
         std::vector<Descriptor> m_descriptors{};
         std::vector<SamplerDescriptor> m_static_samplers{};
         std::string_view m_name;
