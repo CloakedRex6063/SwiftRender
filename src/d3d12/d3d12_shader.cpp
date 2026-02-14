@@ -133,9 +133,9 @@ void Swift::D3D12::Shader::CreateRootSignature(ID3D12Device14* device,
 
     for (uint32_t i = 0; i < samplers.size(); ++i)
     {
-        const auto& [min_filter, mag_filter, wrap_u, wrap_y, wrap_w, min_lod, max_lod, border_color, comparison] = samplers[i];
+        const auto& [min_filter, mag_filter, wrap_u, wrap_y, wrap_w, min_lod, max_lod, border_color, comparison, filter_type] = samplers[i];
         D3D12_STATIC_SAMPLER_DESC static_sampler_desc = {
-            .Filter = ToFilter(min_filter, mag_filter, comparison != ComparisonFunc::eNever),
+            .Filter = ToFilter(min_filter, mag_filter, filter_type),
             .AddressU = ToWrap(wrap_u),
             .AddressV = ToWrap(wrap_y),
             .AddressW = ToWrap(wrap_w),

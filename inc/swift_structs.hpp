@@ -176,6 +176,14 @@ namespace Swift
         eNotEqual,
     };
 
+    enum class FilterType
+    {
+        eStandard,
+        eComparison,
+        eMinimum,
+        eMaximum,
+    };
+
     struct SamplerDescriptor
     {
         Filter min_filter = Filter::eLinear;
@@ -187,6 +195,7 @@ namespace Swift
         float max_lod = 13;
         BorderColor border_color = BorderColor::eBlack;
         ComparisonFunc comparison_func = ComparisonFunc::eNever;
+        FilterType filter_type = FilterType::eStandard;
     };
 
     enum class DepthTest
