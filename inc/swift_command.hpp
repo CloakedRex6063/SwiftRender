@@ -38,7 +38,14 @@ namespace Swift
         virtual void BindRenderTargets(std::span<IRenderTarget*> render_targets, IDepthStencil* depth_stencil) = 0;
         virtual void BindRenderTargets(IRenderTarget* render_target, IDepthStencil* depth_stencil)
         {
-            BindRenderTargets(std::span{&render_target, 1}, depth_stencil);
+            if (render_target != nullptr)
+            {
+                BindRenderTargets(std::span{&render_target, 1}, depth_stencil);
+            }
+            else
+            {
+                BindRenderTargets(std::span{&render_target, 0}, depth_stencil);
+            }
         }
         virtual void ClearRenderTarget(IRenderTarget* texture_handle, const std::array<float, 4>& color) = 0;
         virtual void ClearDepthStencil(IDepthStencil* texture_handle, float depth, uint8_t stencil) = 0;
