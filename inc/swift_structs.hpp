@@ -156,6 +156,7 @@ namespace Swift
         eRepeat,
         eMirroredRepeat,
         eClampToEdge,
+        eBorder,
     };
 
     enum class BorderColor

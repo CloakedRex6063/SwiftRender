@@ -499,6 +499,9 @@ namespace Swift::D3D12
                 return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
             case Wrap::eClampToEdge:
                 return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+            case Wrap::eBorder:
+                return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+                break;
         }
         return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
     }
