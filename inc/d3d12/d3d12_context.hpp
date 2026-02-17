@@ -66,7 +66,7 @@ namespace Swift::D3D12
     private:
         void CreateBackend();
         void CreateDevice();
-        void CreateDescriptorHeaps();
+        void CreateDescriptorHeaps(const ContextCreateInfo& create_info);
         void CreateFrameData();
         void CreateQueues();
         void CreateTextures(const ContextCreateInfo& create_info);

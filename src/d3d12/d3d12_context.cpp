@@ -18,7 +18,7 @@ namespace Swift::D3D12
     {
         CreateBackend();
         CreateDevice();
-        CreateDescriptorHeaps();
+        CreateDescriptorHeaps(create_info);
         CreateFrameData();
         CreateQueues();
         CreateSwapchain(create_info);
@@ -416,11 +416,12 @@ namespace Swift::D3D12
 #endif
     }
 
-    void Context::CreateDescriptorHeaps()
+    void Context::CreateDescriptorHeaps(const ContextCreateInfo& create_info)
     {
-        m_rtv_heap = new DescriptorHeap(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 64);
-        m_dsv_heap = new DescriptorHeap(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 64);
-        m_cbv_srv_uav_heap = new DescriptorHeap(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 4096);
+        m_rtv_heap = new DescriptorHeap(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, create_info.rtv_handle_count);
+        m_dsv_heap = new DescriptorHeap(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, create_info.dsv_handle_count);
+        m_cbv_srv_uav_heap =
+            new DescriptorHeap(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, create_info.cbv_srv_uav_handle_count);
     }
 
     typedef HRESULT(__stdcall* PFN_DxcCreateInstance)(REFCLSID rclsid, REFIID riid, LPVOID* ppv);

@@ -88,6 +88,9 @@ namespace Swift
         uint32_t height;
         void* native_window_handle;
         void* native_display_handle;
+        uint32_t cbv_srv_uav_handle_count = 4096;
+        uint32_t rtv_handle_count = 64;
+        uint32_t dsv_handle_count = 64;
     };
 
     enum class PolygonMode
