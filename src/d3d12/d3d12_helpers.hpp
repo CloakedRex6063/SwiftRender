@@ -126,6 +126,10 @@ namespace Swift::D3D12
                 return DXGI_FORMAT_BC7_UNORM;
             case Format::eBC7_UNORM_SRGB:
                 return DXGI_FORMAT_BC7_UNORM_SRGB;
+            case Format::eR8_UNORM:
+                return DXGI_FORMAT_R8_UNORM;
+            case Format::eR8G8_UNORM:
+                return DXGI_FORMAT_R8G8_UNORM;
         }
 
         return DXGI_FORMAT_UNKNOWN;
@@ -171,6 +175,10 @@ namespace Swift::D3D12
                 return DXGI_FORMAT_BC7_UNORM;
             case Format::eBC7_UNORM_SRGB:
                 return DXGI_FORMAT_BC7_UNORM_SRGB;
+            case Format::eR8_UNORM:
+                return DXGI_FORMAT_R8_UNORM;
+            case Format::eR8G8_UNORM:
+                return DXGI_FORMAT_R8G8_UNORM;
         }
 
         return DXGI_FORMAT_UNKNOWN;
@@ -216,6 +224,10 @@ namespace Swift::D3D12
                 return DXGI_FORMAT_BC7_UNORM;
             case Format::eBC7_UNORM_SRGB:
                 return DXGI_FORMAT_BC7_UNORM_SRGB;
+            case Format::eR8_UNORM:
+                return DXGI_FORMAT_R8_UNORM;
+            case Format::eR8G8_UNORM:
+                return DXGI_FORMAT_R8G8_UNORM;
         }
 
         return DXGI_FORMAT_UNKNOWN;

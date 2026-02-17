@@ -40,6 +40,8 @@ namespace Swift
         eRGBA16F,
         eRGBA32F,
         eD32F,
+        eR8_UNORM,
+        eR8G8_UNORM,
 
         eBC1_UNORM,
         eBC1_UNORM_SRGB,
