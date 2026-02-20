@@ -365,7 +365,7 @@ namespace Swift::D3D12
 
     constexpr D3D12_FILTER ToFilter(const Filter min_filter,
                                     const Filter mag_filter,
-                                    const FilterType type = FilterType::eStandard) noexcept
+                                    const ReductionType type = ReductionType::eStandard) noexcept
     {
         constexpr auto get_base = [](const Filter f) -> int
         {
@@ -407,13 +407,13 @@ namespace Swift::D3D12
         {
             switch (type)
             {
-                case FilterType::eStandard:
+                case ReductionType::eStandard:
                     return D3D12_FILTER_REDUCTION_TYPE_STANDARD;
-                case FilterType::eComparison:
+                case ReductionType::eComparison:
                     return D3D12_FILTER_REDUCTION_TYPE_COMPARISON;
-                case FilterType::eMinimum:
+                case ReductionType::eMinimum:
                     return D3D12_FILTER_REDUCTION_TYPE_MINIMUM;
-                case FilterType::eMaximum:
+                case ReductionType::eMaximum:
                     return D3D12_FILTER_REDUCTION_TYPE_MAXIMUM;
             }
             return D3D12_FILTER_REDUCTION_TYPE_STANDARD;
@@ -436,57 +436,57 @@ namespace Swift::D3D12
     static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eLinear) == D3D12_FILTER_MIN_MAG_MIP_LINEAR);
 
     // Comparison
-    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eNearest, FilterType::eComparison) ==
+    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eNearest, ReductionType::eComparison) ==
                   D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT);
-    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eNearest, FilterType::eComparison) ==
+    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eNearest, ReductionType::eComparison) ==
                   D3D12_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR);
-    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eLinear, FilterType::eComparison) ==
+    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eLinear, ReductionType::eComparison) ==
                   D3D12_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT);
-    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eLinear, FilterType::eComparison) ==
+    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eLinear, ReductionType::eComparison) ==
                   D3D12_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR);
-    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eNearest, FilterType::eComparison) ==
+    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eNearest, ReductionType::eComparison) ==
                   D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT);
-    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eNearest, FilterType::eComparison) ==
+    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eNearest, ReductionType::eComparison) ==
                   D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR);
-    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eLinear, FilterType::eComparison) ==
+    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eLinear, ReductionType::eComparison) ==
                   D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT);
-    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eLinear, FilterType::eComparison) ==
+    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eLinear, ReductionType::eComparison) ==
                   D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR);
 
     // Minimum
-    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eNearest, FilterType::eMinimum) ==
+    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eNearest, ReductionType::eMinimum) ==
                   D3D12_FILTER_MINIMUM_MIN_MAG_MIP_POINT);
-    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eNearest, FilterType::eMinimum) ==
+    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eNearest, ReductionType::eMinimum) ==
                   D3D12_FILTER_MINIMUM_MIN_MAG_POINT_MIP_LINEAR);
-    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eLinear, FilterType::eMinimum) ==
+    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eLinear, ReductionType::eMinimum) ==
                   D3D12_FILTER_MINIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT);
-    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eLinear, FilterType::eMinimum) ==
+    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eLinear, ReductionType::eMinimum) ==
                   D3D12_FILTER_MINIMUM_MIN_POINT_MAG_MIP_LINEAR);
-    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eNearest, FilterType::eMinimum) ==
+    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eNearest, ReductionType::eMinimum) ==
                   D3D12_FILTER_MINIMUM_MIN_LINEAR_MAG_MIP_POINT);
-    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eNearest, FilterType::eMinimum) ==
+    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eNearest, ReductionType::eMinimum) ==
                   D3D12_FILTER_MINIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR);
-    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eLinear, FilterType::eMinimum) ==
+    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eLinear, ReductionType::eMinimum) ==
                   D3D12_FILTER_MINIMUM_MIN_MAG_LINEAR_MIP_POINT);
-    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eLinear, FilterType::eMinimum) ==
+    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eLinear, ReductionType::eMinimum) ==
                   D3D12_FILTER_MINIMUM_MIN_MAG_MIP_LINEAR);
 
     // Maximum
-    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eNearest, FilterType::eMaximum) ==
+    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eNearest, ReductionType::eMaximum) ==
                   D3D12_FILTER_MAXIMUM_MIN_MAG_MIP_POINT);
-    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eNearest, FilterType::eMaximum) ==
+    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eNearest, ReductionType::eMaximum) ==
                   D3D12_FILTER_MAXIMUM_MIN_MAG_POINT_MIP_LINEAR);
-    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eLinear, FilterType::eMaximum) ==
+    static_assert(ToFilter(Filter::eNearestMipNearest, Filter::eLinear, ReductionType::eMaximum) ==
                   D3D12_FILTER_MAXIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT);
-    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eLinear, FilterType::eMaximum) ==
+    static_assert(ToFilter(Filter::eNearestMipLinear, Filter::eLinear, ReductionType::eMaximum) ==
                   D3D12_FILTER_MAXIMUM_MIN_POINT_MAG_MIP_LINEAR);
-    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eNearest, FilterType::eMaximum) ==
+    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eNearest, ReductionType::eMaximum) ==
                   D3D12_FILTER_MAXIMUM_MIN_LINEAR_MAG_MIP_POINT);
-    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eNearest, FilterType::eMaximum) ==
+    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eNearest, ReductionType::eMaximum) ==
                   D3D12_FILTER_MAXIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR);
-    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eLinear, FilterType::eMaximum) ==
+    static_assert(ToFilter(Filter::eLinearMipNearest, Filter::eLinear, ReductionType::eMaximum) ==
                   D3D12_FILTER_MAXIMUM_MIN_MAG_LINEAR_MIP_POINT);
-    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eLinear, FilterType::eMaximum) ==
+    static_assert(ToFilter(Filter::eLinearMipLinear, Filter::eLinear, ReductionType::eMaximum) ==
                   D3D12_FILTER_MAXIMUM_MIN_MAG_MIP_LINEAR);
 
     constexpr D3D12_TEXTURE_ADDRESS_MODE ToWrap(const Wrap wrap) noexcept

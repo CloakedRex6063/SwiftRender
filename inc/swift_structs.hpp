@@ -176,7 +176,7 @@ namespace Swift
         eNotEqual,
     };
 
-    enum class FilterType
+    enum class ReductionType
     {
         eStandard,
         eComparison,
@@ -195,7 +195,7 @@ namespace Swift
         float max_lod = 13;
         std::array<float, 4> border_color = {};
         ComparisonFunc comparison_func = ComparisonFunc::eNever;
-        FilterType filter_type = FilterType::eStandard;
+        ReductionType reduction_type = ReductionType::eStandard;
     };
 
     enum class DepthTest

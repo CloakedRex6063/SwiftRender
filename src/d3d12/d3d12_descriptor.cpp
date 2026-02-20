@@ -50,7 +50,7 @@ Swift::D3D12::Sampler::Sampler(Context* context, const SamplerCreateInfo& create
 {
     auto* device = static_cast<ID3D12Device*>(context->GetDevice());
     D3D12_SAMPLER_DESC sampler_desc = {
-        .Filter = ToFilter(create_info.min_filter, create_info.mag_filter, create_info.filter_type),
+        .Filter = ToFilter(create_info.min_filter, create_info.mag_filter, create_info.reduction_type),
         .AddressU = ToWrap(create_info.wrap_u),
         .AddressV = ToWrap(create_info.wrap_y),
         .AddressW = ToWrap(create_info.wrap_w),

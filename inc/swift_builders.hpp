@@ -232,6 +232,18 @@ namespace Swift
             return *this;
         }
 
+        SamplerBuilder& SetComparisonFunc(const ComparisonFunc comparison)
+        {
+            m_comparison_func = comparison;
+            return *this;
+        }
+
+        SamplerBuilder& SetFilterType(const ReductionType type)
+        {
+            m_reduction_type = type;
+            return *this;
+        }
+
         SamplerBuilder& SetBorderColor(const std::array<float, 4> color)
         {
             m_border_color = color;
@@ -240,7 +252,7 @@ namespace Swift
 
         [[nodiscard]] ISampler* Build() const
         {
-            auto sampler_create_info = SamplerCreateInfo{
+            const auto sampler_create_info = SamplerCreateInfo{
                 .min_filter = m_min_filter,
                 .mag_filter = m_mag_filter,
                 .wrap_u = m_wrap_u,
@@ -249,6 +261,8 @@ namespace Swift
                 .min_lod = m_min_lod,
                 .max_lod = m_max_lod,
                 .border_color = m_border_color,
+                .comparison_func = m_comparison_func,
+                .reduction_type = m_reduction_type,
             };
             return m_context->CreateSampler(sampler_create_info);
         }
@@ -262,6 +276,8 @@ namespace Swift
         float m_min_lod = 0;
         float m_max_lod = 13;
         std::array<float, 4> m_border_color{};
+        ComparisonFunc m_comparison_func = ComparisonFunc::eNever;
+        ReductionType m_reduction_type = ReductionType::eStandard;
         IContext* m_context = nullptr;
     };
 
