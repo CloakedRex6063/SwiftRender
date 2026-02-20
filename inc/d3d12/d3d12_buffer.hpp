@@ -8,9 +8,9 @@ namespace Swift::D3D12
     {
     public:
         Buffer(Context* context, const BufferCreateInfo& info);
+        ~Buffer();
         SWIFT_NO_COPY(Buffer);
         SWIFT_NO_MOVE(Buffer);
-        SWIFT_DESTRUCT(Buffer);
         void Write(const void* data, uint64_t offset, uint64_t size, bool one_time = false) override;
         void Read(uint32_t offset, uint32_t size, void* data) override;
         void Map(void* readback = nullptr, uint32_t size = 0) override;

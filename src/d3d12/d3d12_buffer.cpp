@@ -16,6 +16,11 @@ Swift::D3D12::Buffer::Buffer(Context* context, const BufferCreateInfo& info) : m
     }
 }
 
+Swift::D3D12::Buffer::~Buffer()
+{
+    m_resource->Release();
+}
+
 void Swift::D3D12::Buffer::Write(const void* data, const uint64_t offset, const uint64_t size, const bool one_time)
 {
     Map();

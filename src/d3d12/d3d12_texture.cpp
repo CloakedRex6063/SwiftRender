@@ -23,6 +23,11 @@ Swift::D3D12::Texture::Texture(const Context* context, const TextureCreateInfo& 
     m_resource->SetName(name.c_str());
 }
 
+Swift::D3D12::Texture::~Texture()
+{
+    m_resource->Release();
+}
+
 D3D12_RESOURCE_DESC Swift::D3D12::Texture::GetResourceDesc(const TextureCreateInfo& info)
 {
     auto flags = D3D12_RESOURCE_FLAG_NONE;

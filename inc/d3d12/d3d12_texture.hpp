@@ -9,9 +9,9 @@ namespace Swift::D3D12
     public:
         Texture(ID3D12Resource* resource, const TextureCreateInfo& info);
         Texture(const Context* context, const TextureCreateInfo& info);
+        ~Texture() override;
         SWIFT_NO_COPY(Texture);
         SWIFT_NO_MOVE(Texture);
-        SWIFT_DESTRUCT(Texture);
         [[nodiscard]] void* GetResource() override { return m_resource; }
         [[nodiscard]] uint64_t GetVirtualAddress() override { return m_resource->GetGPUVirtualAddress(); }
 
