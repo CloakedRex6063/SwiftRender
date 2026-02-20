@@ -17,10 +17,10 @@ namespace Swift::D3D12
 
     class Context;
 
-    class D3D12Descriptor
+    class Descriptor
     {
     public:
-        D3D12Descriptor(Context* context) : m_context(context) {};
+        Descriptor(Context* context) : m_context(context) {};
         DescriptorData& GetDescriptorData() { return m_data; }
 
     protected:
@@ -28,7 +28,7 @@ namespace Swift::D3D12
         Context* m_context = nullptr;
     };
 
-    class RenderTarget : public IRenderTarget, public D3D12Descriptor
+    class RenderTarget : public IRenderTarget, public Descriptor
     {
     public:
         RenderTarget(Context* context, ITexture* texture, uint32_t mip = 0);
@@ -36,7 +36,7 @@ namespace Swift::D3D12
         [[nodiscard]] uint32_t GetDescriptorIndex() const override { return m_data.index; }
     };
 
-    class DepthStencil : public IDepthStencil, public D3D12Descriptor
+    class DepthStencil : public IDepthStencil, public Descriptor
     {
     public:
         DepthStencil(Context* context, ITexture* texture, uint32_t mip = 0);
@@ -44,7 +44,7 @@ namespace Swift::D3D12
         [[nodiscard]] uint32_t GetDescriptorIndex() const override { return m_data.index; }
     };
 
-    class TextureSRV : public ITextureSRV, public D3D12Descriptor
+    class TextureSRV : public ITextureSRV, public Descriptor
     {
     public:
         TextureSRV(Context* context,
@@ -55,7 +55,7 @@ namespace Swift::D3D12
         [[nodiscard]] uint32_t GetDescriptorIndex() const override { return m_data.index; }
     };
 
-    class BufferSRV : public IBufferSRV, public D3D12Descriptor
+    class BufferSRV : public IBufferSRV, public Descriptor
     {
     public:
         BufferSRV(Context* context, IBuffer* buffer, const BufferSRVCreateInfo& info);
@@ -63,7 +63,7 @@ namespace Swift::D3D12
         [[nodiscard]] uint32_t GetDescriptorIndex() const override { return m_data.index; }
     };
 
-    class TextureUAV : public ITextureUAV, public D3D12Descriptor
+    class TextureUAV : public ITextureUAV, public Descriptor
     {
     public:
         TextureUAV(Context* context, ITexture* texture, uint32_t mip = 0);
@@ -71,7 +71,7 @@ namespace Swift::D3D12
         [[nodiscard]] uint32_t GetDescriptorIndex() const override { return m_data.index; }
     };
 
-    class BufferUAV : public IBufferUAV, public D3D12Descriptor
+    class BufferUAV : public IBufferUAV, public Descriptor
     {
     public:
         BufferUAV(Context* context, IBuffer* buffer, const BufferUAVCreateInfo& info);
@@ -79,11 +79,18 @@ namespace Swift::D3D12
         [[nodiscard]] uint32_t GetDescriptorIndex() const override { return m_data.index; }
     };
 
-    class BufferCBV : public IBufferCBV, public D3D12Descriptor
+    class BufferCBV : public IBufferCBV, public Descriptor
     {
     public:
         BufferCBV(Context* context, IBuffer* buffer, uint32_t size, uint32_t offset = 0);
         ~BufferCBV() override;
+        [[nodiscard]] uint32_t GetDescriptorIndex() const override { return m_data.index; }
+    };
+
+    class Sampler : public ISampler, public Descriptor {
+    public:
+        Sampler(Context* context, const SamplerCreateInfo& create_info);
+        ~Sampler() override;
         [[nodiscard]] uint32_t GetDescriptorIndex() const override { return m_data.index; }
     };
 

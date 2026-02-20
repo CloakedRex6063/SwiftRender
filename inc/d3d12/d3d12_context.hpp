@@ -23,9 +23,10 @@ namespace Swift::D3D12
         [[nodiscard]] void* GetAdapter() const override;
         [[nodiscard]] void* GetSwapchain() const override;
         [[nodiscard]] IDXGIFactory7* GetFactory() const { return m_factory; }
-        [[nodiscard]] DescriptorHeap* GetRTVHeap() const { return m_rtv_heap; }
-        [[nodiscard]] DescriptorHeap* GetDSVHeap() const { return m_dsv_heap; }
-        [[nodiscard]] DescriptorHeap* GetCBVSRVUAVHeap() const { return m_cbv_srv_uav_heap; }
+        [[nodiscard]] DescriptorHeap* GetRTVHeap() const { return m_rtv_heap.get(); }
+        [[nodiscard]] DescriptorHeap* GetDSVHeap() const { return m_dsv_heap.get(); }
+        [[nodiscard]] DescriptorHeap* GetCBVSRVUAVHeap() const { return m_cbv_srv_uav_heap.get(); }
+        [[nodiscard]] DescriptorHeap* GetSamplerHeap() const { return m_sampler_heap.get(); }
 
         ICommand* CreateCommand(QueueType queue_type, std::string_view debug_name = "") override;
         IQueue* CreateQueue(const QueueCreateInfo& info) override;
@@ -37,11 +38,10 @@ namespace Swift::D3D12
         IBufferSRV* CreateShaderResource(IBuffer* buffer, const BufferSRVCreateInfo& srv_create_info) override;
         ITextureUAV* CreateUnorderedAccessView(ITexture* texture, uint32_t mip = 0) override;
         IBufferUAV* CreateUnorderedAccessView(IBuffer* buffer, const BufferUAVCreateInfo& uav_create_info) override;
+        IBufferCBV* CreateConstantBufferView(IBuffer* buffer, uint16_t size) override;
+        ISampler* CreateSampler(const SamplerCreateInfo& info) override;
         IShader* CreateShader(const GraphicsShaderCreateInfo& info) override;
         IShader* CreateShader(const ComputeShaderCreateInfo& info) override;
-        std::shared_ptr<IResource> CreateResource(const BufferCreateInfo& info) override;
-        std::shared_ptr<IResource> CreateResource(const TextureCreateInfo& info) override;
-        IHeap* CreateHeap(const HeapCreateInfo& heap_create_info) override;
 
         void DestroyCommand(ICommand* command) override;
         void DestroyQueue(IQueue* queue) override;
@@ -54,9 +54,8 @@ namespace Swift::D3D12
         void DestroyShaderResource(IBufferSRV* srv) override;
         void DestroyUnorderedAccessView(IBufferUAV* uav) override;
         void DestroyUnorderedAccessView(ITextureUAV* uav) override;
-        void DestroyHeap(IHeap* heap) override;
-
-        void UpdateTextureRegion(ITexture* texture, const TextureUpdateRegion& texture_region) override;
+        void DestroyConstantBufferView(IBufferCBV* cbv) override;
+        void DestroySampler(ISampler* sampler) override;
 
         void Present(bool vsync) override;
         void ResizeBuffers(uint32_t width, uint32_t height) override;
@@ -72,16 +71,20 @@ namespace Swift::D3D12
         void CreateTextures(const ContextCreateInfo& create_info);
         void CreateSwapchain(const ContextCreateInfo& create_info);
         void CreateMipMapShader();
+        void CreateRootSignature();
 
         IDXGIAdapter4* m_adapter = nullptr;
         IDXGIFactory7* m_factory = nullptr;
         ID3D12Device14* m_device = nullptr;
         ID3D12Debug6* m_debug_controller = nullptr;
-        Swapchain* m_swapchain = nullptr;
-        DescriptorHeap* m_rtv_heap{};
-        DescriptorHeap* m_dsv_heap{};
-        DescriptorHeap* m_cbv_srv_uav_heap{};
+        std::unique_ptr<Swapchain> m_swapchain = nullptr;
+        std::unique_ptr<DescriptorHeap> m_rtv_heap{};
+        std::unique_ptr<DescriptorHeap> m_dsv_heap{};
+        std::unique_ptr<DescriptorHeap> m_cbv_srv_uav_heap{};
+        std::unique_ptr<DescriptorHeap> m_sampler_heap{};
         IShader* m_mipmap_shader{};
         DXGI_ADAPTER_DESC3 m_adapter_desc{};
+        ID3D12RootSignature* m_root_signature = nullptr;
+        ISampler* m_mipmap_sampler = nullptr;
     };
 }  // namespace Swift::D3D12

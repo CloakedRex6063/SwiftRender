@@ -1,5 +1,4 @@
 #include "swift.hpp"
-
 #include "d3d12/d3d12_context.hpp"
 
 Swift::IContext* Swift::CreateContext(const ContextCreateInfo& create_info)
@@ -12,6 +11,7 @@ Swift::IContext* Swift::CreateContext(const ContextCreateInfo& create_info)
 #endif
         case BackendType::eVulkan:
             return nullptr;
+            //return new Vulkan::Context(create_info);
     }
     return nullptr;
 }

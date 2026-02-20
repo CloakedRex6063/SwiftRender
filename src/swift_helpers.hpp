@@ -12,12 +12,12 @@ namespace Swift
             uint32_t index = free_objects.back();
             free_objects.pop_back();
 
-            objects[index] = func();
+            objects[index] = static_cast<T*>(func());
             return objects[index];
         }
 
-        objects.emplace_back(func());
-        return objects.back();
+        objects.emplace_back(static_cast<T*>(func()));
+        return static_cast<T*>(objects.back());
     }
 
     template<typename T>

@@ -333,18 +333,6 @@ namespace Swift::D3D12
         return D3D12_COMPARISON_FUNC_ALWAYS;
     }
 
-    constexpr D3D12_STATIC_BORDER_COLOR ToBorderColor(const BorderColor mode) noexcept
-    {
-        switch (mode)
-        {
-            case BorderColor::eBlack:
-                return D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
-            case BorderColor::eWhite:
-                return D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
-        }
-        return D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
-    }
-
     constexpr D3D12_RESOURCE_STATES ToResourceState(const ResourceState state) noexcept
     {
         switch (state)

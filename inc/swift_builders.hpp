@@ -110,12 +110,6 @@ namespace Swift
             return *this;
         }
 
-        TextureBuilder& SetResource(const std::shared_ptr<IResource>& resource)
-        {
-            m_resource = resource;
-            return *this;
-        }
-
         TextureCreateInfo GetBuildInfo() const
         {
             return {
@@ -128,7 +122,6 @@ namespace Swift
                 .data = m_data,
                 .msaa = m_msaa,
                 .flags = m_texture_flags,
-                .resource = m_resource,
                 .name = m_name,
             };
         }
@@ -148,11 +141,9 @@ namespace Swift
         bool m_gen_mipmaps = false;
         Format m_format = Format::eRGBA8_UNORM;
         EnumFlags<TextureFlags> m_texture_flags = TextureFlags::eNone;
-        std::shared_ptr<IResource> m_resource = nullptr;
         std::string_view m_name;
         const void* m_data = nullptr;
         std::optional<MSAA> m_msaa;
-        IHeap* m_heap = nullptr;
         uint32_t m_offset = 0;
     };
 
@@ -195,61 +186,61 @@ namespace Swift
         ShaderVisibility m_shader_visibility = ShaderVisibility::eAll;
     };
 
-    struct SamplerDescriptorBuilder
+    struct SamplerBuilder
     {
-        SamplerDescriptorBuilder() {}
+        explicit SamplerBuilder(IContext* context) : m_context(context) {}
 
-        SamplerDescriptorBuilder& SetWrapU(const Wrap wrap)
+        SamplerBuilder& SetWrapU(const Wrap wrap)
         {
             m_wrap_u = wrap;
             return *this;
         }
 
-        SamplerDescriptorBuilder& SetWrapY(const Wrap wrap)
+        SamplerBuilder& SetWrapY(const Wrap wrap)
         {
             m_wrap_y = wrap;
             return *this;
         }
 
-        SamplerDescriptorBuilder& SetWrapW(const Wrap wrap)
+        SamplerBuilder& SetWrapW(const Wrap wrap)
         {
             m_wrap_w = wrap;
             return *this;
         }
 
-        SamplerDescriptorBuilder& SetMagFilter(const Filter mag_filter)
+        SamplerBuilder& SetMagFilter(const Filter mag_filter)
         {
             m_mag_filter = mag_filter;
             return *this;
         }
 
-        SamplerDescriptorBuilder& SetMinFilter(const Filter min_filter)
+        SamplerBuilder& SetMinFilter(const Filter min_filter)
         {
             m_min_filter = min_filter;
             return *this;
         }
 
-        SamplerDescriptorBuilder& SetMinLod(const float min_lod)
+        SamplerBuilder& SetMinLod(const float min_lod)
         {
             m_min_lod = min_lod;
             return *this;
         }
 
-        SamplerDescriptorBuilder& SetMaxLod(const float max_lod)
+        SamplerBuilder& SetMaxLod(const float max_lod)
         {
             m_max_lod = max_lod;
             return *this;
         }
 
-        SamplerDescriptorBuilder& SetBorderColor(const BorderColor color)
+        SamplerBuilder& SetBorderColor(const std::array<float, 4> color)
         {
             m_border_color = color;
             return *this;
         }
 
-        [[nodiscard]] SamplerDescriptor Build() const
+        [[nodiscard]] ISampler* Build() const
         {
-            return {
+            auto sampler_create_info = SamplerCreateInfo{
                 .min_filter = m_min_filter,
                 .mag_filter = m_mag_filter,
                 .wrap_u = m_wrap_u,
@@ -259,6 +250,7 @@ namespace Swift
                 .max_lod = m_max_lod,
                 .border_color = m_border_color,
             };
+            return m_context->CreateSampler(sampler_create_info);
         }
 
     private:
@@ -269,7 +261,8 @@ namespace Swift
         Wrap m_wrap_w = Wrap::eRepeat;
         float m_min_lod = 0;
         float m_max_lod = 13;
-        BorderColor m_border_color = BorderColor::eBlack;
+        std::array<float, 4> m_border_color{};
+        IContext* m_context = nullptr;
     };
 
     struct GraphicsShaderBuilder
@@ -360,16 +353,6 @@ namespace Swift
             m_rasterizer_state.depth_clip_enable = depth_clip_enable;
             return *this;
         }
-        GraphicsShaderBuilder& SetDescriptors(const std::vector<Descriptor>& descriptors)
-        {
-            m_descriptors = descriptors;
-            return *this;
-        }
-        GraphicsShaderBuilder& SetStaticSamplers(const std::vector<SamplerDescriptor>& samplers)
-        {
-            m_static_samplers = samplers;
-            return *this;
-        }
         GraphicsShaderBuilder& SetName(const std::string_view name)
         {
             m_name = name;
@@ -387,8 +370,6 @@ namespace Swift
                 .depth_stencil_state = m_depth_stencil_state,
                 .rasterizer_state = m_rasterizer_state,
                 .polygon_mode = m_polygon_mode,
-                .descriptors = m_descriptors,
-                .static_samplers = m_static_samplers,
             };
             return m_context->CreateShader(shader_create_info);
         }
@@ -412,8 +393,6 @@ namespace Swift
             .front_face = FrontFace::eCounterClockwise,
         };
         PolygonMode m_polygon_mode = PolygonMode::eTriangle;
-        std::vector<Descriptor> m_descriptors{};
-        std::vector<SamplerDescriptor> m_static_samplers{};
         std::string_view m_name;
     };
 
@@ -423,16 +402,6 @@ namespace Swift
         {
             m_context = context;
             m_code = code;
-        }
-        ComputeShaderBuilder& SetDescriptors(const std::vector<Descriptor>& descriptors)
-        {
-            m_descriptors = descriptors;
-            return *this;
-        }
-        ComputeShaderBuilder& SetStaticSamplers(const std::vector<SamplerDescriptor>& samplers)
-        {
-            m_static_samplers = samplers;
-            return *this;
         }
         ComputeShaderBuilder& SetName(const std::string_view name)
         {
@@ -444,8 +413,6 @@ namespace Swift
         {
             return m_context->CreateShader(ComputeShaderCreateInfo{
                 .code = m_code,
-                .descriptors = m_descriptors,
-                .static_samplers = m_static_samplers,
                 .name = m_name,
             });
         }
@@ -453,8 +420,6 @@ namespace Swift
     private:
         IContext* m_context;
         std::span<const uint8_t> m_code;
-        std::vector<Descriptor> m_descriptors{};
-        std::vector<SamplerDescriptor> m_static_samplers{};
         std::string_view m_name;
     };
 
@@ -478,12 +443,6 @@ namespace Swift
             return *this;
         }
 
-        BufferBuilder& SetResource(const std::shared_ptr<IResource>& resource)
-        {
-            m_resource = resource;
-            return *this;
-        }
-
         BufferBuilder& SetName(const std::string_view name)
         {
             m_name = name;
@@ -492,20 +451,16 @@ namespace Swift
 
         BufferCreateInfo GetBuildInfo() const
         {
-            return {.size = m_size, .data = m_data, .type = m_buffer_type, .resource = m_resource, .name = m_name};
+            return {.size = m_size, .data = m_data, .type = m_buffer_type, .name = m_name};
         }
 
-        IBuffer* Build() const
-        {
-            return m_context->CreateBuffer(GetBuildInfo());
-        }
+        IBuffer* Build() const { return m_context->CreateBuffer(GetBuildInfo()); }
 
     private:
         IContext* m_context = nullptr;
         uint32_t m_size = 0;
         const void* m_data = nullptr;
         BufferType m_buffer_type = BufferType::eDefault;
-        std::shared_ptr<IResource> m_resource = nullptr;
         std::string_view m_name;
     };
 

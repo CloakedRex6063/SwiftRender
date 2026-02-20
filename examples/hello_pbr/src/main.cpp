@@ -36,16 +36,16 @@ int main()
     Importer importer{};
     auto helmet = importer.LoadModel("assets/damaged_helmet.glb");
 
-    std::vector<Swift::SamplerDescriptor> sampler_descriptors{};
+    std::vector<Swift::ISampler*> samplers;
     for (const auto& sampler : helmet.samplers)
     {
-        const auto sampler_descriptor = Swift::SamplerDescriptorBuilder()
-                                            .SetMinFilter(sampler.min_filter)
-                                            .SetMagFilter(sampler.mag_filter)
-                                            .SetWrapU(sampler.wrap_u)
-                                            .SetWrapY(sampler.wrap_y)
-                                            .Build();
-        sampler_descriptors.emplace_back(sampler_descriptor);
+        auto* s = Swift::SamplerBuilder(context)
+                      .SetMinFilter(sampler.min_filter)
+                      .SetMagFilter(sampler.mag_filter)
+                      .SetWrapU(sampler.wrap_u)
+                      .SetWrapY(sampler.wrap_y)
+                      .Build();
+        samplers.emplace_back(s);
     }
 
     std::vector<Swift::Descriptor> descriptors{};
@@ -61,19 +61,35 @@ int main()
                              .SetDepthWriteEnable(true)
                              .SetDepthTest(Swift::DepthTest::eLess)
                              .SetPolygonMode(Swift::PolygonMode::eTriangle)
-                             .SetDescriptors(descriptors)
-                             .SetStaticSamplers(sampler_descriptors)
                              .SetName("PBR Shader")
                              .Build();
-
-    auto* const constant_buffer = Swift::BufferBuilder(context, 65536).Build();
 
     const auto mesh_buffers = CreateMeshBuffers(context, helmet.meshes);
     std::vector<MeshRenderer> mesh_renderers = CreateMeshRenderers(helmet.nodes, helmet.meshes, mesh_buffers);
 
-    auto* texture_heap = context->CreateHeap(
-        Swift::HeapCreateInfo{.type = Swift::HeapType::eGPU_Upload, .size = 1'000'000'000, .debug_name = "Texture Heap"});
-    const auto textures = CreateTextures(context, texture_heap, helmet.textures, helmet.materials);
+    const auto textures = CreateTextures(context, helmet.textures, helmet.materials);
+
+    struct ConstantBufferInfo
+    {
+        glm::mat4 view_proj;
+        glm::float3 cam_pos;
+        uint32_t material_buffer_index;
+
+        uint32_t transform_buffer_index;
+        uint32_t point_light_buffer_index;
+        uint32_t dir_light_buffer_index;
+        uint32_t point_light_count;
+
+        uint32_t dir_light_count;
+        glm::float3 padding;
+    };
+    auto* const constant_buffer = Swift::BufferBuilder(context, sizeof(ConstantBufferInfo)).Build();
+    auto* const constant_buffer_srv = context->CreateShaderResource(constant_buffer,
+                                                                    Swift::BufferSRVCreateInfo{
+                                                                        .num_elements = 1,
+                                                                        .element_size = sizeof(ConstantBufferInfo),
+                                                                    });
+
 
     auto* const material_buffer =
         Swift::BufferBuilder(context, sizeof(Material) * helmet.materials.size()).SetData(helmet.materials.data()).Build();
@@ -136,20 +152,6 @@ int main()
 
         camera.Tick(window, input, delta_time);
 
-        struct ConstantBufferInfo
-        {
-            glm::mat4 view_proj;
-            glm::float3 cam_pos;
-            uint32_t material_buffer_index;
-
-            uint32_t transform_buffer_index;
-            uint32_t point_light_buffer_index;
-            uint32_t dir_light_buffer_index;
-            uint32_t point_light_count;
-
-            uint32_t dir_light_count;
-            glm::float3 padding;
-        };
         const ConstantBufferInfo scene_buffer_data{
             .view_proj = camera.m_proj_matrix * camera.m_view_matrix,
             .cam_pos = camera.m_position,
@@ -175,17 +177,37 @@ int main()
         command->SetViewport(Swift::Viewport{.dimensions = float_size});
         command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
 
-        command->TransitionResource(render_target->GetTexture()->GetResource(), Swift::ResourceState::eRenderTarget);
-        command->TransitionResource(depth_texture->GetResource(), Swift::ResourceState::eDepthWrite);
+        command->TransitionImage(render_target->GetTexture(), Swift::ResourceState::eRenderTarget);
+        command->TransitionImage(depth_texture, Swift::ResourceState::eDepthWrite);
 
         command->ClearRenderTarget(render_target, {0.0f, 0.0f, 0.0f, 0.0f});
         command->ClearDepthStencil(depth_stencil, 1.f, 0.f);
         command->BindShader(shader);
-        command->BindConstantBuffer(constant_buffer, 1);
         command->BindRenderTargets(render_target, depth_stencil);
 
         for (auto& mesh : mesh_renderers)
         {
+            const struct PushConstants
+            {
+                uint32_t sampler_index;
+                uint32_t constant_buffer_index;
+                uint32_t vertex_buffer;
+                uint32_t meshlet_buffer;
+                uint32_t mesh_vertex_buffer;
+                uint32_t mesh_triangle_buffer;
+                int material_index;
+                uint32_t transform_index;
+            } push_constants{
+                .sampler_index = samplers[0]->GetDescriptorIndex(),
+                .constant_buffer_index = constant_buffer_srv->GetDescriptorIndex(),
+                .vertex_buffer = mesh.m_vertex_buffer,
+                .meshlet_buffer = mesh.m_mesh_buffer,
+                .mesh_vertex_buffer = mesh.m_mesh_vertex_buffer,
+                .mesh_triangle_buffer = mesh.m_mesh_triangle_buffer,
+                .material_index = mesh.m_material_index,
+                .transform_index = mesh.m_transform_index,
+            };
+            command->PushConstants(&push_constants, sizeof(PushConstants));
             mesh.Draw(command);
         }
 
@@ -225,7 +247,7 @@ int main()
         ImGui::End();
         imgui.Render(command);
 
-        command->TransitionResource(context->GetCurrentSwapchainTexture()->GetResource(), Swift::ResourceState::ePresent);
+        command->TransitionImage(render_target->GetTexture(), Swift::ResourceState::ePresent);
 
         command->End();
 
@@ -241,10 +263,10 @@ int main()
     context->DestroyBuffer(transforms_buffer);
     context->DestroyShaderResource(transforms_buffer_srv);
     context->DestroyBuffer(constant_buffer);
+    context->DestroyShaderResource(constant_buffer_srv);
     context->DestroyShader(shader);
     DestroyTextures(context, textures);
     DestroyMeshBuffers(context, mesh_buffers);
-    context->DestroyHeap(texture_heap);
 
     imgui.Destroy();
 

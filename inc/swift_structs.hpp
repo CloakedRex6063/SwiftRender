@@ -9,7 +9,6 @@
 
 namespace Swift
 {
-    class IResource;
     class IBuffer;
     class ITexture;
 
@@ -91,6 +90,7 @@ namespace Swift
         uint32_t cbv_srv_uav_handle_count = 4096;
         uint32_t rtv_handle_count = 64;
         uint32_t dsv_handle_count = 64;
+        uint32_t sampler_handle_count = 1024;
     };
 
     enum class PolygonMode
@@ -164,12 +164,6 @@ namespace Swift
         eBorder,
     };
 
-    enum class BorderColor
-    {
-        eBlack,
-        eWhite,
-    };
-
     enum class ComparisonFunc
     {
         eAlways,
@@ -190,7 +184,7 @@ namespace Swift
         eMaximum,
     };
 
-    struct SamplerDescriptor
+    struct SamplerCreateInfo
     {
         Filter min_filter = Filter::eLinear;
         Filter mag_filter = Filter::eLinear;
@@ -199,7 +193,7 @@ namespace Swift
         Wrap wrap_w = Wrap::eRepeat;
         float min_lod = 0;
         float max_lod = 13;
-        BorderColor border_color = BorderColor::eBlack;
+        std::array<float, 4> border_color = {};
         ComparisonFunc comparison_func = ComparisonFunc::eNever;
         FilterType filter_type = FilterType::eStandard;
     };
@@ -245,16 +239,12 @@ namespace Swift
         DepthStencilState depth_stencil_state;
         RasterizerState rasterizer_state;
         PolygonMode polygon_mode = PolygonMode::eTriangle;
-        std::span<const Descriptor> descriptors;
-        std::span<const SamplerDescriptor> static_samplers;
         std::string_view name;
     };
 
     struct ComputeShaderCreateInfo
     {
         std::span<const uint8_t> code;
-        std::span<const Descriptor> descriptors;
-        std::span<const SamplerDescriptor> static_samplers;
         std::string_view name;
     };
 
@@ -271,6 +261,12 @@ namespace Swift
         HeapType type;
         uint64_t size;
         std::string_view debug_name = " ";
+    };
+
+    enum class DescriptorHeapType
+    {
+        eResourceHeap,
+        eSamplerHeap,
     };
 
     enum class ResourceState
@@ -323,12 +319,6 @@ namespace Swift
         uint32_t mip_level;
     };
 
-    struct TextureUpdateRegion
-    {
-        std::vector<TextureRegion> regions;
-        const void* data;
-    };
-
     struct TextureCopyRegion
     {
         ITexture* src_texture;
@@ -357,7 +347,6 @@ namespace Swift
         const void* data = nullptr;
         std::optional<MSAA> msaa = std::nullopt;
         EnumFlags<TextureFlags> flags;
-        std::shared_ptr<IResource> resource = nullptr;
         std::string_view name;
     };
 
@@ -366,7 +355,6 @@ namespace Swift
         uint32_t size = 0;
         const void* data = nullptr;
         BufferType type = BufferType::eDefault;
-        std::shared_ptr<IResource> resource = nullptr;
         std::string_view name;
     };
 

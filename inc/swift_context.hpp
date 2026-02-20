@@ -6,7 +6,6 @@
 #include "swift_shader.hpp"
 #include "swift_structs.hpp"
 #include "swift_descriptor.hpp"
-#include "swift_heap.hpp"
 
 namespace Swift
 {
@@ -37,9 +36,8 @@ namespace Swift
         virtual IBufferSRV* CreateShaderResource(IBuffer* buffer, const BufferSRVCreateInfo& create_info) = 0;
         virtual ITextureUAV* CreateUnorderedAccessView(ITexture* texture, uint32_t mip = 0) = 0;
         virtual IBufferUAV* CreateUnorderedAccessView(IBuffer* buffer, const BufferUAVCreateInfo& create_info) = 0;
-        virtual IHeap* CreateHeap(const HeapCreateInfo& heap_create_info) = 0;
-        virtual std::shared_ptr<IResource> CreateResource(const BufferCreateInfo& info) = 0;
-        virtual std::shared_ptr<IResource> CreateResource(const TextureCreateInfo& info) = 0;
+        virtual IBufferCBV* CreateConstantBufferView(IBuffer* buffer, uint16_t size) = 0;
+        virtual ISampler* CreateSampler(const SamplerCreateInfo& info) = 0;
 
         virtual void DestroyCommand(ICommand* command) = 0;
         virtual void DestroyQueue(IQueue* queue) = 0;
@@ -52,9 +50,8 @@ namespace Swift
         virtual void DestroyShaderResource(IBufferSRV* srv) = 0;
         virtual void DestroyUnorderedAccessView(IBufferUAV* uav) = 0;
         virtual void DestroyUnorderedAccessView(ITextureUAV* uav) = 0;
-        virtual void DestroyHeap(IHeap* heap) = 0;
-
-        virtual void UpdateTextureRegion(ITexture* texture, const TextureUpdateRegion& texture_region) = 0;
+        virtual void DestroyConstantBufferView(IBufferCBV* cbv) = 0;
+        virtual void DestroySampler(ISampler* sampler) = 0;
 
         virtual void Present(bool vsync) = 0;
         virtual void ResizeBuffers(uint32_t width, uint32_t height) = 0;
@@ -106,11 +103,13 @@ namespace Swift
         std::vector<uint32_t> m_free_texture_srvs;
         std::vector<IBufferSRV*> m_buffer_srvs;
         std::vector<uint32_t> m_free_buffer_srvs;
+        std::vector<IBufferCBV*> m_buffer_cbvs;
+        std::vector<uint32_t> m_free_buffer_cbvs;
         std::vector<ITextureUAV*> m_texture_uavs;
         std::vector<uint32_t> m_free_texture_uavs;
         std::vector<IBufferUAV*> m_buffer_uavs;
         std::vector<uint32_t> m_free_buffer_uavs;
-        std::vector<IHeap*> m_heaps;
-        std::vector<uint32_t> m_free_heaps;
+        std::vector<ISampler*> m_samplers;
+        std::vector<uint32_t> m_free_samplers;
     };
 }  // namespace Swift

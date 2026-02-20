@@ -1,6 +1,7 @@
 #pragma once
-#include "swift_context.hpp"
+#include "cstdint"
 #include "swift_macros.hpp"
+#include "swift_structs.hpp"
 #define NOMINMAX
 #include "directx/d3d12.h"
 #include "dxgi1_6.h"
@@ -17,7 +18,7 @@ namespace Swift::D3D12
         ~Swapchain();
 
         void Present(bool m_vsync) const;
-        void* GetSwapchain() const { return m_swapchain; };
+        IDXGISwapChain4* GetSwapchain() const { return m_swapchain; };
         void Resize(uint32_t width, uint32_t height) const;
         uint32_t GetFrameIndex() const;
 

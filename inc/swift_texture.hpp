@@ -14,11 +14,16 @@ namespace Swift
         [[nodiscard]] uint32_t GetMipLevels() const { return m_mip_levels; }
         [[nodiscard]] uint32_t GetArraySize() const { return m_array_size; }
         [[nodiscard]] Format GetFormat() const { return m_format; }
-        [[nodiscard]] std::shared_ptr<IResource> GetResource() const { return m_resource; }
+        [[nodiscard]] virtual void* GetResource() = 0;
+        [[nodiscard]] virtual uint64_t GetVirtualAddress() = 0;
+        [[nodiscard]] ResourceState GetState() const { return m_state; }
+        void SetState(const ResourceState state) { m_state = state; }
 
     protected:
         SWIFT_CONSTRUCT(ITexture);
-        std::shared_ptr<IResource> m_resource;
+        ResourceState m_state = ResourceState::eCommon;
+        void* m_data = nullptr;
+        bool m_mapped = false;
         Format m_format;
         std::array<uint32_t, 2> m_size;
         uint32_t m_mip_levels = 1;

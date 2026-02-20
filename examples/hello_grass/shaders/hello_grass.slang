@@ -7,6 +7,7 @@ groupshared uint s_VisibleCount;
 [shader("amplification")]
 void ampl_main(uint gtid : SV_GroupThreadID, uint gid : SV_GroupID)
 {
+    var GlobalConstants = DescriptorHandle<StructuredBuffer<GlobalConstant>>(PushConstants.constant_buffer_index)[0];
     if (gtid == 0) s_VisibleCount = 0;
     GroupMemoryBarrierWithGroupSync();
 
@@ -65,6 +66,7 @@ void mesh_main(
     OutputVertices<Vertex, 252> verts,
     OutputIndices<uint3, 210> triangles)
 {
+    var GlobalConstants = DescriptorHandle<StructuredBuffer<GlobalConstant>>(PushConstants.constant_buffer_index)[0];
     uint patch_id = payload.patch_id[gid];
 
     const uint vertices_per_blade_edge = 6;

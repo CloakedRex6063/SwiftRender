@@ -3,12 +3,12 @@
 [outputtopology("triangle")]
 [numthreads(128, 1, 1)]
 [shader("mesh")]
-void mesh_main(
-    uint gtid : SV_GroupThreadID,
-    uint gid  : SV_GroupID,
-    OutputVertices<OutVertex, 64> verts,
-    OutputIndices<uint3, 124> triangles)
+void mesh_main(uint gtid: SV_GroupThreadID,
+               uint gid: SV_GroupID,
+               OutputVertices<OutVertex, 64> verts,
+               OutputIndices<uint3, 124> triangles)
 {
+    var GlobalConstants = DescriptorHandle<StructuredBuffer<GlobalConstant>>(PushConstants.constant_buffer_index)[0];
     var vertex_buffer = DescriptorHandle<StructuredBuffer<Vertex>>(PushConstants.vertex_buffer_index);
     var meshlet_buffer = DescriptorHandle<StructuredBuffer<Meshlet>>(PushConstants.mesh_buffer_index);
     var mesh_vertex_buffer = DescriptorHandle<StructuredBuffer<uint>>(PushConstants.mesh_vertex_buffer_index);
@@ -17,7 +17,7 @@ void mesh_main(
     Meshlet meshlet = meshlet_buffer[gid];
     SetMeshOutputCounts(meshlet.vertex_count, meshlet.triangle_count);
 
-    if(gtid < meshlet.triangle_count)
+    if (gtid < meshlet.triangle_count)
     {
         uint packed = mesh_triangle_buffer[meshlet.triangle_offset + gtid];
         uint idx0 = (packed >> 0) & 0xFF;
@@ -26,7 +26,7 @@ void mesh_main(
         triangles[gtid] = uint3(idx0, idx1, idx2);
     }
 
-    if(gtid < meshlet.vertex_count)
+    if (gtid < meshlet.vertex_count)
     {
         uint vertex_index = meshlet.vertex_offset + gtid;
         vertex_index = mesh_vertex_buffer[vertex_index];
@@ -40,36 +40,35 @@ void mesh_main(
     }
 }
 
-SamplerState samp : register(s0);
-
 [shader("pixel")]
 float4 pixel_main(OutVertex input) : SV_TARGET
 {
+    var GlobalConstants = DescriptorHandle<StructuredBuffer<GlobalConstant>>(PushConstants.constant_buffer_index)[0];
     var material_buffer = DescriptorHandle<StructuredBuffer<Material>>(GlobalConstants.material_buffer_index);
     Material material = material_buffer[PushConstants.material_index];
 
     float3 albedo = material.albedo.rgb;
-    if(material.albedo_index != -1)
+    if (material.albedo_index != -1)
     {
-        var albedo_texture = DescriptorHandle<Texture2D>(uint(material.albedo_index));
-        albedo *= albedo_texture.Sample(samp, input.uv).rgb;
+        var albedo_texture = DescriptorHandle<Sampler2D>(uint2(material.albedo_index, PushConstants.sampler_index));
+        albedo *= albedo_texture.Sample(input.uv).rgb;
     }
 
     float metallic = material.metallic;
     float roughness = material.roughness;
-    if(material.metal_rough_index != -1)
+    if (material.metal_rough_index != -1)
     {
-        var metal_rough_texture = DescriptorHandle<Texture2D>(uint(material.metal_rough_index));
-        float3 mr = metal_rough_texture.Sample(samp, input.uv).rgb;
+        var metal_rough_texture = DescriptorHandle<Sampler2D>(uint2(material.metal_rough_index, PushConstants.sampler_index));
+        float3 mr = metal_rough_texture.Sample(input.uv).rgb;
         metallic *= mr.g;
         roughness *= mr.b;
     }
 
     float3 emissive = material.emissive;
-    if(material.emissive_index != -1)
+    if (material.emissive_index != -1)
     {
-        var emissive_texture = DescriptorHandle<Texture2D>(uint(material.emissive_index));
-        emissive *= emissive_texture.Sample(samp, input.uv).rgb;
+        var emissive_texture = DescriptorHandle<Sampler2D>(uint2(material.emissive_index, PushConstants.sampler_index));
+        emissive *= emissive_texture.Sample(input.uv).rgb;
     }
 
     float3 world_pos = input.world_pos;
@@ -79,15 +78,15 @@ float4 pixel_main(OutVertex input) : SV_TARGET
     f0 = lerp(f0, albedo, metallic);
 
     float occlusion = 1.0;
-    if(material.occlusion_index != -1)
+    if (material.occlusion_index != -1)
     {
-        var occlusion_texture = DescriptorHandle<Texture2D>(uint(material.occlusion_index));
-        occlusion *= occlusion_texture.Sample(samp, input.uv).r;
+        var occlusion_texture = DescriptorHandle<Sampler2D>(uint2(material.occlusion_index, PushConstants.sampler_index));
+        occlusion *= occlusion_texture.Sample(input.uv).r;
     }
 
     float3 lo = float3(0.0, 0.0, 0.0);
     var point_light_buffer = DescriptorHandle<StructuredBuffer<PointLight>>(GlobalConstants.point_light_buffer_index);
-    for(int i = 0; i < GlobalConstants.point_light_count; i++)
+    for (int i = 0; i < GlobalConstants.point_light_count; i++)
     {
         PointLight point_light = point_light_buffer[i];
         float3 l = normalize(point_light.position - world_pos);
@@ -99,7 +98,7 @@ float4 pixel_main(OutVertex input) : SV_TARGET
     };
 
     var dir_light_buffer = DescriptorHandle<StructuredBuffer<DirectionalLight>>(GlobalConstants.dir_light_buffer_index);
-    for(int i = 0; i < GlobalConstants.dir_light_count; i++)
+    for (int i = 0; i < GlobalConstants.dir_light_count; i++)
     {
         DirectionalLight dir_light = dir_light_buffer[i];
         float3 l = normalize(dir_light.direction);

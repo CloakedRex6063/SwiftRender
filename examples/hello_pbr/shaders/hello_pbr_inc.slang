@@ -60,6 +60,8 @@ struct Material
 
 struct PushConstant
 {
+    uint sampler_index;
+    uint constant_buffer_index;
     uint vertex_buffer_index;
     uint mesh_buffer_index;
     uint mesh_vertex_buffer_index;
@@ -85,7 +87,6 @@ struct GlobalConstant
     uint dir_light_count;
     float3 padding;
 };
-ConstantBuffer<GlobalConstant> GlobalConstants : register(b1);
 
 static const float PI = 3.14159265359;
 

@@ -24,10 +24,10 @@ struct GlobalConstant
     uint grass_patch_count;
     float2 padding;
 };
-ConstantBuffer<GlobalConstant> GlobalConstants : register(b1);
 
 struct PushConstant
 {
+    uint constant_buffer_index;
     float wind_speed;
     float wind_strength;
     uint apply_view_space_thicken;

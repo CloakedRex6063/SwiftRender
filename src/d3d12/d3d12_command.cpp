@@ -3,18 +3,29 @@
 #include "swift_buffer.hpp"
 #include "swift_context.hpp"
 #include "swift_texture.hpp"
-#include "d3d12/d3d12_resource.hpp"
 #include "d3d12/d3d12_shader.hpp"
 #include "d3d12/d3d12_texture.hpp"
 
-Swift::D3D12::Command::Command(IContext* context, DescriptorHeap* cbv_heap, const QueueType type, std::string_view debug_name)
-    : m_context(static_cast<Context*>(context)), m_cbv_srv_uav_heap(cbv_heap)
+Swift::D3D12::Command::Command(IContext* context,
+                               DescriptorHeap* cbv_heap,
+                               DescriptorHeap* sampler_heap,
+                               ID3D12RootSignature* root_signature,
+                               const QueueType type,
+                               std::string_view debug_name)
+    : m_context(static_cast<Context*>(context)),
+      m_type(type),
+      m_cbv_srv_uav_heap(cbv_heap),
+      m_sampler_heap(sampler_heap),
+      m_root_signature(root_signature)
 {
     auto* const device = static_cast<ID3D12Device14*>(context->GetDevice());
-    m_type = type;
 
     device->CreateCommandAllocator(ToCommandType(type), IID_PPV_ARGS(&m_allocator));
     device->CreateCommandList(0, ToCommandType(type), m_allocator, nullptr, IID_PPV_ARGS(&m_list));
+
+    std::wstring name{debug_name.begin(), debug_name.end()};
+    m_list->SetName(name.c_str());
+
     m_list->Close();
 }
 
@@ -32,8 +43,10 @@ void Swift::D3D12::Command::Begin()
 
     if (m_list->GetType() != D3D12_COMMAND_LIST_TYPE_COPY)
     {
-        const auto descriptor_heaps = std::array{m_cbv_srv_uav_heap->GetHeap()};
-        m_list->SetDescriptorHeaps(1, descriptor_heaps.data());
+        const auto descriptor_heaps = std::array{m_cbv_srv_uav_heap->GetHeap(), m_sampler_heap->GetHeap()};
+        m_list->SetDescriptorHeaps(2, descriptor_heaps.data());
+        m_list->SetGraphicsRootSignature(m_root_signature);
+        m_list->SetComputeRootSignature(m_root_signature);
     }
 }
 
@@ -59,21 +72,6 @@ void Swift::D3D12::Command::SetScissor(const Scissor& scissor)
     m_list->RSSetScissorRects(1, &dx_scissor);
 }
 
-void Swift::D3D12::Command::BindConstantBuffer(IBuffer* buffer, const uint32_t slot)
-{
-    const D3D12_GPU_VIRTUAL_ADDRESS gpu_address = buffer->GetResource()->GetVirtualAddress();
-
-    switch (m_shader->GetShaderType())
-    {
-        case ShaderType::eGraphics:
-            m_list->SetGraphicsRootConstantBufferView(slot, gpu_address);
-            break;
-        case ShaderType::eCompute:
-            m_list->SetComputeRootConstantBufferView(slot, gpu_address);
-            break;
-    }
-}
-
 void Swift::D3D12::Command::PushConstants(const void* data, const uint32_t size, const uint32_t offset)
 {
     switch (m_shader->GetShaderType())
@@ -90,18 +88,6 @@ void Swift::D3D12::Command::PushConstants(const void* data, const uint32_t size,
 void Swift::D3D12::Command::BindShader(IShader* shader)
 {
     m_shader = shader;
-    const auto* const dx_shader = static_cast<Shader*>(shader);
-    const auto descriptor_heaps = std::array{m_cbv_srv_uav_heap->GetHeap()};
-    m_list->SetDescriptorHeaps(1, descriptor_heaps.data());
-    switch (shader->GetShaderType())
-    {
-        case ShaderType::eGraphics:
-            m_list->SetGraphicsRootSignature(dx_shader->m_root_signature);
-            break;
-        case ShaderType::eCompute:
-            m_list->SetComputeRootSignature(dx_shader->m_root_signature);
-            break;
-    }
     m_list->SetPipelineState(static_cast<ID3D12PipelineState*>(shader->GetPipeline()));
 }
 
@@ -115,11 +101,14 @@ void Swift::D3D12::Command::DispatchCompute(const uint32_t group_x, const uint32
     m_list->Dispatch(group_x, group_y, group_z);
 }
 
-void Swift::D3D12::Command::CopyBufferToTexture(const IContext* context, const IBuffer* buffer, const ITexture* texture,
-                                                const uint16_t mip_levels, const uint16_t array_size)
+void Swift::D3D12::Command::CopyBufferToTexture(IContext* context,
+                                                IBuffer* buffer,
+                                                ITexture* texture,
+                                                const uint16_t mip_levels,
+                                                const uint16_t array_size)
 {
-    auto* dst_resource = static_cast<ID3D12Resource*>(texture->GetResource()->GetResource());
-    auto* src_resource = static_cast<ID3D12Resource*>(buffer->GetResource()->GetResource());
+    auto* dst_resource = static_cast<ID3D12Resource*>(texture->GetResource());
+    auto* src_resource = static_cast<ID3D12Resource*>(buffer->GetResource());
 
     auto* const device = static_cast<ID3D12Device14*>(context->GetDevice());
 
@@ -174,9 +163,7 @@ void Swift::D3D12::Command::CopyBufferToTexture(const IContext* context, const I
         }
     }
 }
-
-void Swift::D3D12::Command::CopyResource(const std::shared_ptr<IResource>& src_resource,
-                                         const std::shared_ptr<IResource>& dst_resource)
+void Swift::D3D12::Command::CopyImageToImage(ITexture* src_resource, ITexture* dst_resource)
 {
     auto* src = static_cast<ID3D12Resource*>(src_resource->GetResource());
     auto* dst = static_cast<ID3D12Resource*>(dst_resource->GetResource());
@@ -185,15 +172,15 @@ void Swift::D3D12::Command::CopyResource(const std::shared_ptr<IResource>& src_r
 
 void Swift::D3D12::Command::CopyBufferRegion(const BufferCopyRegion& region)
 {
-    auto* dst_resource = static_cast<ID3D12Resource*>(region.dst_buffer->GetResource()->GetResource());
-    auto* src_resource = static_cast<ID3D12Resource*>(region.src_buffer->GetResource()->GetResource());
+    auto* dst_resource = static_cast<ID3D12Resource*>(region.dst_buffer->GetResource());
+    auto* src_resource = static_cast<ID3D12Resource*>(region.src_buffer->GetResource());
     m_list->CopyBufferRegion(dst_resource, region.dst_offset, src_resource, region.src_offset, region.size);
 }
 
 void Swift::D3D12::Command::CopyTextureRegion(const TextureCopyRegion& region)
 {
-    auto* dst_resource = static_cast<ID3D12Resource*>(region.dst_texture->GetResource()->GetResource());
-    auto* src_resource = static_cast<ID3D12Resource*>(region.src_texture->GetResource()->GetResource());
+    auto* dst_resource = static_cast<ID3D12Resource*>(region.dst_texture->GetResource());
+    auto* src_resource = static_cast<ID3D12Resource*>(region.src_texture->GetResource());
 
     const D3D12_TEXTURE_COPY_LOCATION src_location = {
         .pResource = src_resource,
@@ -267,30 +254,53 @@ void Swift::D3D12::Command::ClearDepthStencil(IDepthStencil* depth_stencil, cons
                                   nullptr);
 }
 
-void Swift::D3D12::Command::TransitionResource(const std::shared_ptr<IResource>& resource_handle, const ResourceState new_state)
+void Swift::D3D12::Command::TransitionImage(ITexture* image, const ResourceState new_state)
 {
-    auto* dx_resource = static_cast<Resource*>(resource_handle.get());
     const auto new_dx_state = ToResourceState(new_state);
-    if (dx_resource->GetState() == new_state) return;
+    if (image->GetState() == new_state) return;
     const auto barrier = D3D12_RESOURCE_BARRIER{.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
                                                 .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
                                                 .Transition = {
-                                                    .pResource = static_cast<ID3D12Resource*>(dx_resource->GetResource()),
+                                                    .pResource = static_cast<ID3D12Resource*>(image->GetResource()),
                                                     .Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-                                                    .StateBefore = ToResourceState(dx_resource->GetState()),
+                                                    .StateBefore = ToResourceState(image->GetState()),
                                                     .StateAfter = new_dx_state,
                                                 }};
-    dx_resource->SetState(new_state);
+    image->SetState(new_state);
     m_list->ResourceBarrier(1, &barrier);
 }
 
-void Swift::D3D12::Command::UAVBarrier(const std::shared_ptr<IResource>& resource_handle)
+void Swift::D3D12::Command::TransitionBuffer(IBuffer* buffer, ResourceState new_state)
 {
-    auto* dx_resource = static_cast<Resource*>(resource_handle.get());
+    const auto new_dx_state = ToResourceState(new_state);
+    if (buffer->GetState() == new_state) return;
+    const auto barrier = D3D12_RESOURCE_BARRIER{.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+                                                .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                                                .Transition = {
+                                                    .pResource = static_cast<ID3D12Resource*>(buffer->GetResource()),
+                                                    .Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+                                                    .StateBefore = ToResourceState(buffer->GetState()),
+                                                    .StateAfter = new_dx_state,
+                                                }};
+    buffer->SetState(new_state);
+    m_list->ResourceBarrier(1, &barrier);
+}
+void Swift::D3D12::Command::UAVBarrier(IBuffer* buffer)
+{
     const auto barrier = D3D12_RESOURCE_BARRIER{.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV,
                                                 .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
                                                 .UAV = {
-                                                    .pResource = static_cast<ID3D12Resource*>(dx_resource->GetResource()),
+                                                    .pResource = static_cast<ID3D12Resource*>(buffer->GetResource()),
+                                                }};
+    m_list->ResourceBarrier(1, &barrier);
+}
+
+void Swift::D3D12::Command::UAVBarrier(ITexture* texture)
+{
+    const auto barrier = D3D12_RESOURCE_BARRIER{.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV,
+                                                .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                                                .UAV = {
+                                                    .pResource = static_cast<ID3D12Resource*>(texture->GetResource()),
                                                 }};
     m_list->ResourceBarrier(1, &barrier);
 }

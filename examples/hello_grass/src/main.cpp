@@ -78,15 +78,6 @@ int main()
     auto mesh_code = compiler.CompileShader("hello_grass.slang", ShaderStage::eMesh);
     auto pixel_code = compiler.CompileShader("hello_grass.slang", ShaderStage::ePixel);
 
-    std::vector<Swift::Descriptor> descriptors{};
-    Swift::Descriptor descriptor{
-        .shader_register = 1,
-        .register_space = 0,
-        .descriptor_type = Swift::DescriptorType::eConstant,
-        .shader_visibility = Swift::ShaderVisibility::eAll,
-    };
-    descriptors.emplace_back(descriptor);
-
     const auto formats = std::vector{Swift::Format::eRGBA8_UNORM};
     const auto grass_shader_create_info = Swift::GraphicsShaderCreateInfo{
         .rtv_formats = formats,
@@ -102,7 +93,6 @@ int main()
             {
                 .cull_mode = Swift::CullMode::eNone,
             },
-        .descriptors = descriptors,
     };
     auto* grass_shader = context->CreateShader(grass_shader_create_info);
 
@@ -117,12 +107,16 @@ int main()
         uint32_t grass_patch_count;
         glm::float2 padding;
     };
-    const Swift::BufferCreateInfo constant_create_info{
+    constexpr Swift::BufferCreateInfo constant_create_info{
         .size = 65536,
     };
     auto* const constant_buffer = context->CreateBuffer(constant_create_info);
+    auto* const constant_buffer_srv = context->CreateShaderResource(constant_buffer, Swift::BufferSRVCreateInfo{
+        .num_elements = 1,
+        .element_size = 65536,
+    });
 
-    const Swift::BufferCreateInfo frustum_create_info{
+    constexpr Swift::BufferCreateInfo frustum_create_info{
         .size = sizeof(Frustum),
     };
     auto* frustum_buffer = context->CreateBuffer(frustum_create_info);
@@ -132,7 +126,7 @@ int main()
                                                                  .element_size = sizeof(Frustum),
                                                              });
 
-    const Swift::BufferCreateInfo grass_info{
+    constexpr Swift::BufferCreateInfo grass_info{
         .size = 1'000'000 * sizeof(GrassPatch),
     };
     auto* grass_buffer = context->CreateBuffer(grass_info);
@@ -208,30 +202,31 @@ int main()
         command->SetViewport(Swift::Viewport{.dimensions = float_size});
         command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
 
-        command->TransitionResource(render_target->GetTexture()->GetResource(), Swift::ResourceState::eRenderTarget);
-        command->TransitionResource(depth_texture->GetResource(), Swift::ResourceState::eDepthWrite);
+        command->TransitionImage(render_target->GetTexture(), Swift::ResourceState::eRenderTarget);
+        command->TransitionImage(depth_texture, Swift::ResourceState::eDepthWrite);
 
         command->ClearRenderTarget(render_target, {0.392f, 0.584f, 0.929f, 1.0f});
         command->ClearDepthStencil(depth_stencil, 1.0f, 0);
         command->BindShader(grass_shader);
-        command->BindConstantBuffer(constant_buffer, 1);
         command->BindRenderTargets(render_target, depth_stencil);
         const struct PushConstant
         {
+            uint32_t constant_buffer_index;
             float wind_speed;
             float wind_strength;
             uint32_t apply_view_space_thicken;
-            float lod_distance;
 
+            float lod_distance;
             uint32_t grass_count;
             float radius;
             uint32_t cull;
-            uint32_t cull_z;
 
+            uint32_t cull_z;
             float width;
             float time;
-            glm::float2 padding;
+            float padding;
         } push_constant{
+            .constant_buffer_index = constant_buffer_srv->GetDescriptorIndex(),
             .wind_speed = grass_settings.wind_speed,
             .wind_strength = grass_settings.wind_strength,
             .apply_view_space_thicken = grass_settings.apply_view_space_thicken,
@@ -285,7 +280,7 @@ int main()
 
         imgui.Render(command);
 
-        command->TransitionResource(render_target->GetTexture()->GetResource(), Swift::ResourceState::ePresent);
+        command->TransitionImage(render_target->GetTexture(), Swift::ResourceState::ePresent);
 
         command->End();
 
@@ -298,6 +293,7 @@ int main()
     context->DestroyBuffer(frustum_buffer);
     context->DestroyShaderResource(grass_buffer_srv);
     context->DestroyShaderResource(frustum_buffer_srv);
+    context->DestroyShaderResource(constant_buffer_srv);
 
     imgui.Destroy();
 

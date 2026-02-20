@@ -18,35 +18,42 @@ struct MeshRenderer
     uint32_t m_transform_index;
     uint32_t m_bounding_offset;
 
-    void Draw(Swift::ICommand* command, const bool should_cull = false, const uint32_t pass_index = 0) const
+    void Draw(Swift::ICommand* command, const bool amp_dispatch = false, const bool should_cull = false, const uint32_t pass_index = 0) const
     {
-        const struct PushConstants
+        // const struct PushConstants
+        // {
+        //     uint32_t vertex_buffer;
+        //     uint32_t meshlet_buffer;
+        //     uint32_t mesh_vertex_buffer;
+        //     uint32_t mesh_triangle_buffer;
+        //     int material_index;
+        //     uint32_t transform_index;
+        //     uint32_t meshlet_count;
+        //     uint32_t bounding_offset;
+        //     uint32_t should_cull;
+        //     uint32_t pass_index;
+        // } push_constants{
+        //     .vertex_buffer = m_vertex_buffer,
+        //     .meshlet_buffer = m_mesh_buffer,
+        //     .mesh_vertex_buffer = m_mesh_vertex_buffer,
+        //     .mesh_triangle_buffer = m_mesh_triangle_buffer,
+        //     .material_index = m_material_index,
+        //     .transform_index = m_transform_index,
+        //     .meshlet_count = m_meshlet_count,
+        //     .bounding_offset = m_bounding_offset,
+        //     .should_cull = should_cull,
+        //     .pass_index = pass_index,
+        // };
+        // command->PushConstants(&push_constants, sizeof(PushConstants));
+        if (amp_dispatch)
         {
-            uint32_t vertex_buffer;
-            uint32_t meshlet_buffer;
-            uint32_t mesh_vertex_buffer;
-            uint32_t mesh_triangle_buffer;
-            int material_index;
-            uint32_t transform_index;
-            uint32_t meshlet_count;
-            uint32_t bounding_offset;
-            uint32_t should_cull;
-            uint32_t pass_index;
-        } push_constants{
-            .vertex_buffer = m_vertex_buffer,
-            .meshlet_buffer = m_mesh_buffer,
-            .mesh_vertex_buffer = m_mesh_vertex_buffer,
-            .mesh_triangle_buffer = m_mesh_triangle_buffer,
-            .material_index = m_material_index,
-            .transform_index = m_transform_index,
-            .meshlet_count = m_meshlet_count,
-            .bounding_offset = m_bounding_offset,
-            .should_cull = should_cull,
-            .pass_index = pass_index,
-        };
-        command->PushConstants(&push_constants, sizeof(PushConstants));
-        const uint32_t num_amp_groups = (m_meshlet_count + 31) / 32;
-        command->DispatchMesh(num_amp_groups, 1, 1);
+            const uint32_t num_amp_groups = (m_meshlet_count + 31) / 32;
+            command->DispatchMesh(num_amp_groups, 1, 1);
+        }
+        else
+        {
+            command->DispatchMesh(m_meshlet_count, 1, 1);
+        }
     }
 };
 
@@ -135,26 +142,19 @@ inline std::vector<MeshRenderer> CreateMeshRenderers(const std::span<const Node>
 }
 
 inline std::vector<TextureView> CreateTextures(Swift::IContext* context,
-                                               Swift::IHeap* heap,
                                                const std::span<Texture> textures,
                                                std::span<Material> materials)
 {
     std::vector<TextureView> output_textures;
-    uint32_t offset = 0;
     for (auto& texture : textures)
     {
-        auto texture_builder = Swift::TextureBuilder(context, texture.width, texture.height)
+        auto* t = Swift::TextureBuilder(context, texture.width, texture.height)
                                    .SetFormat(texture.format)
                                    .SetArraySize(texture.array_size)
                                    .SetMipmapLevels(1)
                                    .SetData(texture.pixels.data())
                                    .SetGenMipMaps(false)
-                                   .SetName(texture.name);
-        auto info = texture_builder.GetBuildInfo();
-        texture_builder.SetResource(heap->CreateResource(info, offset));
-        offset += context->CalculateAlignedTextureSize(info);
-        auto* t = texture_builder.Build();
-
+                                   .SetName(texture.name).Build();
         auto* srv = context->CreateShaderResource(t);
         output_textures.emplace_back(TextureView{t, srv});
     }

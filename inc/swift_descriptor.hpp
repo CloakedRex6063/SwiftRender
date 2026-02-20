@@ -122,4 +122,15 @@ namespace Swift
     private:
         ITexture* m_texture;
     };
+
+    class ISampler : public IDescriptor
+    {
+    public:
+        SWIFT_DESTRUCT(ISampler);
+        SWIFT_NO_MOVE(ISampler);
+        SWIFT_NO_COPY(ISampler);
+
+    protected:
+        SWIFT_CONSTRUCT(ISampler);
+    };
 }  // namespace Swift

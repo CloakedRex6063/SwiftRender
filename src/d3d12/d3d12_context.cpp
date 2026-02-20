@@ -1,12 +1,10 @@
 #include "d3d12/d3d12_context.hpp"
 #include "d3d12/d3d12_helpers.hpp"
-#include "d3d12/d3d12_heap.hpp"
 #include "d3d12/d3d12_buffer.hpp"
 #include "d3d12/d3d12_command.hpp"
 #include "d3d12/d3d12_queue.hpp"
 #include "d3d12/d3d12_shader.hpp"
 #include "d3d12/d3d12_texture.hpp"
-#include "d3d12/d3d12_resource.hpp"
 #include "d3d12/d3d12_swapchain.hpp"
 #include "swift_shader_data.hpp"
 #include "swift_helpers.hpp"
@@ -19,6 +17,7 @@ namespace Swift::D3D12
         CreateBackend();
         CreateDevice();
         CreateDescriptorHeaps(create_info);
+        CreateRootSignature();
         CreateFrameData();
         CreateQueues();
         CreateSwapchain(create_info);
@@ -30,7 +29,8 @@ namespace Swift::D3D12
     {
         m_graphics_queue->WaitIdle();
 
-        delete m_swapchain;
+        m_root_signature->Release();
+        m_swapchain.reset();
 
         for (auto* queue : m_queues)
         {
@@ -88,14 +88,9 @@ namespace Swift::D3D12
             DestroyCommand(command);
         }
 
-        for (auto* heap : m_heaps)
-        {
-            DestroyHeap(heap);
-        }
-
-        delete m_rtv_heap;
-        delete m_dsv_heap;
-        delete m_cbv_srv_uav_heap;
+        m_rtv_heap.reset();
+        m_dsv_heap.reset();
+        m_cbv_srv_uav_heap.reset();
 
         m_factory->Release();
         m_adapter->Release();
@@ -117,9 +112,18 @@ namespace Swift::D3D12
 
     ICommand* Context::CreateCommand(const QueueType queue_type, const std::string_view debug_name)
     {
-        return CreateObject([&] { return new Command(this, m_cbv_srv_uav_heap, queue_type, debug_name); },
-                            m_commands,
-                            m_free_commands);
+        return CreateObject(
+            [&]
+            {
+                return new Command(this,
+                                   m_cbv_srv_uav_heap.get(),
+                                   m_sampler_heap.get(),
+                                   m_root_signature,
+                                   queue_type,
+                                   debug_name);
+            },
+            m_commands,
+            m_free_commands);
     }
 
     IQueue* Context::CreateQueue(const QueueCreateInfo& info)
@@ -129,7 +133,7 @@ namespace Swift::D3D12
 
     IBuffer* Context::CreateBuffer(const BufferCreateInfo& info)
     {
-        return CreateObject([&] { return new Buffer(this, m_cbv_srv_uav_heap, info); }, m_buffers, m_free_buffers);
+        return CreateObject([&] { return new Buffer(this, info); }, m_buffers, m_free_buffers);
     }
 
     ITexture* Context::CreateTexture(const TextureCreateInfo& info)
@@ -155,7 +159,7 @@ namespace Swift::D3D12
             auto* const copy_command = CreateCommand(QueueType::eTransfer);
             copy_command->Begin();
             copy_command->CopyBufferToTexture(this, upload_buffer, texture, create_info.mip_levels, create_info.array_size);
-            copy_command->TransitionResource(texture->GetResource(), ResourceState::eCommon);
+            copy_command->TransitionImage(texture, ResourceState::eCommon);
             copy_command->End();
 
             const auto value = m_copy_queue->Execute(copy_command);
@@ -182,6 +186,7 @@ namespace Swift::D3D12
 
                     struct PushConstant
                     {
+                        uint32_t sampler_index;
                         uint32_t mip1_index;
                         uint32_t src_index;
                         std::array<float, 2> texel_size;
@@ -191,6 +196,7 @@ namespace Swift::D3D12
                     const uint32_t dst_height = std::max(create_info.height >> (src_mip + 1), 1u);
 
                     PushConstant pc{
+                        .sampler_index = m_mipmap_sampler->GetDescriptorIndex(),
                         .mip1_index = texture_uavs[src_mip]->GetDescriptorIndex(),
                         .src_index = texture_srvs[src_mip]->GetDescriptorIndex(),
                         .texel_size = {1.0f / static_cast<float>(dst_width), 1.0f / static_cast<float>(dst_height)}};
@@ -198,7 +204,7 @@ namespace Swift::D3D12
 
                     command->DispatchCompute(std::max(dst_width / 8u, 1u), std::max(dst_height / 8u, 1u), 1);
 
-                    command->UAVBarrier(texture->GetResource());
+                    command->UAVBarrier(texture);
                 }
 
                 command->End();
@@ -249,29 +255,24 @@ namespace Swift::D3D12
         return CreateObject([&] { return new BufferUAV(this, buffer, uav_create_info); }, m_buffer_uavs, m_free_buffer_uavs);
     }
 
+    IBufferCBV* Context::CreateConstantBufferView(IBuffer* buffer, const uint16_t size)
+    {
+        return CreateObject([&] { return new BufferCBV(this, buffer, size); }, m_buffer_cbvs, m_free_buffer_cbvs);
+    }
+
+    ISampler* Context::CreateSampler(const SamplerCreateInfo& info)
+    {
+        return CreateObject([&] { return new Sampler(this, info); }, m_samplers, m_free_samplers);
+    }
+
     IShader* Context::CreateShader(const GraphicsShaderCreateInfo& info)
     {
-        return CreateObject([&] { return new Shader(m_device, info); }, m_shaders, m_free_shaders);
+        return CreateObject([&] { return new Shader(m_device, m_root_signature, info); }, m_shaders, m_free_shaders);
     }
 
     IShader* Context::CreateShader(const ComputeShaderCreateInfo& info)
     {
-        return CreateObject([&] { return new Shader(m_device, info); }, m_shaders, m_free_shaders);
-    }
-
-    std::shared_ptr<IResource> Context::CreateResource(const BufferCreateInfo& info)
-    {
-        return std::make_shared<Resource>(m_device, info);
-    }
-
-    std::shared_ptr<IResource> Context::CreateResource(const TextureCreateInfo& info)
-    {
-        return std::make_shared<Resource>(m_device, info);
-    }
-
-    IHeap* Context::CreateHeap(const HeapCreateInfo& heap_create_info)
-    {
-        return CreateObject([&] { return new Heap(this, heap_create_info); }, m_heaps, m_free_heaps);
+        return CreateObject([&] { return new Shader(m_device, m_root_signature, info); }, m_shaders, m_free_shaders);
     }
 
     void Context::DestroyCommand(ICommand* command) { DestroyObject(command, m_commands, m_free_commands); }
@@ -291,10 +292,8 @@ namespace Swift::D3D12
     void Context::DestroyShaderResource(IBufferSRV* srv) { DestroyObject(srv, m_buffer_srvs, m_free_buffer_srvs); }
     void Context::DestroyUnorderedAccessView(IBufferUAV* uav) { DestroyObject(uav, m_buffer_uavs, m_free_buffer_uavs); }
     void Context::DestroyUnorderedAccessView(ITextureUAV* uav) { DestroyObject(uav, m_texture_uavs, m_free_texture_uavs); }
-
-    void Context::DestroyHeap(IHeap* heap) { DestroyObject(heap, m_heaps, m_free_heaps); }
-
-    void Context::UpdateTextureRegion(ITexture* texture, const TextureUpdateRegion& texture_region) {}
+    void Context::DestroyConstantBufferView(IBufferCBV* cbv) { DestroyObject(cbv, m_buffer_cbvs, m_free_buffer_cbvs); }
+    void Context::DestroySampler(ISampler* sampler) { DestroyObject(sampler, m_samplers, m_free_samplers); }
 
     void Context::Present(const bool vsync)
     {
@@ -321,10 +320,8 @@ namespace Swift::D3D12
         for (int i = 0; i < m_swapchain_textures.size(); i++)
         {
             ID3D12Resource* back_buffer = nullptr;
-            auto* swapchain = static_cast<IDXGISwapChain4*>(m_swapchain->GetSwapchain());
+            auto* swapchain = m_swapchain->GetSwapchain();
             swapchain->GetBuffer(i, IID_PPV_ARGS(&back_buffer));
-
-            auto resource = std::make_shared<Resource>(back_buffer);
 
             TextureCreateInfo tex_create_info{
                 .width = width,
@@ -332,9 +329,9 @@ namespace Swift::D3D12
                 .mip_levels = 1,
                 .array_size = 1,
                 .format = format,
-                .resource = resource,
             };
-            m_swapchain_textures[i] = CreateTexture(tex_create_info);
+            m_swapchain_textures[i] =
+                CreateObject([&] { return new Texture(back_buffer, tex_create_info); }, m_textures, m_free_textures);
             m_swapchain_render_targets[i] = CreateRenderTarget(m_swapchain_textures[i], 0);
         }
         m_frame_index = m_swapchain->GetFrameIndex();
@@ -418,10 +415,13 @@ namespace Swift::D3D12
 
     void Context::CreateDescriptorHeaps(const ContextCreateInfo& create_info)
     {
-        m_rtv_heap = new DescriptorHeap(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, create_info.rtv_handle_count);
-        m_dsv_heap = new DescriptorHeap(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, create_info.dsv_handle_count);
-        m_cbv_srv_uav_heap =
-            new DescriptorHeap(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, create_info.cbv_srv_uav_handle_count);
+        m_rtv_heap = std::make_unique<DescriptorHeap>(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, create_info.rtv_handle_count);
+        m_dsv_heap = std::make_unique<DescriptorHeap>(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, create_info.dsv_handle_count);
+        m_cbv_srv_uav_heap = std::make_unique<DescriptorHeap>(m_device,
+                                                              D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+                                                              create_info.cbv_srv_uav_handle_count);
+        m_sampler_heap =
+            std::make_unique<DescriptorHeap>(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, create_info.sampler_handle_count);
     }
 
     typedef HRESULT(__stdcall* PFN_DxcCreateInstance)(REFCLSID rclsid, REFIID riid, LPVOID* ppv);
@@ -450,10 +450,8 @@ namespace Swift::D3D12
         for (int i = 0; i < m_swapchain_textures.size(); i++)
         {
             ID3D12Resource* back_buffer = nullptr;
-            auto* swapchain = static_cast<IDXGISwapChain4*>(m_swapchain->GetSwapchain());
+            auto* swapchain = m_swapchain->GetSwapchain();
             swapchain->GetBuffer(i, IID_PPV_ARGS(&back_buffer));
-
-            auto resource = std::make_shared<Resource>(back_buffer);
 
             TextureCreateInfo tex_create_info{
                 .width = create_info.width,
@@ -461,9 +459,10 @@ namespace Swift::D3D12
                 .mip_levels = 1,
                 .array_size = 1,
                 .format = format,
-                .resource = resource,
             };
-            m_swapchain_textures[i] = CreateTexture(tex_create_info);
+
+            m_swapchain_textures[i] =
+                CreateObject([&] { return new Texture(back_buffer, tex_create_info); }, m_textures, m_free_textures);
             m_swapchain_render_targets[i] = CreateRenderTarget(m_swapchain_textures[i], 0);
         }
     }
@@ -471,19 +470,55 @@ namespace Swift::D3D12
     void Context::CreateSwapchain(const ContextCreateInfo& create_info)
     {
         auto* queue = static_cast<ID3D12CommandQueue*>(m_graphics_queue->GetQueue());
-        m_swapchain = new Swapchain(m_factory, queue, create_info);
+        m_swapchain = std::make_unique<Swapchain>(m_factory, queue, create_info);
     }
 
     void Context::CreateMipMapShader()
     {
-        std::vector<SamplerDescriptor> sampler_descriptors;
-        sampler_descriptors.emplace_back(SamplerDescriptor{});
+        std::vector<SamplerCreateInfo> sampler_descriptors;
+        sampler_descriptors.emplace_back(SamplerCreateInfo{});
         const ComputeShaderCreateInfo compute_shader_create_info{
             .code = gen_mips_code,
-            .descriptors = {},
-            .static_samplers = sampler_descriptors,
             .name = "Mip Map Shader",
         };
         m_mipmap_shader = CreateShader(compute_shader_create_info);
+        m_mipmap_sampler = CreateSampler({});
+    }
+
+    void Context::CreateRootSignature()
+    {
+        D3D12_ROOT_PARAMETER1 push_constants{
+            .ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
+            .Constants =
+                {
+                    .ShaderRegister = 0,
+                    .RegisterSpace = 0,
+                    .Num32BitValues = 32,
+                },
+            .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+        };
+
+        const D3D12_VERSIONED_ROOT_SIGNATURE_DESC root_signature_desc = {
+            .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
+            .Desc_1_1 = {
+                .NumParameters = 1,
+                .pParameters = &push_constants,
+                .Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED,
+            }};
+
+        ID3DBlob* error_blob = nullptr;
+        ID3DBlob* root_signature_blob = nullptr;
+        if (const auto result = D3D12SerializeVersionedRootSignature(&root_signature_desc, &root_signature_blob, &error_blob);
+            result != S_OK)
+        {
+            error_blob->Release();
+        }
+
+        [[maybe_unused]]
+        const auto result = m_device->CreateRootSignature(0,
+                                                          root_signature_blob->GetBufferPointer(),
+                                                          root_signature_blob->GetBufferSize(),
+                                                          IID_PPV_ARGS(&m_root_signature));
+        root_signature_blob->Release();
     }
 }  // namespace Swift::D3D12
