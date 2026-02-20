@@ -8,7 +8,6 @@ void mesh_main(uint gtid: SV_GroupThreadID,
                OutputVertices<OutVertex, 64> verts,
                OutputIndices<uint3, 124> triangles)
 {
-    var GlobalConstants = DescriptorHandle<StructuredBuffer<GlobalConstant>>(PushConstants.constant_buffer_index)[0];
     var vertex_buffer = DescriptorHandle<StructuredBuffer<Vertex>>(PushConstants.vertex_buffer_index);
     var meshlet_buffer = DescriptorHandle<StructuredBuffer<Meshlet>>(PushConstants.mesh_buffer_index);
     var mesh_vertex_buffer = DescriptorHandle<StructuredBuffer<uint>>(PushConstants.mesh_vertex_buffer_index);
@@ -43,7 +42,6 @@ void mesh_main(uint gtid: SV_GroupThreadID,
 [shader("pixel")]
 float4 pixel_main(OutVertex input) : SV_TARGET
 {
-    var GlobalConstants = DescriptorHandle<StructuredBuffer<GlobalConstant>>(PushConstants.constant_buffer_index)[0];
     var material_buffer = DescriptorHandle<StructuredBuffer<Material>>(GlobalConstants.material_buffer_index);
     Material material = material_buffer[PushConstants.material_index];
 

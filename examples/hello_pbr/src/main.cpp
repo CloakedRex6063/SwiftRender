@@ -48,10 +48,6 @@ int main()
         samplers.emplace_back(s);
     }
 
-    std::vector<Swift::Descriptor> descriptors{};
-    const auto descriptor = Swift::DescriptorBuilder(Swift::DescriptorType::eConstant).SetShaderRegister(1).Build();
-    descriptors.emplace_back(descriptor);
-
     auto* const shader = Swift::GraphicsShaderBuilder(context)
                              .SetRTVFormats({Swift::Format::eRGBA8_UNORM})
                              .SetDSVFormat(Swift::Format::eD32F)
@@ -84,12 +80,6 @@ int main()
         glm::float3 padding;
     };
     auto* const constant_buffer = Swift::BufferBuilder(context, sizeof(ConstantBufferInfo)).Build();
-    auto* const constant_buffer_srv = context->CreateShaderResource(constant_buffer,
-                                                                    Swift::BufferSRVCreateInfo{
-                                                                        .num_elements = 1,
-                                                                        .element_size = sizeof(ConstantBufferInfo),
-                                                                    });
-
 
     auto* const material_buffer =
         Swift::BufferBuilder(context, sizeof(Material) * helmet.materials.size()).SetData(helmet.materials.data()).Build();
@@ -177,6 +167,8 @@ int main()
         command->SetViewport(Swift::Viewport{.dimensions = float_size});
         command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
 
+        command->BindConstantBuffer(constant_buffer, 1);
+
         command->TransitionImage(render_target->GetTexture(), Swift::ResourceState::eRenderTarget);
         command->TransitionImage(depth_texture, Swift::ResourceState::eDepthWrite);
 
@@ -190,7 +182,6 @@ int main()
             const struct PushConstants
             {
                 uint32_t sampler_index;
-                uint32_t constant_buffer_index;
                 uint32_t vertex_buffer;
                 uint32_t meshlet_buffer;
                 uint32_t mesh_vertex_buffer;
@@ -199,7 +190,6 @@ int main()
                 uint32_t transform_index;
             } push_constants{
                 .sampler_index = samplers[0]->GetDescriptorIndex(),
-                .constant_buffer_index = constant_buffer_srv->GetDescriptorIndex(),
                 .vertex_buffer = mesh.m_vertex_buffer,
                 .meshlet_buffer = mesh.m_mesh_buffer,
                 .mesh_vertex_buffer = mesh.m_mesh_vertex_buffer,
@@ -263,7 +253,6 @@ int main()
     context->DestroyBuffer(transforms_buffer);
     context->DestroyShaderResource(transforms_buffer_srv);
     context->DestroyBuffer(constant_buffer);
-    context->DestroyShaderResource(constant_buffer_srv);
     context->DestroyShader(shader);
     DestroyTextures(context, textures);
     DestroyMeshBuffers(context, mesh_buffers);

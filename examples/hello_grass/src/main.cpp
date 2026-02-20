@@ -111,10 +111,6 @@ int main()
         .size = 65536,
     };
     auto* const constant_buffer = context->CreateBuffer(constant_create_info);
-    auto* const constant_buffer_srv = context->CreateShaderResource(constant_buffer, Swift::BufferSRVCreateInfo{
-        .num_elements = 1,
-        .element_size = 65536,
-    });
 
     constexpr Swift::BufferCreateInfo frustum_create_info{
         .size = sizeof(Frustum),
@@ -167,6 +163,7 @@ int main()
 
     float time = 0.0f;
     auto prev_time = std::chrono::high_resolution_clock::now();
+
     while (window.IsRunning())
     {
         input.Tick();
@@ -201,6 +198,7 @@ int main()
         command->Begin();
         command->SetViewport(Swift::Viewport{.dimensions = float_size});
         command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
+        command->BindConstantBuffer(constant_buffer, 1);
 
         command->TransitionImage(render_target->GetTexture(), Swift::ResourceState::eRenderTarget);
         command->TransitionImage(depth_texture, Swift::ResourceState::eDepthWrite);
@@ -211,7 +209,6 @@ int main()
         command->BindRenderTargets(render_target, depth_stencil);
         const struct PushConstant
         {
-            uint32_t constant_buffer_index;
             float wind_speed;
             float wind_strength;
             uint32_t apply_view_space_thicken;
@@ -226,7 +223,6 @@ int main()
             float time;
             float padding;
         } push_constant{
-            .constant_buffer_index = constant_buffer_srv->GetDescriptorIndex(),
             .wind_speed = grass_settings.wind_speed,
             .wind_strength = grass_settings.wind_strength,
             .apply_view_space_thicken = grass_settings.apply_view_space_thicken,
@@ -293,7 +289,6 @@ int main()
     context->DestroyBuffer(frustum_buffer);
     context->DestroyShaderResource(grass_buffer_srv);
     context->DestroyShaderResource(frustum_buffer_srv);
-    context->DestroyShaderResource(constant_buffer_srv);
 
     imgui.Destroy();
 

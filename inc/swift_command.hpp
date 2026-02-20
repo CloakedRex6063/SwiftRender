@@ -33,6 +33,7 @@ namespace Swift
         virtual void CopyBufferRegion(const BufferCopyRegion& region) = 0;
         virtual void CopyImageToImage(ITexture* src_resource, ITexture* dst_resource) = 0;
         virtual void CopyTextureRegion(const TextureCopyRegion& region) = 0;
+        virtual void BindConstantBuffer(IBuffer* buffer, uint32_t slot) = 0;
         virtual void BindRenderTargets(std::span<IRenderTarget*> render_targets, IDepthStencil* depth_stencil) = 0;
         virtual void BindRenderTargets(IRenderTarget* render_target, IDepthStencil* depth_stencil)
         {

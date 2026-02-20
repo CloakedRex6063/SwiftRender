@@ -39,6 +39,7 @@ namespace Swift::D3D12
         void CopyImageToImage(ITexture* src_resource, ITexture* dst_resource) override;
         void CopyBufferRegion(const BufferCopyRegion& region) override;
         void CopyTextureRegion(const TextureCopyRegion& region) override;
+        void BindConstantBuffer(IBuffer* buffer, uint32_t slot) override;
         void BindRenderTargets(std::span<IRenderTarget*> render_targets, IDepthStencil* depth_stencil) override;
         void ClearRenderTarget(IRenderTarget* render_target, const std::array<float, 4>& color) override;
         void ClearDepthStencil(IDepthStencil* depth_stencil, float depth, uint8_t stencil) override;

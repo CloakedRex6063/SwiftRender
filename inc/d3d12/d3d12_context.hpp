@@ -38,7 +38,6 @@ namespace Swift::D3D12
         IBufferSRV* CreateShaderResource(IBuffer* buffer, const BufferSRVCreateInfo& srv_create_info) override;
         ITextureUAV* CreateUnorderedAccessView(ITexture* texture, uint32_t mip = 0) override;
         IBufferUAV* CreateUnorderedAccessView(IBuffer* buffer, const BufferUAVCreateInfo& uav_create_info) override;
-        IBufferCBV* CreateConstantBufferView(IBuffer* buffer, uint16_t size) override;
         ISampler* CreateSampler(const SamplerCreateInfo& info) override;
         IShader* CreateShader(const GraphicsShaderCreateInfo& info) override;
         IShader* CreateShader(const ComputeShaderCreateInfo& info) override;
@@ -54,7 +53,6 @@ namespace Swift::D3D12
         void DestroyShaderResource(IBufferSRV* srv) override;
         void DestroyUnorderedAccessView(IBufferUAV* uav) override;
         void DestroyUnorderedAccessView(ITextureUAV* uav) override;
-        void DestroyConstantBufferView(IBufferCBV* cbv) override;
         void DestroySampler(ISampler* sampler) override;
 
         void Present(bool vsync) override;

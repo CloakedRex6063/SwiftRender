@@ -211,6 +211,12 @@ void Swift::D3D12::Command::CopyTextureRegion(const TextureCopyRegion& region)
                               &src_box);
 }
 
+void Swift::D3D12::Command::BindConstantBuffer(IBuffer* buffer, const uint32_t slot)
+{
+    m_list->SetGraphicsRootConstantBufferView(slot, buffer->GetVirtualAddress());
+    m_list->SetComputeRootConstantBufferView(slot, buffer->GetVirtualAddress());
+}
+
 void Swift::D3D12::Command::BindRenderTargets(const std::span<IRenderTarget*> render_targets, IDepthStencil* depth_stencil)
 {
     std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 8> render_target_descriptors;

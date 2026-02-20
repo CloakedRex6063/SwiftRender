@@ -36,7 +36,6 @@ namespace Swift
         virtual IBufferSRV* CreateShaderResource(IBuffer* buffer, const BufferSRVCreateInfo& create_info) = 0;
         virtual ITextureUAV* CreateUnorderedAccessView(ITexture* texture, uint32_t mip = 0) = 0;
         virtual IBufferUAV* CreateUnorderedAccessView(IBuffer* buffer, const BufferUAVCreateInfo& create_info) = 0;
-        virtual IBufferCBV* CreateConstantBufferView(IBuffer* buffer, uint16_t size) = 0;
         virtual ISampler* CreateSampler(const SamplerCreateInfo& info) = 0;
 
         virtual void DestroyCommand(ICommand* command) = 0;
@@ -50,7 +49,6 @@ namespace Swift
         virtual void DestroyShaderResource(IBufferSRV* srv) = 0;
         virtual void DestroyUnorderedAccessView(IBufferUAV* uav) = 0;
         virtual void DestroyUnorderedAccessView(ITextureUAV* uav) = 0;
-        virtual void DestroyConstantBufferView(IBufferCBV* cbv) = 0;
         virtual void DestroySampler(ISampler* sampler) = 0;
 
         virtual void Present(bool vsync) = 0;
@@ -103,8 +101,6 @@ namespace Swift
         std::vector<uint32_t> m_free_texture_srvs;
         std::vector<IBufferSRV*> m_buffer_srvs;
         std::vector<uint32_t> m_free_buffer_srvs;
-        std::vector<IBufferCBV*> m_buffer_cbvs;
-        std::vector<uint32_t> m_free_buffer_cbvs;
         std::vector<ITextureUAV*> m_texture_uavs;
         std::vector<uint32_t> m_free_texture_uavs;
         std::vector<IBufferUAV*> m_buffer_uavs;

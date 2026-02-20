@@ -255,11 +255,6 @@ namespace Swift::D3D12
         return CreateObject([&] { return new BufferUAV(this, buffer, uav_create_info); }, m_buffer_uavs, m_free_buffer_uavs);
     }
 
-    IBufferCBV* Context::CreateConstantBufferView(IBuffer* buffer, const uint16_t size)
-    {
-        return CreateObject([&] { return new BufferCBV(this, buffer, size); }, m_buffer_cbvs, m_free_buffer_cbvs);
-    }
-
     ISampler* Context::CreateSampler(const SamplerCreateInfo& info)
     {
         return CreateObject([&] { return new Sampler(this, info); }, m_samplers, m_free_samplers);
@@ -292,7 +287,6 @@ namespace Swift::D3D12
     void Context::DestroyShaderResource(IBufferSRV* srv) { DestroyObject(srv, m_buffer_srvs, m_free_buffer_srvs); }
     void Context::DestroyUnorderedAccessView(IBufferUAV* uav) { DestroyObject(uav, m_buffer_uavs, m_free_buffer_uavs); }
     void Context::DestroyUnorderedAccessView(ITextureUAV* uav) { DestroyObject(uav, m_texture_uavs, m_free_texture_uavs); }
-    void Context::DestroyConstantBufferView(IBufferCBV* cbv) { DestroyObject(cbv, m_buffer_cbvs, m_free_buffer_cbvs); }
     void Context::DestroySampler(ISampler* sampler) { DestroyObject(sampler, m_samplers, m_free_samplers); }
 
     void Context::Present(const bool vsync)
@@ -487,23 +481,53 @@ namespace Swift::D3D12
 
     void Context::CreateRootSignature()
     {
-        D3D12_ROOT_PARAMETER1 push_constants{
-            .ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
-            .Constants =
-                {
-                    .ShaderRegister = 0,
-                    .RegisterSpace = 0,
-                    .Num32BitValues = 32,
-                },
-            .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+        std::array root_params{
+            D3D12_ROOT_PARAMETER1{
+                .ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
+                .Constants =
+                    {
+                        .ShaderRegister = 0,
+                        .RegisterSpace = 0,
+                        .Num32BitValues = 32,
+                    },
+                .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+            },
+            D3D12_ROOT_PARAMETER1{
+                .ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
+                .Descriptor =
+                    {
+                        .ShaderRegister = 1,
+                        .RegisterSpace = 0,
+                    },
+                .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+            },
+            D3D12_ROOT_PARAMETER1{
+                .ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
+                .Descriptor =
+                    {
+                        .ShaderRegister = 2,
+                        .RegisterSpace = 0,
+                    },
+                .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+            },
+            D3D12_ROOT_PARAMETER1{
+                .ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
+                .Descriptor =
+                    {
+                        .ShaderRegister = 3,
+                        .RegisterSpace = 0,
+                    },
+                .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+            },
         };
 
         const D3D12_VERSIONED_ROOT_SIGNATURE_DESC root_signature_desc = {
             .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
             .Desc_1_1 = {
-                .NumParameters = 1,
-                .pParameters = &push_constants,
-                .Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED,
+                .NumParameters = static_cast<uint32_t>(root_params.size()),
+                .pParameters = root_params.data(),
+                .Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED |
+                         D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED,
             }};
 
         ID3DBlob* error_blob = nullptr;
