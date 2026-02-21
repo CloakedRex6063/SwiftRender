@@ -61,6 +61,7 @@ namespace Swift
         ITexture* GetCurrentSwapchainTexture() const { return m_swapchain_textures[m_frame_index]; }
         IRenderTarget* GetCurrentRenderTarget() const { return m_swapchain_render_targets[m_frame_index]; }
         ICommand* GetCurrentCommand() const { return m_frame_data[m_frame_index].command; }
+        uint32_t GetFrameIndex() const { return m_frame_index; }
         IQueue* GetGraphicsQueue() const { return m_graphics_queue; }
         IQueue* GetComputeQueue() const { return m_compute_queue; }
         IQueue* GetCopyQueue() const { return m_copy_queue; }
