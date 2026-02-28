@@ -1,5 +1,6 @@
 #include "d3d12/d3d12_queue.hpp"
 #include "d3d12_helpers.hpp"
+#include "array"
 
 Swift::D3D12::Queue::Queue(ID3D12Device14* device, const QueueCreateInfo& info)
 {

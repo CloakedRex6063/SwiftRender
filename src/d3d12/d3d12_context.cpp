@@ -154,8 +154,20 @@ namespace Swift::D3D12
             const BufferCreateInfo buffer_info = {
                 .size = size,
             };
+            const auto* src = static_cast<const char*>(create_info.data);
             auto* const upload_buffer = CreateBuffer(buffer_info);
-            CopyTextureData(m_device, upload_buffer, create_info);
+            auto [footprints, num_rows, row_sizes, total_size] = GetTextureCopyData(m_device, create_info);
+            for (uint32_t i = 0; i < create_info.mip_levels * create_info.array_size; ++i)
+            {
+                for (uint32_t row = 0; row < num_rows[i]; ++row)
+                {
+                    upload_buffer->Write(src + row * row_sizes[i],
+                                         footprints[i].Offset + row * footprints[i].Footprint.RowPitch,
+                                         row_sizes[i]);
+                }
+
+                src += num_rows[i] * row_sizes[i];
+            }
             auto* const copy_command = CreateCommand(QueueType::eTransfer);
             copy_command->Begin();
             copy_command->CopyBufferToTexture(this, upload_buffer, texture, create_info.mip_levels, create_info.array_size);

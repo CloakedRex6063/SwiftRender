@@ -3,7 +3,7 @@
 #include "d3d12_helpers.hpp"
 
 Swift::D3D12::Texture::Texture(ID3D12Resource* resource, const TextureCreateInfo& info)
-    : m_resource(resource)
+    : ITexture(info), m_resource(resource)
 {
     m_format = info.format;
     m_size = {info.width, info.height};
@@ -11,7 +11,7 @@ Swift::D3D12::Texture::Texture(ID3D12Resource* resource, const TextureCreateInfo
     m_mip_levels = info.mip_levels;
 }
 
-Swift::D3D12::Texture::Texture(const Context* context, const TextureCreateInfo& info)
+Swift::D3D12::Texture::Texture(const Context* context, const TextureCreateInfo& info) : ITexture(info)
 {
     m_format = info.format;
     m_size = {info.width, info.height};

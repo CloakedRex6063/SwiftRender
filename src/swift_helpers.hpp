@@ -1,5 +1,5 @@
 #pragma once
-#include "swift_structs.hpp"
+#include "vector"
 #include "cmath"
 
 namespace Swift
@@ -43,29 +43,29 @@ namespace Swift
         return static_cast<int>(std::floor(std::log2(max_dim))) + 1;
     }
 
-    inline std::array<uint32_t, 3> CalculateDispatchGroups(const uint32_t total_groups)
+    inline UInt3 CalculateDispatchGroups(const uint32_t total_groups)
     {
         constexpr uint32_t MAX_DISPATCH = 65535;
 
-        std::array<uint32_t, 3> result = {1, 1, 1};
+        UInt3 result = {1, 1, 1};
 
         if (total_groups <= MAX_DISPATCH)
         {
-            result[0] = total_groups;
+            result.x = total_groups;
             return result;
         }
 
-        result[0] = MAX_DISPATCH;
-        uint32_t remaining = (total_groups + MAX_DISPATCH - 1) / MAX_DISPATCH;
+        result.x = MAX_DISPATCH;
+        const uint32_t remaining = (total_groups + MAX_DISPATCH - 1) / MAX_DISPATCH;
 
         if (remaining <= MAX_DISPATCH)
         {
-            result[1] = remaining;
+            result.y = remaining;
             return result;
         }
 
-        result[1] = MAX_DISPATCH;
-        result[2] = (remaining + MAX_DISPATCH - 1) / MAX_DISPATCH;
+        result.y = MAX_DISPATCH;
+        result.z = (remaining + MAX_DISPATCH - 1) / MAX_DISPATCH;
 
         return result;
     }

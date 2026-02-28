@@ -40,7 +40,7 @@ Swift::D3D12::Shader::Shader(ID3D12Device14* device,
             D3D12_DEPTH_STENCIL_DESC{
                 .DepthEnable = create_info.depth_stencil_state.depth_enable,
                 .DepthWriteMask = static_cast<D3D12_DEPTH_WRITE_MASK>(create_info.depth_stencil_state.depth_enable),
-                .DepthFunc = ToDepthTest(create_info.depth_stencil_state.depth_test),
+                .DepthFunc = ToComparisonFunc(create_info.depth_stencil_state.depth_test),
                 .StencilEnable = create_info.depth_stencil_state.stencil_enable,
                 .StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK,
                 .StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK,

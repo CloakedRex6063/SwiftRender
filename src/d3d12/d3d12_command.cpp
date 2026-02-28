@@ -1,10 +1,10 @@
 #include "d3d12/d3d12_command.hpp"
 #include "d3d12/d3d12_helpers.hpp"
 #include "swift_buffer.hpp"
-#include "swift_context.hpp"
+#include "d3d12/d3d12_context.hpp"
 #include "swift_texture.hpp"
 #include "d3d12/d3d12_shader.hpp"
-#include "d3d12/d3d12_texture.hpp"
+#include "array"
 
 Swift::D3D12::Command::Command(IContext* context,
                                DescriptorHeap* cbv_heap,
@@ -54,21 +54,23 @@ void Swift::D3D12::Command::End() { m_list->Close(); }
 
 void Swift::D3D12::Command::SetViewport(const Viewport& viewport)
 {
-    const D3D12_VIEWPORT dx_viewport = {viewport.offset[0],
-                                        viewport.offset[1],
-                                        viewport.dimensions[0],
-                                        viewport.dimensions[1],
-                                        viewport.depth_range[0],
-                                        viewport.depth_range[1]};
+    const D3D12_VIEWPORT dx_viewport = {
+        viewport.offset.x,
+        viewport.offset.y,
+        viewport.dimensions.x,
+        viewport.dimensions.y,
+        viewport.depth_range.x,
+        viewport.depth_range.y,
+    };
     m_list->RSSetViewports(1, &dx_viewport);
 }
 
 void Swift::D3D12::Command::SetScissor(const Scissor& scissor)
 {
-    const D3D12_RECT dx_scissor = {static_cast<int>(scissor.offset[0]),
-                                   static_cast<int>(scissor.offset[1]),
-                                   static_cast<int>(scissor.dimensions[0]),
-                                   static_cast<int>(scissor.dimensions[1])};
+    const D3D12_RECT dx_scissor = {static_cast<int>(scissor.offset.x),
+                                   static_cast<int>(scissor.offset.y),
+                                   static_cast<int>(scissor.dimensions.x),
+                                   static_cast<int>(scissor.dimensions.y)};
     m_list->RSSetScissorRects(1, &dx_scissor);
 }
 
@@ -112,34 +114,7 @@ void Swift::D3D12::Command::CopyBufferToTexture(IContext* context,
 
     auto* const device = static_cast<ID3D12Device14*>(context->GetDevice());
 
-    std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> layouts(texture->GetMipLevels() * texture->GetArraySize());
-    std::vector<uint32_t> num_rows(texture->GetMipLevels() * texture->GetArraySize());
-    std::vector<uint64_t> row_size_in_bytes(texture->GetMipLevels() * texture->GetArraySize());
-    uint64_t total_bytes = 0;
-
-    // TODO: Handle msaa
-    constexpr auto sample_desc = DXGI_SAMPLE_DESC{1, 0};
-
-    const D3D12_RESOURCE_DESC texture_desc = {
-        .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-        .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
-        .Width = texture->GetSize()[0],
-        .Height = texture->GetSize()[1],
-        .DepthOrArraySize = static_cast<uint16_t>(texture->GetArraySize()),
-        .MipLevels = mip_levels,
-        .Format = ToDXGIFormat(texture->GetFormat()),
-        .SampleDesc = sample_desc,
-        .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
-    };
-
-    device->GetCopyableFootprints(&texture_desc,
-                                  0,
-                                  mip_levels * array_size,
-                                  0,
-                                  layouts.data(),
-                                  num_rows.data(),
-                                  row_size_in_bytes.data(),
-                                  &total_bytes);
+    auto [layouts, num_rows, row_size_in_bytes, total_bytes] = GetTextureCopyData(device, texture->GetCreateInfo());
 
     for (uint32_t array_slice = 0; array_slice < array_size; ++array_slice)
     {
@@ -163,12 +138,6 @@ void Swift::D3D12::Command::CopyBufferToTexture(IContext* context,
         }
     }
 }
-void Swift::D3D12::Command::CopyImageToImage(ITexture* src_resource, ITexture* dst_resource)
-{
-    auto* src = static_cast<ID3D12Resource*>(src_resource->GetResource());
-    auto* dst = static_cast<ID3D12Resource*>(dst_resource->GetResource());
-    m_list->CopyResource(dst, src);
-}
 
 void Swift::D3D12::Command::CopyBufferRegion(const BufferCopyRegion& region)
 {
@@ -177,71 +146,46 @@ void Swift::D3D12::Command::CopyBufferRegion(const BufferCopyRegion& region)
     m_list->CopyBufferRegion(dst_resource, region.dst_offset, src_resource, region.src_offset, region.size);
 }
 
-void Swift::D3D12::Command::CopyTextureRegion(const TextureCopyRegion& region)
-{
-    auto* dst_resource = static_cast<ID3D12Resource*>(region.dst_texture->GetResource());
-    auto* src_resource = static_cast<ID3D12Resource*>(region.src_texture->GetResource());
-
-    const D3D12_TEXTURE_COPY_LOCATION src_location = {
-        .pResource = src_resource,
-        .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-        .SubresourceIndex = 0,
-    };
-
-    const D3D12_TEXTURE_COPY_LOCATION dst_location = {
-        .pResource = dst_resource,
-        .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-        .SubresourceIndex = 0,
-    };
-
-    const D3D12_BOX src_box = {
-        .left = region.src_region.offset[0],
-        .top = region.src_region.offset[1],
-        .front = region.src_region.offset[2],
-        .right = region.src_region.size[0],
-        .bottom = region.src_region.size[1],
-        .back = region.src_region.size[2],
-    };
-
-    m_list->CopyTextureRegion(&dst_location,
-                              region.dst_offset[0],
-                              region.dst_offset[1],
-                              region.dst_offset[2],
-                              &src_location,
-                              &src_box);
-}
-
 void Swift::D3D12::Command::BindConstantBuffer(IBuffer* buffer, const uint32_t slot)
 {
     m_list->SetGraphicsRootConstantBufferView(slot, buffer->GetVirtualAddress());
     m_list->SetComputeRootConstantBufferView(slot, buffer->GetVirtualAddress());
 }
 
-void Swift::D3D12::Command::BindRenderTargets(const std::span<IRenderTarget*> render_targets, IDepthStencil* depth_stencil)
+void Swift::D3D12::Command::BeginRender(const std::span<const ColorAttachmentInfo> color_attachments,
+                                        const std::optional<const DepthAttachmentInfo>& depth_attachment)
 {
-    std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 8> render_target_descriptors;
-    for (int i = 0; i < render_targets.size(); i++)
+    std::array<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> render_target_descriptors;
+    for (int i = 0; i < color_attachments.size(); i++)
     {
-        auto* dx_render_target = static_cast<RenderTarget*>(render_targets[i]);
-        render_target_descriptors[i] = dx_render_target->GetDescriptorData().cpu_handle;
+        auto [render_target, load_op, store_op, clear_color] = color_attachments[i];
+        render_target_descriptors[i] = D3D12_RENDER_PASS_RENDER_TARGET_DESC{
+            .cpuDescriptor = static_cast<RenderTarget*>(render_target)->GetDescriptorData().cpu_handle,
+            .BeginningAccess = ToBeginAccess(render_target->GetTexture()->GetFormat(), load_op, clear_color),
+            .EndingAccess = ToEndAccess(store_op),
+        };
     }
-
-    if (depth_stencil)
+    const D3D12_RENDER_PASS_DEPTH_STENCIL_DESC* depth_desc = nullptr;
+    if (depth_attachment.has_value())
     {
-        auto* dx_depth_stencil = static_cast<DepthStencil*>(depth_stencil);
-        m_list->OMSetRenderTargets(static_cast<uint32_t>(render_targets.size()),
-                                   render_target_descriptors.data(),
-                                   false,
-                                   &dx_depth_stencil->GetDescriptorData().cpu_handle);
+        auto [depth_stencil, load_op, store_op, clear_depth, clear_stencil] = depth_attachment.value();
+        const D3D12_RENDER_PASS_DEPTH_STENCIL_DESC depth_stencil_desc{
+            .cpuDescriptor = static_cast<DepthStencil*>(depth_stencil)->GetDescriptorData().cpu_handle,
+            .DepthBeginningAccess =
+                ToBeginAccess(depth_stencil->GetTexture()->GetFormat(), load_op, clear_depth, clear_stencil),
+            .StencilBeginningAccess = {D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS}, // TODO: handle stencil based on format
+            .DepthEndingAccess = ToEndAccess(store_op),
+            .StencilEndingAccess = {D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS}, // TODO: handle stencil based on format
+        };
+        depth_desc = &depth_stencil_desc;
     }
-    else
-    {
-        m_list->OMSetRenderTargets(static_cast<uint32_t>(render_targets.size()),
-                                   render_target_descriptors.data(),
-                                   false,
-                                   nullptr);
-    }
+    m_list->BeginRenderPass(color_attachments.size(),
+                            render_target_descriptors.data(),
+                            depth_desc,
+                            D3D12_RENDER_PASS_FLAG_NONE);
 }
+
+void Swift::D3D12::Command::EndRender() { m_list->EndRenderPass(); }
 
 void Swift::D3D12::Command::ClearRenderTarget(IRenderTarget* render_target, const std::array<float, 4>& color)
 {

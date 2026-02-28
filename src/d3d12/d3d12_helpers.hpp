@@ -1,7 +1,6 @@
 #pragma once
 #include "swift_helpers.hpp"
 #include "swift_structs.hpp"
-#include "swift_buffer.hpp"
 #include "directx/d3d12.h"
 
 namespace Swift::D3D12
@@ -34,20 +33,6 @@ namespace Swift::D3D12
                 return D3D12_HEAP_TYPE_READBACK;
         }
         return D3D12_HEAP_TYPE_GPU_UPLOAD;
-    }
-
-    constexpr D3D12_ROOT_PARAMETER_TYPE ToDescriptorType(const DescriptorType type) noexcept
-    {
-        switch (type)
-        {
-            case DescriptorType::eConstant:
-                return D3D12_ROOT_PARAMETER_TYPE_CBV;
-            case DescriptorType::eShaderResource:
-                return D3D12_ROOT_PARAMETER_TYPE_SRV;
-            case DescriptorType::eUnorderedAccess:
-                return D3D12_ROOT_PARAMETER_TYPE_UAV;
-        }
-        return D3D12_ROOT_PARAMETER_TYPE_CBV;
     }
 
     constexpr D3D12_SHADER_VISIBILITY ToShaderVisibility(const ShaderVisibility shader_visibility) noexcept
@@ -283,30 +268,6 @@ namespace Swift::D3D12
                 return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         }
         return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    }
-
-    constexpr D3D12_COMPARISON_FUNC ToDepthTest(const DepthTest test)
-    {
-        switch (test)
-        {
-            case DepthTest::eAlways:
-                return D3D12_COMPARISON_FUNC_ALWAYS;
-            case DepthTest::eNever:
-                return D3D12_COMPARISON_FUNC_NEVER;
-            case DepthTest::eLess:
-                return D3D12_COMPARISON_FUNC_LESS;
-            case DepthTest::eLessEqual:
-                return D3D12_COMPARISON_FUNC_LESS_EQUAL;
-            case DepthTest::eGreater:
-                return D3D12_COMPARISON_FUNC_GREATER;
-            case DepthTest::eGreaterEqual:
-                return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
-            case DepthTest::eEqual:
-                return D3D12_COMPARISON_FUNC_EQUAL;
-            case DepthTest::eNotEqual:
-                return D3D12_COMPARISON_FUNC_NOT_EQUAL;
-        }
-        return D3D12_COMPARISON_FUNC_ALWAYS;
     }
 
     constexpr D3D12_COMPARISON_FUNC ToComparisonFunc(const ComparisonFunc test)
@@ -588,7 +549,69 @@ namespace Swift::D3D12
         return total_size;
     }
 
-    inline void CopyTextureData(ID3D12Device14* device, Swift::IBuffer* buffer, const Swift::TextureCreateInfo& create_info)
+    constexpr D3D12_RENDER_PASS_BEGINNING_ACCESS ToBeginAccess(const Format format,
+                                                               const LoadOp load_op,
+                                                               const Float4 clear_color)
+    {
+        D3D12_RENDER_PASS_BEGINNING_ACCESS access{};
+        switch (load_op)
+        {
+            case LoadOp::eLoad:
+                access.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                break;
+
+            case LoadOp::eClear:
+                access.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                access.Clear.ClearValue.Format = ToDXGIFormat(format);
+                access.Clear.ClearValue.Color[0] = clear_color.x;
+                access.Clear.ClearValue.Color[1] = clear_color.y;
+                access.Clear.ClearValue.Color[2] = clear_color.z;
+                access.Clear.ClearValue.Color[3] = clear_color.w;
+                break;
+        }
+        return access;
+    }
+
+    constexpr D3D12_RENDER_PASS_BEGINNING_ACCESS ToBeginAccess(const Format format,
+                                                               const LoadOp load_op,
+                                                               const float clear_depth,
+                                                               const uint8_t depth)
+    {
+        D3D12_RENDER_PASS_BEGINNING_ACCESS access{};
+        switch (load_op)
+        {
+            case LoadOp::eLoad:
+                access.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                break;
+
+            case LoadOp::eClear:
+                access.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                access.Clear.ClearValue.Format = ToDXGIFormat(format);
+                access.Clear.ClearValue.DepthStencil.Depth = clear_depth;
+                access.Clear.ClearValue.DepthStencil.Stencil = depth;
+                break;
+        }
+        return access;
+    }
+
+    constexpr D3D12_RENDER_PASS_ENDING_ACCESS ToEndAccess(const StoreOp store_op)
+    {
+        D3D12_RENDER_PASS_ENDING_ACCESS end_access{};
+        switch (store_op)
+        {
+            case StoreOp::eStore:
+                end_access.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                break;
+
+            case StoreOp::eDiscard:
+                end_access.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                break;
+        }
+        return end_access;
+    }
+
+    inline std::tuple<std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>, std::vector<UINT>, std::vector<UINT64>, UINT64>
+    GetTextureCopyData(ID3D12Device14* device, const TextureCreateInfo& create_info)
     {
         uint32_t num_subresources = create_info.array_size * create_info.mip_levels;
 
@@ -597,7 +620,6 @@ namespace Swift::D3D12
         std::vector<UINT64> row_sizes(num_subresources);
         UINT64 total_size = 0;
 
-        auto* src = static_cast<const char*>(create_info.data);
         constexpr auto sample_desc = DXGI_SAMPLE_DESC{1, 0};
 
         const D3D12_RESOURCE_DESC resource_desc = {
@@ -619,17 +641,6 @@ namespace Swift::D3D12
                                       num_rows.data(),
                                       row_sizes.data(),
                                       &total_size);
-
-        for (uint32_t i = 0; i < num_subresources; ++i)
-        {
-            for (uint32_t row = 0; row < num_rows[i]; ++row)
-            {
-                buffer->Write(src + row * row_sizes[i],
-                              footprints[i].Offset + row * footprints[i].Footprint.RowPitch,
-                              row_sizes[i]);
-            }
-
-            src += num_rows[i] * row_sizes[i];
-        }
+        return {footprints, num_rows, row_sizes, total_size};
     }
 }  // namespace Swift::D3D12

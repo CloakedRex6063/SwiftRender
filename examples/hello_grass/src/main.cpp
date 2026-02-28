@@ -87,7 +87,7 @@ int main()
         .pixel_code = pixel_code,
         .depth_stencil_state = {.depth_enable = true,
                                 .depth_write_enable = true,
-                                .depth_test = Swift::DepthTest::eLess,
+                                .depth_test = Swift::ComparisonFunc::eLess,
                                 .stencil_enable = false},
         .rasterizer_state =
             {
@@ -196,17 +196,26 @@ int main()
         constant_buffer->Write(&scene_buffer_data, 0, sizeof(ConstantBufferInfo));
 
         command->Begin();
-        command->SetViewport(Swift::Viewport{.dimensions = float_size});
+        command->SetViewport(Swift::Viewport{.dimensions = Swift::Float2(window_size.x, window_size.y)});
         command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
         command->BindConstantBuffer(constant_buffer, 1);
 
         command->TransitionImage(render_target->GetTexture(), Swift::ResourceState::eRenderTarget);
         command->TransitionImage(depth_texture, Swift::ResourceState::eDepthWrite);
 
-        command->ClearRenderTarget(render_target, {0.392f, 0.584f, 0.929f, 1.0f});
-        command->ClearDepthStencil(depth_stencil, 1.0f, 0);
         command->BindShader(grass_shader);
-        command->BindRenderTargets(render_target, depth_stencil);
+        Swift::ColorAttachmentInfo color_attachment_info{
+            .render_target = render_target,
+            .load_op = Swift::LoadOp::eClear,
+            .clear_color = {0.392f, 0.584f, 0.929f, 1.0f},
+        };
+        Swift::DepthAttachmentInfo depth_attachment_info{
+            .depth_stencil = depth_stencil,
+            .load_op = Swift::LoadOp::eClear,
+            .clear_depth = 1,
+        };
+        command->BeginRender(color_attachment_info, depth_attachment_info);
+
         const struct PushConstant
         {
             float wind_speed;
@@ -238,6 +247,7 @@ int main()
 
         const uint32_t num_amp_groups = (grass_count + 127) / 128;
         command->DispatchMesh(num_amp_groups, 1, 1);
+        command->EndRender();
 
         imgui.BeginFrame();
 
@@ -274,7 +284,10 @@ int main()
 
         ImGui::End();
 
+        color_attachment_info.load_op = Swift::LoadOp::eLoad;
+        command->BeginRender(color_attachment_info, std::nullopt);
         imgui.Render(command);
+        command->EndRender();
 
         command->TransitionImage(render_target->GetTexture(), Swift::ResourceState::ePresent);
 

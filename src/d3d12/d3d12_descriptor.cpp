@@ -60,7 +60,11 @@ Swift::D3D12::Sampler::Sampler(Context* context, const SamplerCreateInfo& create
         .MinLOD = create_info.min_lod,
         .MaxLOD = create_info.max_lod,
     };
-    std::memcpy(sampler_desc.BorderColor, create_info.border_color.data(), sizeof(float) * 4);
+
+    sampler_desc.BorderColor[0] = create_info.border_color.x;
+    sampler_desc.BorderColor[1] = create_info.border_color.y;
+    sampler_desc.BorderColor[2] = create_info.border_color.z;
+    sampler_desc.BorderColor[3] = create_info.border_color.w;
 
     auto* sampler_heap = context->GetSamplerHeap();
     m_data = sampler_heap->Allocate();

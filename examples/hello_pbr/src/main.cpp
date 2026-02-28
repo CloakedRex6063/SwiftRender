@@ -55,7 +55,7 @@ int main()
                              .SetPixelShader(pixel_shader)
                              .SetDepthTestEnable(true)
                              .SetDepthWriteEnable(true)
-                             .SetDepthTest(Swift::DepthTest::eLess)
+                             .SetDepthTest(Swift::ComparisonFunc::eLess)
                              .SetPolygonMode(Swift::PolygonMode::eTriangle)
                              .SetName("PBR Shader")
                              .Build();
@@ -164,7 +164,7 @@ int main()
         }
 
         command->Begin();
-        command->SetViewport(Swift::Viewport{.dimensions = float_size});
+        command->SetViewport(Swift::Viewport{.dimensions = Swift::Float2(window_size.x, window_size.y)});
         command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
 
         command->BindConstantBuffer(constant_buffer, 1);
@@ -172,10 +172,18 @@ int main()
         command->TransitionImage(render_target->GetTexture(), Swift::ResourceState::eRenderTarget);
         command->TransitionImage(depth_texture, Swift::ResourceState::eDepthWrite);
 
-        command->ClearRenderTarget(render_target, {0.0f, 0.0f, 0.0f, 0.0f});
-        command->ClearDepthStencil(depth_stencil, 1.f, 0.f);
         command->BindShader(shader);
-        command->BindRenderTargets(render_target, depth_stencil);
+        Swift::ColorAttachmentInfo color_attachment_info{
+            .render_target = render_target,
+            .load_op = Swift::LoadOp::eClear,
+            .clear_color = {},
+        };
+        Swift::DepthAttachmentInfo depth_attachment_info{
+            .depth_stencil = depth_stencil,
+            .load_op = Swift::LoadOp::eClear,
+            .clear_depth = 1,
+        };
+        command->BeginRender(color_attachment_info, depth_attachment_info);
 
         for (auto& mesh : mesh_renderers)
         {
@@ -200,6 +208,8 @@ int main()
             command->PushConstants(&push_constants, sizeof(PushConstants));
             mesh.Draw(command);
         }
+
+        command->EndRender();
 
         imgui.BeginFrame();
         ImGui::Begin("Lights");
@@ -235,7 +245,11 @@ int main()
         }
 
         ImGui::End();
+
+        color_attachment_info.load_op = Swift::LoadOp::eLoad;
+        command->BeginRender(color_attachment_info, std::nullopt);
         imgui.Render(command);
+        command->EndRender();
 
         command->TransitionImage(render_target->GetTexture(), Swift::ResourceState::ePresent);
 

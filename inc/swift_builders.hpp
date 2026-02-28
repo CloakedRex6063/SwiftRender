@@ -147,45 +147,6 @@ namespace Swift
         uint32_t m_offset = 0;
     };
 
-    struct DescriptorBuilder
-    {
-        explicit DescriptorBuilder(const DescriptorType descriptor_type) { m_descriptor_type = descriptor_type; }
-
-        DescriptorBuilder& SetShaderRegister(const uint32_t shader_register)
-        {
-            m_shader_register = shader_register;
-            return *this;
-        }
-
-        DescriptorBuilder& SetRegisterSpace(const uint32_t space)
-        {
-            m_register_space = space;
-            return *this;
-        }
-
-        DescriptorBuilder& SetShaderVisibility(const ShaderVisibility visibility)
-        {
-            m_shader_visibility = visibility;
-            return *this;
-        }
-
-        [[nodiscard]] Descriptor Build() const
-        {
-            return {
-                .shader_register = m_shader_register,
-                .register_space = m_register_space,
-                .descriptor_type = m_descriptor_type,
-                .shader_visibility = m_shader_visibility,
-            };
-        }
-
-    private:
-        uint32_t m_shader_register = 0;
-        uint32_t m_register_space = 0;
-        DescriptorType m_descriptor_type = DescriptorType::eConstant;
-        ShaderVisibility m_shader_visibility = ShaderVisibility::eAll;
-    };
-
     struct SamplerBuilder
     {
         explicit SamplerBuilder(IContext* context) : m_context(context) {}
@@ -244,7 +205,7 @@ namespace Swift
             return *this;
         }
 
-        SamplerBuilder& SetBorderColor(const std::array<float, 4> color)
+        SamplerBuilder& SetBorderColor(const Float4 color)
         {
             m_border_color = color;
             return *this;
@@ -275,7 +236,7 @@ namespace Swift
         Wrap m_wrap_w = Wrap::eRepeat;
         float m_min_lod = 0;
         float m_max_lod = 13;
-        std::array<float, 4> m_border_color{};
+        Float4 m_border_color{};
         ComparisonFunc m_comparison_func = ComparisonFunc::eNever;
         ReductionType m_reduction_type = ReductionType::eStandard;
         IContext* m_context = nullptr;
@@ -319,7 +280,7 @@ namespace Swift
             m_depth_stencil_state.depth_enable = enable;
             return *this;
         }
-        GraphicsShaderBuilder& SetDepthTest(const DepthTest depth_test)
+        GraphicsShaderBuilder& SetDepthTest(const ComparisonFunc depth_test)
         {
             m_depth_stencil_state.depth_test = depth_test;
             return *this;
@@ -400,7 +361,7 @@ namespace Swift
         DepthStencilState m_depth_stencil_state{
             .depth_enable = false,
             .depth_write_enable = false,
-            .depth_test = DepthTest::eNever,
+            .depth_test = ComparisonFunc::eNever,
             .stencil_enable = false,
         };
         RasterizerState m_rasterizer_state{

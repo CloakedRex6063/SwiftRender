@@ -38,18 +38,24 @@ int main()
         const auto& command = context->GetCurrentCommand();
 
         window_size = window.GetSize();
-        const auto float_size = std::array{static_cast<float>(window_size[0]), static_cast<float>(window_size[1])};
 
         auto* render_target = context->GetCurrentRenderTarget();
 
         command->Begin();
-        command->SetViewport(Swift::Viewport{.dimensions = float_size});
+        command->SetViewport(Swift::Viewport{.dimensions = Swift::Float2(window_size.x, window_size.y)});
         command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
         command->TransitionImage(render_target->GetTexture(), Swift::ResourceState::eRenderTarget);
-        command->ClearRenderTarget(render_target, {0.0f, 0.0f, 0.0f, 0.0f});
         command->BindShader(triangle_shader);
-        command->BindRenderTargets(render_target, {});
+        Swift::ColorAttachmentInfo color_attachment
+        {
+            .render_target = render_target,
+            .load_op = Swift::LoadOp::eClear,
+            .store_op = Swift::StoreOp::eStore,
+            .clear_color = {},
+        };
+        command->BeginRender(color_attachment, std::nullopt);
         command->DispatchMesh(1, 1, 1);
+        command->EndRender();
 
         command->TransitionImage(render_target->GetTexture(), Swift::ResourceState::ePresent);
 

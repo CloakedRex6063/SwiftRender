@@ -6,6 +6,8 @@
 #include "swift_shader.hpp"
 #include "swift_structs.hpp"
 #include "swift_descriptor.hpp"
+#include "array"
+#include "vector"
 
 namespace Swift
 {

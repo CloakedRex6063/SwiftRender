@@ -3,8 +3,6 @@
 #include "memory"
 #include "optional"
 #include "enum_flags.hpp"
-#include "vector"
-#include "array"
 #include "span"
 
 namespace Swift
@@ -12,6 +10,40 @@ namespace Swift
     class IBuffer;
     class ITexture;
 
+    struct UInt2
+    {
+        uint32_t x = 0;
+        uint32_t y = 0;
+    };
+
+    struct UInt3
+    {
+        uint32_t x = 0;
+        uint32_t y = 0;
+        uint32_t z = 0;
+    };
+    
+    struct Float2
+    {
+        float x = 0;
+        float y = 0;
+    };
+    
+    struct Float3
+    {
+        float x = 0;
+        float y = 0;
+        float z = 0;
+    };
+    
+    struct Float4
+    {
+        float x = 0;
+        float y = 0;
+        float z = 0;
+        float w = 0;
+    };
+    
     enum class BackendType
     {
 #ifdef SWIFT_WINDOWS
@@ -131,21 +163,6 @@ namespace Swift
         eMesh
     };
 
-    enum class DescriptorType
-    {
-        eConstant,
-        eShaderResource,
-        eUnorderedAccess,
-    };
-
-    struct Descriptor
-    {
-        uint32_t shader_register = 0;
-        uint32_t register_space = 0;
-        DescriptorType descriptor_type = DescriptorType::eConstant;
-        ShaderVisibility shader_visibility = ShaderVisibility::eAll;
-    };
-
     enum class Filter
     {
         eNearest,
@@ -193,28 +210,16 @@ namespace Swift
         Wrap wrap_w = Wrap::eRepeat;
         float min_lod = 0;
         float max_lod = 13;
-        std::array<float, 4> border_color = {};
+        Float4 border_color = {};
         ComparisonFunc comparison_func = ComparisonFunc::eNever;
         ReductionType reduction_type = ReductionType::eStandard;
-    };
-
-    enum class DepthTest
-    {
-        eAlways,
-        eNever,
-        eLess,
-        eLessEqual,
-        eGreater,
-        eGreaterEqual,
-        eEqual,
-        eNotEqual,
     };
 
     struct DepthStencilState
     {
         bool depth_enable;
         bool depth_write_enable;
-        DepthTest depth_test;
+        ComparisonFunc depth_test;
         bool stencil_enable;
     };
 
@@ -292,15 +297,15 @@ namespace Swift
 
     struct Viewport
     {
-        std::array<float, 2> dimensions{};
-        std::array<float, 2> offset{};
-        std::array<float, 2> depth_range = {0.0f, 1.0f};
+        Float2 dimensions{};
+        Float2 offset{};
+        Float2 depth_range = {0.0f, 1.0f};
     };
 
     struct Scissor
     {
-        std::array<uint32_t, 2> dimensions;
-        std::array<uint32_t, 2> offset;
+        UInt2 dimensions;
+        UInt2 offset;
     };
 
     struct BufferCopyRegion
@@ -314,8 +319,8 @@ namespace Swift
 
     struct TextureRegion
     {
-        std::array<uint32_t, 3> size;
-        std::array<uint32_t, 3> offset;
+        UInt3 size;
+        UInt3 offset;
         uint32_t mip_level;
     };
 
@@ -324,7 +329,7 @@ namespace Swift
         ITexture* src_texture;
         ITexture* dst_texture;
         TextureRegion src_region;
-        std::array<uint32_t, 3> dst_offset;
+        UInt3 dst_offset;
     };
 
     enum class TextureFlags
@@ -383,5 +388,38 @@ namespace Swift
         std::string name;
         float system_memory;
         float dedicated_video_memory;
+    };
+    
+    enum class LoadOp
+    {
+        eLoad,
+        eClear
+    };
+    
+    enum class StoreOp
+    {
+        eStore,
+        eDiscard,
+    };
+
+    class IRenderTarget;
+
+    struct ColorAttachmentInfo
+    {
+        IRenderTarget* render_target;
+        LoadOp load_op = LoadOp::eLoad;
+        StoreOp store_op = StoreOp::eStore;
+        Float4 clear_color;
+    };
+
+    class IDepthStencil;
+
+    struct DepthAttachmentInfo
+    {
+        IDepthStencil* depth_stencil;
+        LoadOp load_op = LoadOp::eLoad;
+        StoreOp store_op = StoreOp::eStore;
+        float clear_depth;
+        uint8_t clear_stencil;
     };
 }  // namespace Swift
