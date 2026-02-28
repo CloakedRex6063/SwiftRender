@@ -18,8 +18,10 @@ namespace Swift
         virtual void WaitIdle() = 0;
         virtual uint64_t Execute(std::span<ICommand*> commands) = 0;
         virtual uint64_t Execute(ICommand* command) { return Execute(std::span{&command, 1}); }
+        [[nodiscard]] QueueType GetQueueType() const { return m_type; }
 
     protected:
-        SWIFT_CONSTRUCT(IQueue);
+        explicit IQueue(const QueueType type) : m_type(type) {}
+        QueueType m_type;
     };
 }  // namespace Swift

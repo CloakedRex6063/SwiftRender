@@ -1,6 +1,5 @@
 #pragma once
 #include "span"
-#include "swift_descriptor.hpp"
 #include "swift_macros.hpp"
 #include "swift_shader.hpp"
 #include "swift_structs.hpp"
@@ -39,8 +38,8 @@ namespace Swift
             BeginRender(std::span(&color_attachment, 1), depth_attachment);
         };
         virtual void EndRender() = 0;
-        virtual void ClearRenderTarget(IRenderTarget* texture_handle, const std::array<float, 4>& color) = 0;
-        virtual void ClearDepthStencil(IDepthStencil* texture_handle, float depth, uint8_t stencil) = 0;
+        virtual void ClearRenderTarget(ITextureView* texture_handle, const Float4& color) = 0;
+        virtual void ClearDepthStencil(ITextureView* texture_handle, float depth, uint8_t stencil) = 0;
         virtual void TransitionImage(ITexture* image, ResourceState new_state) = 0;
         virtual void TransitionBuffer(IBuffer* buffer, ResourceState new_state) = 0;
         virtual void UAVBarrier(IBuffer* buffer) = 0;

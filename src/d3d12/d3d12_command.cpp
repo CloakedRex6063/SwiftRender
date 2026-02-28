@@ -5,6 +5,7 @@
 #include "swift_texture.hpp"
 #include "d3d12/d3d12_shader.hpp"
 #include "array"
+#include "d3d12/d3d12_texture_view.hpp"
 
 Swift::D3D12::Command::Command(IContext* context,
                                DescriptorHeap* cbv_heap,
@@ -47,6 +48,9 @@ void Swift::D3D12::Command::Begin()
         m_list->SetDescriptorHeaps(2, descriptor_heaps.data());
         m_list->SetGraphicsRootSignature(m_root_signature);
         m_list->SetComputeRootSignature(m_root_signature);
+
+        m_list->SetGraphicsRootDescriptorTable(4, m_cbv_srv_uav_heap->GetHeap()->GetGPUDescriptorHandleForHeapStart());
+        m_list->SetGraphicsRootDescriptorTable(5, m_sampler_heap->GetHeap()->GetGPUDescriptorHandleForHeapStart());
     }
 }
 
@@ -160,7 +164,7 @@ void Swift::D3D12::Command::BeginRender(const std::span<const ColorAttachmentInf
     {
         auto [render_target, load_op, store_op, clear_color] = color_attachments[i];
         render_target_descriptors[i] = D3D12_RENDER_PASS_RENDER_TARGET_DESC{
-            .cpuDescriptor = static_cast<RenderTarget*>(render_target)->GetDescriptorData().cpu_handle,
+            .cpuDescriptor = static_cast<TextureView*>(render_target)->GetDescriptorData().cpu_handle,
             .BeginningAccess = ToBeginAccess(render_target->GetTexture()->GetFormat(), load_op, clear_color),
             .EndingAccess = ToEndAccess(store_op),
         };
@@ -170,12 +174,13 @@ void Swift::D3D12::Command::BeginRender(const std::span<const ColorAttachmentInf
     {
         auto [depth_stencil, load_op, store_op, clear_depth, clear_stencil] = depth_attachment.value();
         const D3D12_RENDER_PASS_DEPTH_STENCIL_DESC depth_stencil_desc{
-            .cpuDescriptor = static_cast<DepthStencil*>(depth_stencil)->GetDescriptorData().cpu_handle,
+            .cpuDescriptor = static_cast<TextureView*>(depth_stencil)->GetDescriptorData().cpu_handle,
             .DepthBeginningAccess =
                 ToBeginAccess(depth_stencil->GetTexture()->GetFormat(), load_op, clear_depth, clear_stencil),
-            .StencilBeginningAccess = {D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS}, // TODO: handle stencil based on format
+            .StencilBeginningAccess =
+                {D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS},  // TODO: handle stencil based on format
             .DepthEndingAccess = ToEndAccess(store_op),
-            .StencilEndingAccess = {D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS}, // TODO: handle stencil based on format
+            .StencilEndingAccess = {D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS},  // TODO: handle stencil based on format
         };
         depth_desc = &depth_stencil_desc;
     }
@@ -187,15 +192,18 @@ void Swift::D3D12::Command::BeginRender(const std::span<const ColorAttachmentInf
 
 void Swift::D3D12::Command::EndRender() { m_list->EndRenderPass(); }
 
-void Swift::D3D12::Command::ClearRenderTarget(IRenderTarget* render_target, const std::array<float, 4>& color)
+void Swift::D3D12::Command::ClearRenderTarget(ITextureView* render_target, const Float4& color)
 {
-    auto* dx_render_target = static_cast<RenderTarget*>(render_target);
-    m_list->ClearRenderTargetView(dx_render_target->GetDescriptorData().cpu_handle, color.data(), 0, nullptr);
+    auto* dx_render_target = static_cast<TextureView*>(render_target);
+    m_list->ClearRenderTargetView(dx_render_target->GetDescriptorData().cpu_handle,
+                                  reinterpret_cast<const float*>(&color),
+                                  0,
+                                  nullptr);
 }
 
-void Swift::D3D12::Command::ClearDepthStencil(IDepthStencil* depth_stencil, const float depth, const uint8_t stencil)
+void Swift::D3D12::Command::ClearDepthStencil(ITextureView* depth_stencil, const float depth, const uint8_t stencil)
 {
-    auto* dx_depth_stencil = static_cast<DepthStencil*>(depth_stencil);
+    auto* dx_depth_stencil = static_cast<TextureView*>(depth_stencil);
     m_list->ClearDepthStencilView(dx_depth_stencil->GetDescriptorData().cpu_handle,
                                   D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
                                   depth,

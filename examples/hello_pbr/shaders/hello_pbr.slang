@@ -1,5 +1,8 @@
 #include "hello_pbr_inc.slang"
 
+Texture2D g_textures[] : register(t0, space0);
+SamplerState g_samplers[] : register(s0, space0);
+
 [outputtopology("triangle")]
 [numthreads(128, 1, 1)]
 [shader("mesh")]
@@ -46,27 +49,28 @@ float4 pixel_main(OutVertex input) : SV_TARGET
     Material material = material_buffer[PushConstants.material_index];
 
     float3 albedo = material.albedo.rgb;
+
     if (material.albedo_index != -1)
     {
-        var albedo_texture = DescriptorHandle<Sampler2D>(uint2(material.albedo_index, PushConstants.sampler_index));
-        albedo *= albedo_texture.Sample(input.uv).rgb;
+        albedo *= g_textures[material.albedo_index].Sample(g_samplers[PushConstants.sampler_index], input.uv).rgb;
     }
 
     float metallic = material.metallic;
     float roughness = material.roughness;
+
     if (material.metal_rough_index != -1)
     {
-        var metal_rough_texture = DescriptorHandle<Sampler2D>(uint2(material.metal_rough_index, PushConstants.sampler_index));
-        float3 mr = metal_rough_texture.Sample(input.uv).rgb;
+        float3 mr = g_textures[material.metal_rough_index].Sample(g_samplers[PushConstants.sampler_index], input.uv).rgb;
+
         metallic *= mr.g;
         roughness *= mr.b;
     }
 
     float3 emissive = material.emissive;
+
     if (material.emissive_index != -1)
     {
-        var emissive_texture = DescriptorHandle<Sampler2D>(uint2(material.emissive_index, PushConstants.sampler_index));
-        emissive *= emissive_texture.Sample(input.uv).rgb;
+        emissive *= g_textures[material.emissive_index].Sample(g_samplers[PushConstants.sampler_index], input.uv).rgb;
     }
 
     float3 world_pos = input.world_pos;
@@ -76,10 +80,10 @@ float4 pixel_main(OutVertex input) : SV_TARGET
     f0 = lerp(f0, albedo, metallic);
 
     float occlusion = 1.0;
+
     if (material.occlusion_index != -1)
     {
-        var occlusion_texture = DescriptorHandle<Sampler2D>(uint2(material.occlusion_index, PushConstants.sampler_index));
-        occlusion *= occlusion_texture.Sample(input.uv).r;
+        occlusion *= g_textures[material.occlusion_index].Sample(g_samplers[PushConstants.sampler_index], input.uv).r;
     }
 
     float3 lo = float3(0.0, 0.0, 0.0);

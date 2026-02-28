@@ -7,6 +7,7 @@
 
 namespace Swift
 {
+    class ITextureView;
     class IBuffer;
     class ITexture;
 
@@ -89,15 +90,6 @@ namespace Swift
         eBC7_UNORM,
         eBC7_UNORM_SRGB,
     };
-
-    struct BufferSRVCreateInfo
-    {
-        uint32_t num_elements = 1;
-        uint32_t element_size = 0;
-        uint32_t first_element = 0;
-    };
-
-    using BufferUAVCreateInfo = BufferSRVCreateInfo;
 
     struct MSAA
     {
@@ -363,6 +355,20 @@ namespace Swift
         std::string_view name;
     };
 
+    enum class BufferViewType
+    {
+        eStructuredBuffer,
+        eUnorderedAccess,
+    };
+
+    struct BufferViewCreateInfo
+    {
+        BufferViewType type;
+        uint32_t first_element;
+        uint32_t num_elements;
+        uint32_t element_size;
+    };
+
     struct QueueCreateInfo
     {
         QueueType type;
@@ -389,6 +395,23 @@ namespace Swift
         float system_memory;
         float dedicated_video_memory;
     };
+
+    enum class TextureViewType
+    {
+        eRenderTarget,
+        eDepthStencil,
+        eShaderResource,
+        eUnorderedAccess,
+    };
+
+    struct TextureViewCreateInfo
+    {
+        TextureViewType type;
+        uint32_t base_mip_level = 0;
+        uint32_t base_array_layer = 0;
+        uint32_t mip_count = 1;
+        uint32_t layer_count = 1;
+    };
     
     enum class LoadOp
     {
@@ -402,21 +425,17 @@ namespace Swift
         eDiscard,
     };
 
-    class IRenderTarget;
-
     struct ColorAttachmentInfo
     {
-        IRenderTarget* render_target;
+        ITextureView* render_target;
         LoadOp load_op = LoadOp::eLoad;
         StoreOp store_op = StoreOp::eStore;
         Float4 clear_color;
     };
 
-    class IDepthStencil;
-
     struct DepthAttachmentInfo
     {
-        IDepthStencil* depth_stencil;
+        ITextureView* depth_stencil;
         LoadOp load_op = LoadOp::eLoad;
         StoreOp store_op = StoreOp::eStore;
         float clear_depth;

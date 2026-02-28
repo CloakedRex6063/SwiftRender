@@ -2,7 +2,7 @@
 #include "d3d12_helpers.hpp"
 #include "array"
 
-Swift::D3D12::Queue::Queue(ID3D12Device14* device, const QueueCreateInfo& info)
+Swift::D3D12::Queue::Queue(ID3D12Device14* device, const QueueCreateInfo& info) : IQueue(info.type)
 {
     const D3D12_COMMAND_QUEUE_DESC queue_desc = {
         .Type = ToCommandType(info.type),
@@ -12,7 +12,7 @@ Swift::D3D12::Queue::Queue(ID3D12Device14* device, const QueueCreateInfo& info)
     };
     device->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&m_queue));
     device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
-    std::wstring name{info.name.begin(), info.name.end()};
+    const std::wstring name{info.name.begin(), info.name.end()};
     m_queue->SetName(name.c_str());
 }
 
@@ -34,7 +34,10 @@ void Swift::D3D12::Queue::WaitIdle()
 {
     m_fence_value++;
     m_queue->Signal(m_fence, m_fence_value);
-    m_fence->SetEventOnCompletion(m_fence_value, nullptr);
+    if (m_fence->GetCompletedValue() < m_fence_value)
+    {
+        m_fence->SetEventOnCompletion(m_fence_value, nullptr);
+    }
 }
 
 uint64_t Swift::D3D12::Queue::Execute(const std::span<ICommand*> commands)

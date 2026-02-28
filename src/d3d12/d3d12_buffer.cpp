@@ -32,38 +32,6 @@ void Swift::D3D12::Buffer::Write(const void* data, const uint64_t offset, const 
     }
 }
 
-void Swift::D3D12::Buffer::Read(const uint32_t offset, const uint32_t size, void* data)
-{
-    const BufferCreateInfo readback_info{
-        .size = size,
-        .type = BufferType::eReadback,
-    };
-
-    auto* const buffer = m_context->CreateBuffer(readback_info);
-    auto* const queue = m_context->CreateQueue({QueueType::eGraphics, QueuePriority::eHigh});
-    auto* const command = m_context->CreateCommand(QueueType::eGraphics);
-
-    command->Begin();
-
-    const auto copy_region = BufferCopyRegion{
-        .src_buffer = this,
-        .dst_buffer = buffer,
-        .src_offset = offset,
-        .dst_offset = 0,
-        .size = size,
-    };
-
-    command->CopyBufferRegion(copy_region);
-
-    command->End();
-
-    const auto value = queue->Execute(command);
-    queue->Wait(value);
-
-    Map(data, size);
-    Unmap();
-}
-
 void Swift::D3D12::Buffer::Map(void* readback, const uint32_t size)
 {
     if (m_mapped) return;

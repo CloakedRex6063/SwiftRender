@@ -71,7 +71,10 @@ int main()
         .flags = Swift::TextureFlags::eDepthStencil,
     };
     auto* depth_texture = context->CreateTexture(depth_tex_info);
-    auto* depth_stencil = context->CreateDepthStencil(depth_texture);
+    auto* depth_stencil = context->CreateTextureView(depth_texture,
+                                                     {
+                                                         .type = Swift::TextureViewType::eDepthStencil,
+                                                     });
 
     ShaderCompiler compiler{};
     auto amplify_code = compiler.CompileShader("hello_grass.slang", ShaderStage::eAmplification);
@@ -116,21 +119,21 @@ int main()
         .size = sizeof(Frustum),
     };
     auto* frustum_buffer = context->CreateBuffer(frustum_create_info);
-    auto* frustum_buffer_srv = context->CreateShaderResource(frustum_buffer,
-                                                             Swift::BufferSRVCreateInfo{
-                                                                 .num_elements = 1,
-                                                                 .element_size = sizeof(Frustum),
-                                                             });
+    auto* frustum_buffer_srv = context->CreateBufferView(frustum_buffer,
+                                                         Swift::BufferViewCreateInfo{
+                                                             .num_elements = 1,
+                                                             .element_size = sizeof(Frustum),
+                                                         });
 
     constexpr Swift::BufferCreateInfo grass_info{
         .size = 1'000'000 * sizeof(GrassPatch),
     };
     auto* grass_buffer = context->CreateBuffer(grass_info);
-    auto* grass_buffer_srv = context->CreateShaderResource(grass_buffer,
-                                                           Swift::BufferSRVCreateInfo{
-                                                               .num_elements = 1'000'000,
-                                                               .element_size = sizeof(GrassPatch),
-                                                           });
+    auto* grass_buffer_srv = context->CreateBufferView(grass_buffer,
+                                                       Swift::BufferViewCreateInfo{
+                                                           .num_elements = 1'000'000,
+                                                           .element_size = sizeof(GrassPatch),
+                                                       });
     GrassSettings grass_settings{};
     uint32_t grass_count = grass_settings.patch_x * grass_settings.patch_y;
     BuildGrass(grass_buffer, grass_settings, grass_count);
@@ -148,7 +151,7 @@ int main()
             context->GetGraphicsQueue()->WaitIdle();
             context->ResizeBuffers(size.x, size.y);
             context->DestroyTexture(depth_texture);
-            context->DestroyDepthStencil(depth_stencil);
+            context->DestroyTextureView(depth_stencil);
             const Swift::TextureCreateInfo depth_tex_info{
                 .width = size.x,
                 .height = size.y,
@@ -158,7 +161,10 @@ int main()
                 .flags = Swift::TextureFlags::eDepthStencil,
             };
             depth_texture = context->CreateTexture(depth_tex_info);
-            depth_stencil = context->CreateDepthStencil(depth_texture);
+            depth_stencil = context->CreateTextureView(depth_texture,
+                                                       {
+                                                           .type = Swift::TextureViewType::eDepthStencil,
+                                                       });
         });
 
     float time = 0.0f;
@@ -169,10 +175,11 @@ int main()
         input.Tick();
         window.PollEvents();
 
+        context->NewFrame();
+
         const auto& command = context->GetCurrentCommand();
 
         window_size = window.GetSize();
-        const auto float_size = std::array{static_cast<float>(window_size[0]), static_cast<float>(window_size[1])};
 
         auto* render_target = context->GetCurrentRenderTarget();
 
@@ -296,12 +303,13 @@ int main()
         context->Present(false);
     }
 
+    context->GetGraphicsQueue()->WaitIdle();
     context->DestroyBuffer(constant_buffer);
     context->DestroyShader(grass_shader);
     context->DestroyBuffer(grass_buffer);
     context->DestroyBuffer(frustum_buffer);
-    context->DestroyShaderResource(grass_buffer_srv);
-    context->DestroyShaderResource(frustum_buffer_srv);
+    context->DestroyBufferView(grass_buffer_srv);
+    context->DestroyBufferView(frustum_buffer_srv);
 
     imgui.Destroy();
 
@@ -330,12 +338,10 @@ Frustum CreateFrustum(const Camera& camera, float near_plane, float far_plane)
 
     frustum.near_face = CreatePlane(camera_pos + near_plane * forward, forward);
     frustum.far_face = CreatePlane(camera_pos + front_mult_far, -forward);
-    frustum.right_face =
-        CreatePlane(camera_pos, glm::cross(front_mult_far - right * half_h_side, up));
+    frustum.right_face = CreatePlane(camera_pos, glm::cross(front_mult_far - right * half_h_side, up));
     frustum.left_face = CreatePlane(camera_pos, glm::cross(up, front_mult_far + right * half_h_side));
     frustum.top_face = CreatePlane(camera_pos, glm::cross(right, front_mult_far - up * half_v_side));
-    frustum.bottom_face =
-        CreatePlane(camera_pos, glm::cross(front_mult_far + up * half_v_side, right));
+    frustum.bottom_face = CreatePlane(camera_pos, glm::cross(front_mult_far + up * half_v_side, right));
     return frustum;
 }
 

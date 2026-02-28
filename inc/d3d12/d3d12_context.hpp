@@ -28,37 +28,33 @@ namespace Swift::D3D12
         [[nodiscard]] DescriptorHeap* GetCBVSRVUAVHeap() const { return m_cbv_srv_uav_heap.get(); }
         [[nodiscard]] DescriptorHeap* GetSamplerHeap() const { return m_sampler_heap.get(); }
 
-        ICommand* CreateCommand(QueueType queue_type, std::string_view debug_name = "") override;
+        ICommand* CreateCommand(IQueue* queue, std::string_view debug_name = "") override;
         IQueue* CreateQueue(const QueueCreateInfo& info) override;
         IBuffer* CreateBuffer(const BufferCreateInfo& info) override;
         ITexture* CreateTexture(const TextureCreateInfo& info) override;
-        IRenderTarget* CreateRenderTarget(ITexture* texture, uint32_t mip = 0) override;
-        IDepthStencil* CreateDepthStencil(ITexture* texture, uint32_t mip = 0) override;
-        ITextureSRV* CreateShaderResource(ITexture* texture, uint32_t mip_levels = 0, uint32_t most_detailed_mip = 0) override;
-        IBufferSRV* CreateShaderResource(IBuffer* buffer, const BufferSRVCreateInfo& srv_create_info) override;
-        ITextureUAV* CreateUnorderedAccessView(ITexture* texture, uint32_t mip = 0) override;
-        IBufferUAV* CreateUnorderedAccessView(IBuffer* buffer, const BufferUAVCreateInfo& uav_create_info) override;
         ISampler* CreateSampler(const SamplerCreateInfo& info) override;
         IShader* CreateShader(const GraphicsShaderCreateInfo& info) override;
         IShader* CreateShader(const ComputeShaderCreateInfo& info) override;
+        ITextureView* CreateTextureView(ITexture* texture, const TextureViewCreateInfo& info) override;
+        IBufferView* CreateBufferView(IBuffer* buffer, const BufferViewCreateInfo& info) override;
 
         void DestroyCommand(ICommand* command) override;
         void DestroyQueue(IQueue* queue) override;
         void DestroyBuffer(IBuffer* buffer) override;
         void DestroyTexture(ITexture* texture) override;
         void DestroyShader(IShader* shader) override;
-        void DestroyRenderTarget(IRenderTarget* render_target) override;
-        void DestroyDepthStencil(IDepthStencil* depth_stencil) override;
-        void DestroyShaderResource(ITextureSRV* srv) override;
-        void DestroyShaderResource(IBufferSRV* srv) override;
-        void DestroyUnorderedAccessView(IBufferUAV* uav) override;
-        void DestroyUnorderedAccessView(ITextureUAV* uav) override;
+        void DestroyTextureView(ITextureView* texture_view) override;
+        void DestroyBufferView(IBufferView* buffer_view) override;
         void DestroySampler(ISampler* sampler) override;
 
+        void NewFrame() override;
         void Present(bool vsync) override;
         void ResizeBuffers(uint32_t width, uint32_t height) override;
         uint32_t CalculateAlignedTextureSize(const TextureCreateInfo& info) override;
         uint32_t CalculateAlignedBufferSize(const BufferCreateInfo& info) override;
+
+        ITextureView* GetCurrentRenderTarget() const override;
+        ITexture* GetCurrentSwapchainTexture() const override;
 
     private:
         void CreateBackend();

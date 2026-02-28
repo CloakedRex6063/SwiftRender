@@ -12,7 +12,6 @@ namespace Swift::D3D12
         SWIFT_NO_COPY(Buffer);
         SWIFT_NO_MOVE(Buffer);
         void Write(const void* data, uint64_t offset, uint64_t size, bool one_time = false) override;
-        void Read(uint32_t offset, uint32_t size, void* data) override;
         void Map(void* readback = nullptr, uint32_t size = 0) override;
         void Unmap() override;
         static D3D12_RESOURCE_DESC GetResourceDesc(const BufferCreateInfo& info);

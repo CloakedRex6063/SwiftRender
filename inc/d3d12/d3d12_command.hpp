@@ -41,8 +41,8 @@ namespace Swift::D3D12
         void BeginRender(std::span<const ColorAttachmentInfo> color_attachments,
                          const std::optional<const DepthAttachmentInfo>& depth_attachment) override;
         void EndRender() override;
-        void ClearRenderTarget(IRenderTarget* render_target, const std::array<float, 4>& color) override;
-        void ClearDepthStencil(IDepthStencil* depth_stencil, float depth, uint8_t stencil) override;
+        void ClearRenderTarget(ITextureView* render_target, const Float4& color) override;
+        void ClearDepthStencil(ITextureView* depth_stencil, float depth, uint8_t stencil) override;
         void TransitionImage(ITexture* image, ResourceState new_state) override;
         void TransitionBuffer(IBuffer* buffer, ResourceState new_state) override;
         void UAVBarrier(IBuffer* buffer) override;

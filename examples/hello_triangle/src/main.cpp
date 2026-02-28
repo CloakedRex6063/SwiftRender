@@ -35,6 +35,8 @@ int main()
     {
         window.PollEvents();
 
+        context->NewFrame();
+
         const auto& command = context->GetCurrentCommand();
 
         window_size = window.GetSize();
@@ -64,6 +66,7 @@ int main()
         context->Present(true);
     }
 
+    context->GetGraphicsQueue()->WaitIdle();
     context->DestroyShader(triangle_shader);
     Swift::DestroyContext(context);
 }

@@ -26,7 +26,7 @@ int main()
                               .SetFlags(EnumFlags(Swift::TextureFlags::eDepthStencil))
                               .SetFormat(Swift::Format::eD32F)
                               .Build();
-    auto* depth_stencil = context->CreateDepthStencil(depth_texture);
+    auto* depth_stencil = context->CreateTextureView(depth_texture, {.type = Swift::TextureViewType::eDepthStencil});
 
     ShaderCompiler compiler{};
 
@@ -84,24 +84,24 @@ int main()
     auto* const material_buffer =
         Swift::BufferBuilder(context, sizeof(Material) * helmet.materials.size()).SetData(helmet.materials.data()).Build();
     auto* const material_buffer_srv =
-        context->CreateShaderResource(material_buffer,
-                                      Swift::BufferSRVCreateInfo{.num_elements = static_cast<uint32_t>(helmet.materials.size()),
+        context->CreateBufferView(material_buffer,
+                                      Swift::BufferViewCreateInfo{.num_elements = static_cast<uint32_t>(helmet.materials.size()),
                                                                  .element_size = sizeof(Material)});
     auto* const transforms_buffer =
         Swift::BufferBuilder(context, sizeof(glm::mat4) * helmet.transforms.size()).SetData(helmet.transforms.data()).Build();
-    auto* const transforms_buffer_srv = context->CreateShaderResource(
+    auto* const transforms_buffer_srv = context->CreateBufferView(
         transforms_buffer,
-        Swift::BufferSRVCreateInfo{.num_elements = static_cast<uint32_t>(helmet.transforms.size()),
+        Swift::BufferViewCreateInfo{.num_elements = static_cast<uint32_t>(helmet.transforms.size()),
                                    .element_size = sizeof(glm::mat4)});
 
     auto* const point_light_buffer = Swift::BufferBuilder(context, sizeof(PointLight) * 100).Build();
     auto* const point_light_buffer_srv =
-        context->CreateShaderResource(point_light_buffer,
-                                      Swift::BufferSRVCreateInfo{.num_elements = 100, .element_size = sizeof(PointLight)});
+        context->CreateBufferView(point_light_buffer,
+                                      Swift::BufferViewCreateInfo{.num_elements = 100, .element_size = sizeof(PointLight)});
     auto* const dir_light_buffer = Swift::BufferBuilder(context, sizeof(DirectionalLight) * 100).Build();
-    auto* const dir_light_buffer_srv = context->CreateShaderResource(
+    auto* const dir_light_buffer_srv = context->CreateBufferView(
         dir_light_buffer,
-        Swift::BufferSRVCreateInfo{.num_elements = 100, .element_size = sizeof(DirectionalLight)});
+        Swift::BufferViewCreateInfo{.num_elements = 100, .element_size = sizeof(DirectionalLight)});
     std::vector<PointLight> point_lights{};
     std::vector<DirectionalLight> dir_lights{};
 
@@ -115,12 +115,12 @@ int main()
             context->GetGraphicsQueue()->WaitIdle();
             context->ResizeBuffers(size.x, size.y);
             context->DestroyTexture(depth_texture);
-            context->DestroyDepthStencil(depth_stencil);
+            context->DestroyTextureView(depth_stencil);
             depth_texture = Swift::TextureBuilder(context, size.x, size.y)
                                 .SetFlags(EnumFlags(Swift::TextureFlags::eDepthStencil))
                                 .SetFormat(Swift::Format::eD32F)
                                 .Build();
-            depth_stencil = context->CreateDepthStencil(depth_texture);
+            depth_stencil = context->CreateTextureView(depth_texture, {.type = Swift::TextureViewType::eDepthStencil});
         });
 
     auto prev_time = std::chrono::high_resolution_clock::now();
@@ -128,6 +128,8 @@ int main()
     {
         input.Tick();
         window.PollEvents();
+
+        context->NewFrame();
 
         const auto& command = context->GetCurrentCommand();
 
@@ -258,14 +260,15 @@ int main()
         context->Present(false);
     }
 
+    context->GetGraphicsQueue()->WaitIdle();
     context->DestroyBuffer(point_light_buffer);
-    context->DestroyShaderResource(point_light_buffer_srv);
+    context->DestroyBufferView(point_light_buffer_srv);
     context->DestroyBuffer(dir_light_buffer);
-    context->DestroyShaderResource(dir_light_buffer_srv);
+    context->DestroyBufferView(dir_light_buffer_srv);
     context->DestroyBuffer(material_buffer);
-    context->DestroyShaderResource(material_buffer_srv);
+    context->DestroyBufferView(material_buffer_srv);
     context->DestroyBuffer(transforms_buffer);
-    context->DestroyShaderResource(transforms_buffer_srv);
+    context->DestroyBufferView(transforms_buffer_srv);
     context->DestroyBuffer(constant_buffer);
     context->DestroyShader(shader);
     DestroyTextures(context, textures);
