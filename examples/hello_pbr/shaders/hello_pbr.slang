@@ -33,12 +33,13 @@ void mesh_main(uint gtid: SV_GroupThreadID,
         uint vertex_index = meshlet.vertex_offset + gtid;
         vertex_index = mesh_vertex_buffer[vertex_index];
         Vertex vertex = vertex_buffer[vertex_index];
-        float4 world_pos = mul(transform_buffer[PushConstants.transform_index], float4(vertex.position, 1.0));
+        var transform = transform_buffer[PushConstants.transform_index];
+        float4 world_pos = mul(transform, float4(vertex.position, 1.0));
         verts[gtid].position = mul(GlobalConstants.view_proj, world_pos);
         verts[gtid].world_pos = world_pos.xyz;
-        verts[gtid].normal = vertex.normal;
+        verts[gtid].normal = mul(transform, float4(vertex.normal, 0.0)).xyz;
         verts[gtid].uv = float2(vertex.uv_x, vertex.uv_y);
-        verts[gtid].tangent = vertex.tangent;
+        verts[gtid].tangent = mul(transform, vertex.tangent);
     }
 }
 
@@ -74,7 +75,22 @@ float4 pixel_main(OutVertex input) : SV_TARGET
     }
 
     float3 world_pos = input.world_pos;
-    float3 n = input.normal;
+    float3 n = normalize(input.normal);
+    float3 t = normalize(input.tangent.xyz);
+    float  sign = input.tangent.w;
+    float3 b = normalize(cross(n, t)) * sign;
+    if (material.normal_index != -1)
+    {
+        float3 normal_sample =
+            g_textures[material.normal_index]
+            .Sample(g_samplers[PushConstants.sampler_index], input.uv)
+            .xyz;
+        normal_sample = normal_sample * 2.0 - 1.0;
+
+        float3x3 TBN = float3x3(t, b, n);
+
+        n = normalize(mul(normal_sample, TBN));
+    }
     float3 v = normalize(GlobalConstants.cam_pos - world_pos);
     float3 f0 = float3(0.04, 0.04, 0.04);
     f0 = lerp(f0, albedo, metallic);
