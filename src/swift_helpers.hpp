@@ -27,7 +27,7 @@ namespace Swift
         {
             delete *it;
             *it = nullptr;
-            free_objects.emplace_back(std::distance(objects.begin(), it));
+            free_objects.emplace_back(static_cast<uint32_t>(std::distance(objects.begin(), it)));
         }
     }
 
