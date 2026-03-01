@@ -44,14 +44,6 @@ namespace Swift
         float z = 0;
         float w = 0;
     };
-    
-    enum class BackendType
-    {
-#ifdef SWIFT_WINDOWS
-        eD3D12,
-#endif
-        eVulkan,
-    };
 
     enum class QueueType : uint8_t
     {
@@ -106,7 +98,6 @@ namespace Swift
 
     struct ContextCreateInfo
     {
-        BackendType backend_type;
         uint32_t width;
         uint32_t height;
         void* native_window_handle;
