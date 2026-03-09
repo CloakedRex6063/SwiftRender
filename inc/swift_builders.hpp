@@ -26,29 +26,19 @@ namespace Swift
 #endif
         }
 
-        ContextBuilder& SetBackend(const BackendType type)
-        {
-            m_backend_type = type;
-            return *this;
-        }
-
         IContext* Build() const
         {
-            return CreateContext({.backend_type = m_backend_type,
-                                  .width = m_width,
-                                  .height = m_height,
-                                  .native_window_handle = m_window_handle,
-                                  .native_display_handle = m_display_handle});
+            return CreateContext({
+                .width = m_width,
+                .height = m_height,
+                .native_window_handle = m_window_handle,
+                .native_display_handle = m_display_handle,
+            });
         }
 
     private:
         uint32_t m_width = 0;
         uint32_t m_height = 0;
-#ifdef SWIFT_WINDOWS
-        BackendType m_backend_type = BackendType::eD3D12;
-#elif defined(SWIFT_LINUX)
-        BackendType m_backend_type = BackendType::eVulkan;
-#endif
         void* m_display_handle = nullptr;
         void* m_window_handle = nullptr;
     };

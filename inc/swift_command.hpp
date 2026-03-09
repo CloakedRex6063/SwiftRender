@@ -24,18 +24,27 @@ namespace Swift
         virtual void BindShader(IShader* shader) = 0;
         virtual void DispatchMesh(uint32_t group_x, uint32_t group_y, uint32_t group_z) = 0;
         virtual void DispatchCompute(uint32_t group_x, uint32_t group_y, uint32_t group_z) = 0;
-        virtual void CopyBufferToTexture(IContext* context,
-                                         IBuffer* buffer,
+        virtual void CopyBufferToTexture(IBuffer* buffer,
                                          ITexture* texture,
                                          uint16_t mip_levels = 1,
                                          uint16_t array_size = 1) = 0;
-        virtual void CopyBufferRegion(const BufferCopyRegion& region) = 0;
+        virtual void CopyTextureToTexture(ITexture* src, ITexture* dst, const TextureCopyRegion& copy_region) = 0;
+        virtual void CopyBufferToBuffer(IBuffer* src, IBuffer* dst, const BufferCopyRegion& region) = 0;
         virtual void BindConstantBuffer(IBuffer* buffer, uint32_t slot) = 0;
-        virtual void BeginRender(std::span<const ColorAttachmentInfo> color_attachments,
+        virtual void BeginRender(std::span<const RenderAttachmentInfo> color_attachments,
                                  const std::optional<const DepthAttachmentInfo>& depth_attachment) = 0;
-        void BeginRender(ColorAttachmentInfo color_attachment, const std::optional<const DepthAttachmentInfo>& depth_attachment)
+        void BeginRender(const std::optional<RenderAttachmentInfo>& color_attachment,
+                         const std::optional<const DepthAttachmentInfo>& depth_attachment)
         {
-            BeginRender(std::span(&color_attachment, 1), depth_attachment);
+            if (color_attachment.has_value())
+            {
+                BeginRender(std::span(&color_attachment.value(), 1), depth_attachment);
+            }
+            else
+            {
+                RenderAttachmentInfo render_attachment_info{};
+                BeginRender(std::span(&render_attachment_info, 0), depth_attachment);
+            }
         };
         virtual void EndRender() = 0;
         virtual void ClearRenderTarget(ITextureView* texture_handle, const Float4& color) = 0;

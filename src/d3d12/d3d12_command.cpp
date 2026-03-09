@@ -107,8 +107,7 @@ void Swift::D3D12::Command::DispatchCompute(const uint32_t group_x, const uint32
     m_list->Dispatch(group_x, group_y, group_z);
 }
 
-void Swift::D3D12::Command::CopyBufferToTexture(IContext* context,
-                                                IBuffer* buffer,
+void Swift::D3D12::Command::CopyBufferToTexture(IBuffer* buffer,
                                                 ITexture* texture,
                                                 const uint16_t mip_levels,
                                                 const uint16_t array_size)
@@ -116,7 +115,7 @@ void Swift::D3D12::Command::CopyBufferToTexture(IContext* context,
     auto* dst_resource = static_cast<ID3D12Resource*>(texture->GetResource());
     auto* src_resource = static_cast<ID3D12Resource*>(buffer->GetResource());
 
-    auto* const device = static_cast<ID3D12Device14*>(context->GetDevice());
+    auto* const device = static_cast<ID3D12Device14*>(m_context->GetDevice());
 
     auto [layouts, num_rows, row_size_in_bytes, total_bytes] = GetTextureCopyData(device, texture->GetCreateInfo());
 
@@ -142,11 +141,41 @@ void Swift::D3D12::Command::CopyBufferToTexture(IContext* context,
         }
     }
 }
-
-void Swift::D3D12::Command::CopyBufferRegion(const BufferCopyRegion& region)
+void Swift::D3D12::Command::CopyTextureToTexture(ITexture* src, ITexture* dst, const TextureCopyRegion& copy_region)
 {
-    auto* dst_resource = static_cast<ID3D12Resource*>(region.dst_buffer->GetResource());
-    auto* src_resource = static_cast<ID3D12Resource*>(region.src_buffer->GetResource());
+    auto* dst_resource = static_cast<ID3D12Resource*>(dst->GetResource());
+    auto* src_resource = static_cast<ID3D12Resource*>(src->GetResource());
+    const D3D12_TEXTURE_COPY_LOCATION src_location = {
+        .pResource = src_resource,
+        .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+        .SubresourceIndex = copy_region.src_mip,
+    };
+
+    const D3D12_TEXTURE_COPY_LOCATION dst_location = {
+        .pResource = dst_resource,
+        .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+        .SubresourceIndex = copy_region.dst_mip,
+    };
+    const D3D12_BOX src_box = {
+        .left = copy_region.src_offset.x,
+        .top = copy_region.src_offset.y,
+        .front = copy_region.src_offset.z,
+        .right = copy_region.size.x,
+        .bottom = copy_region.size.y,
+        .back = copy_region.size.z,
+    };
+    m_list->CopyTextureRegion(&dst_location,
+                              copy_region.dst_offset.x,
+                              copy_region.dst_offset.y,
+                              copy_region.dst_offset.z,
+                              &src_location,
+                              &src_box);
+}
+
+void Swift::D3D12::Command::CopyBufferToBuffer(IBuffer* src, IBuffer* dst, const BufferCopyRegion& region)
+{
+    auto* dst_resource = static_cast<ID3D12Resource*>(dst->GetResource());
+    auto* src_resource = static_cast<ID3D12Resource*>(src->GetResource());
     m_list->CopyBufferRegion(dst_resource, region.dst_offset, src_resource, region.src_offset, region.size);
 }
 
@@ -156,7 +185,7 @@ void Swift::D3D12::Command::BindConstantBuffer(IBuffer* buffer, const uint32_t s
     m_list->SetComputeRootConstantBufferView(slot, buffer->GetVirtualAddress());
 }
 
-void Swift::D3D12::Command::BeginRender(const std::span<const ColorAttachmentInfo> color_attachments,
+void Swift::D3D12::Command::BeginRender(const std::span<const RenderAttachmentInfo> color_attachments,
                                         const std::optional<const DepthAttachmentInfo>& depth_attachment)
 {
     std::array<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> render_target_descriptors;

@@ -11,6 +11,7 @@ namespace Swift
         SWIFT_NO_COPY(IBufferView);
         SWIFT_NO_MOVE(IBufferView);
         [[nodiscard]] virtual uint32_t GetDescriptorIndex() = 0;
+        [[nodiscard]] IBuffer* GetBuffer() const { return m_buffer; }
 
     protected:
         IBufferView(IBuffer* buffer, const BufferViewType view_type) : m_buffer(buffer), m_type(view_type) {}

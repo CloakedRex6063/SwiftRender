@@ -153,7 +153,7 @@ namespace Swift::D3D12
             }
             auto* const copy_command = CreateCommand(m_graphics_queue);
             copy_command->Begin();
-            copy_command->CopyBufferToTexture(this, upload_buffer, texture, create_info.mip_levels, create_info.array_size);
+            copy_command->CopyBufferToTexture(upload_buffer, texture, create_info.mip_levels, create_info.array_size);
             copy_command->TransitionImage(texture, ResourceState::eCommon);
             copy_command->End();
 

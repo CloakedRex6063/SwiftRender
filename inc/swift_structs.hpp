@@ -293,26 +293,18 @@ namespace Swift
 
     struct BufferCopyRegion
     {
-        IBuffer* src_buffer;
-        IBuffer* dst_buffer;
         uint64_t src_offset;
         uint64_t dst_offset;
         uint64_t size;
     };
 
-    struct TextureRegion
-    {
-        UInt3 size;
-        UInt3 offset;
-        uint32_t mip_level;
-    };
-
     struct TextureCopyRegion
     {
-        ITexture* src_texture;
-        ITexture* dst_texture;
-        TextureRegion src_region;
+        uint32_t src_mip;
+        uint32_t dst_mip;
+        UInt3 src_offset;
         UInt3 dst_offset;
+        UInt3 size;
     };
 
     enum class TextureFlags
@@ -416,7 +408,7 @@ namespace Swift
         eDiscard,
     };
 
-    struct ColorAttachmentInfo
+    struct RenderAttachmentInfo
     {
         ITextureView* render_target;
         LoadOp load_op = LoadOp::eLoad;

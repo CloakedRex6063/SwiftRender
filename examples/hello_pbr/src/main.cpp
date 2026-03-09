@@ -11,16 +11,18 @@
 #include "mesh_renderer.hpp"
 #include "swift_builders.hpp"
 #include "lights.hpp"
+#include "render_graph/swift_render_graph.hpp"
 
 int main()
 {
     auto window = Window();
     auto window_size = window.GetSize();
-    auto* const context = Swift::CreateContext({.backend_type = Swift::BackendType::eD3D12,
-                                                .width = window_size.x,
-                                                .height = window_size.y,
-                                                .native_window_handle = window.GetNativeWindow(),
-                                                .native_display_handle = nullptr});
+    auto* const context = Swift::CreateContext({
+        .width = window_size.x,
+        .height = window_size.y,
+        .native_window_handle = window.GetNativeWindow(),
+        .native_display_handle = nullptr,
+    });
 
     auto* depth_texture = Swift::TextureBuilder(context, window_size[0], window_size[1])
                               .SetFlags(EnumFlags(Swift::TextureFlags::eDepthStencil))
@@ -85,23 +87,23 @@ int main()
         Swift::BufferBuilder(context, sizeof(Material) * helmet.materials.size()).SetData(helmet.materials.data()).Build();
     auto* const material_buffer_srv =
         context->CreateBufferView(material_buffer,
-                                      Swift::BufferViewCreateInfo{.num_elements = static_cast<uint32_t>(helmet.materials.size()),
-                                                                 .element_size = sizeof(Material)});
+                                  Swift::BufferViewCreateInfo{.num_elements = static_cast<uint32_t>(helmet.materials.size()),
+                                                              .element_size = sizeof(Material)});
     auto* const transforms_buffer =
         Swift::BufferBuilder(context, sizeof(glm::mat4) * helmet.transforms.size()).SetData(helmet.transforms.data()).Build();
-    auto* const transforms_buffer_srv = context->CreateBufferView(
-        transforms_buffer,
-        Swift::BufferViewCreateInfo{.num_elements = static_cast<uint32_t>(helmet.transforms.size()),
-                                   .element_size = sizeof(glm::mat4)});
+    auto* const transforms_buffer_srv =
+        context->CreateBufferView(transforms_buffer,
+                                  Swift::BufferViewCreateInfo{.num_elements = static_cast<uint32_t>(helmet.transforms.size()),
+                                                              .element_size = sizeof(glm::mat4)});
 
     auto* const point_light_buffer = Swift::BufferBuilder(context, sizeof(PointLight) * 100).Build();
     auto* const point_light_buffer_srv =
         context->CreateBufferView(point_light_buffer,
-                                      Swift::BufferViewCreateInfo{.num_elements = 100, .element_size = sizeof(PointLight)});
+                                  Swift::BufferViewCreateInfo{.num_elements = 100, .element_size = sizeof(PointLight)});
     auto* const dir_light_buffer = Swift::BufferBuilder(context, sizeof(DirectionalLight) * 100).Build();
-    auto* const dir_light_buffer_srv = context->CreateBufferView(
-        dir_light_buffer,
-        Swift::BufferViewCreateInfo{.num_elements = 100, .element_size = sizeof(DirectionalLight)});
+    auto* const dir_light_buffer_srv =
+        context->CreateBufferView(dir_light_buffer,
+                                  Swift::BufferViewCreateInfo{.num_elements = 100, .element_size = sizeof(DirectionalLight)});
     std::vector<PointLight> point_lights{};
     std::vector<DirectionalLight> dir_lights{};
 
@@ -124,6 +126,7 @@ int main()
         });
 
     auto prev_time = std::chrono::high_resolution_clock::now();
+    auto render_graph = Swift::RG::RenderGraph();
     while (window.IsRunning())
     {
         input.Tick();
@@ -132,9 +135,7 @@ int main()
         context->NewFrame();
 
         const auto& command = context->GetCurrentCommand();
-
-        window_size = window.GetSize();
-        const auto float_size = std::array{static_cast<float>(window_size[0]), static_cast<float>(window_size[1])};
+        render_graph.NewFrame(command);
 
         auto* render_target = context->GetCurrentRenderTarget();
 
@@ -166,52 +167,44 @@ int main()
         }
 
         command->Begin();
-        command->SetViewport(Swift::Viewport{.dimensions = Swift::Float2(window_size.x, window_size.y)});
-        command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
-
         command->BindConstantBuffer(constant_buffer, 1);
+        window_size = window.GetSize();
 
-        command->TransitionImage(render_target->GetTexture(), Swift::ResourceState::eRenderTarget);
-        command->TransitionImage(depth_texture, Swift::ResourceState::eDepthWrite);
+        render_graph.AddPass("PBR Pass", shader)
+            .WriteRenderTarget(render_target)
+            .WriteDepthStencil(depth_stencil)
+            .SetRenderExtents(Swift::Float2(window_size.x, window_size.y))
+            .SetRenderLoadOp(Swift::LoadOp::eClear)
+            .SetDepthLoadOp(Swift::LoadOp::eClear)
+            .SetExecute(
+                [&](Swift::ICommand* cmd)
+                {
+                    for (auto& mesh : mesh_renderers)
+                    {
+                        const struct PushConstants
+                        {
+                            uint32_t sampler_index;
+                            uint32_t vertex_buffer;
+                            uint32_t meshlet_buffer;
+                            uint32_t mesh_vertex_buffer;
+                            uint32_t mesh_triangle_buffer;
+                            int material_index;
+                            uint32_t transform_index;
+                        } push_constants{
+                            .sampler_index = samplers[0]->GetDescriptorIndex(),
+                            .vertex_buffer = mesh.m_vertex_buffer,
+                            .meshlet_buffer = mesh.m_mesh_buffer,
+                            .mesh_vertex_buffer = mesh.m_mesh_vertex_buffer,
+                            .mesh_triangle_buffer = mesh.m_mesh_triangle_buffer,
+                            .material_index = mesh.m_material_index,
+                            .transform_index = mesh.m_transform_index,
+                        };
+                        cmd->PushConstants(&push_constants, sizeof(PushConstants));
+                        mesh.Draw(command);
+                    }
+                });
 
-        command->BindShader(shader);
-        Swift::ColorAttachmentInfo color_attachment_info{
-            .render_target = render_target,
-            .load_op = Swift::LoadOp::eClear,
-            .clear_color = {},
-        };
-        Swift::DepthAttachmentInfo depth_attachment_info{
-            .depth_stencil = depth_stencil,
-            .load_op = Swift::LoadOp::eClear,
-            .clear_depth = 1,
-        };
-        command->BeginRender(color_attachment_info, depth_attachment_info);
-
-        for (auto& mesh : mesh_renderers)
-        {
-            const struct PushConstants
-            {
-                uint32_t sampler_index;
-                uint32_t vertex_buffer;
-                uint32_t meshlet_buffer;
-                uint32_t mesh_vertex_buffer;
-                uint32_t mesh_triangle_buffer;
-                int material_index;
-                uint32_t transform_index;
-            } push_constants{
-                .sampler_index = samplers[0]->GetDescriptorIndex(),
-                .vertex_buffer = mesh.m_vertex_buffer,
-                .meshlet_buffer = mesh.m_mesh_buffer,
-                .mesh_vertex_buffer = mesh.m_mesh_vertex_buffer,
-                .mesh_triangle_buffer = mesh.m_mesh_triangle_buffer,
-                .material_index = mesh.m_material_index,
-                .transform_index = mesh.m_transform_index,
-            };
-            command->PushConstants(&push_constants, sizeof(PushConstants));
-            mesh.Draw(command);
-        }
-
-        command->EndRender();
+        render_graph.Execute();
 
         imgui.BeginFrame();
         ImGui::Begin("Lights");
@@ -248,7 +241,7 @@ int main()
 
         ImGui::End();
 
-        color_attachment_info.load_op = Swift::LoadOp::eLoad;
+        Swift::RenderAttachmentInfo color_attachment_info{.render_target = render_target, .load_op = Swift::LoadOp::eLoad};
         command->BeginRender(color_attachment_info, std::nullopt);
         imgui.Render(command);
         command->EndRender();

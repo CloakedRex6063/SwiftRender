@@ -6,11 +6,12 @@ int main()
 {
     auto window = Window();
     auto window_size = window.GetSize();
-    auto* const context = Swift::CreateContext({.backend_type = Swift::BackendType::eD3D12,
-                                                .width = window_size.x,
-                                                .height = window_size.y,
-                                                .native_window_handle = window.GetNativeWindow(),
-                                                .native_display_handle = nullptr});
+    auto* const context = Swift::CreateContext({
+        .width = window_size.x,
+        .height = window_size.y,
+        .native_window_handle = window.GetNativeWindow(),
+        .native_display_handle = nullptr,
+    });
 
     ShaderCompiler compiler{};
     auto mesh_shader = compiler.CompileShader("hello_triangle.slang", ShaderStage::eMesh);
@@ -26,10 +27,10 @@ int main()
 
     window.AddResizeCallback(
         [context](const glm::uvec2 size)
-    {
-        context->GetGraphicsQueue()->WaitIdle();
-        context->ResizeBuffers(size.x, size.y);
-    });
+        {
+            context->GetGraphicsQueue()->WaitIdle();
+            context->ResizeBuffers(size.x, size.y);
+        });
 
     while (window.IsRunning())
     {
@@ -48,8 +49,7 @@ int main()
         command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
         command->TransitionImage(render_target->GetTexture(), Swift::ResourceState::eRenderTarget);
         command->BindShader(triangle_shader);
-        Swift::ColorAttachmentInfo color_attachment
-        {
+        Swift::RenderAttachmentInfo color_attachment{
             .render_target = render_target,
             .load_op = Swift::LoadOp::eClear,
             .store_op = Swift::StoreOp::eStore,

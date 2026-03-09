@@ -56,11 +56,12 @@ int main()
 {
     auto window = Window();
     auto window_size = window.GetSize();
-    auto* context = Swift::CreateContext({.backend_type = Swift::BackendType::eD3D12,
-                                          .width = window_size.x,
-                                          .height = window_size.y,
-                                          .native_window_handle = window.GetNativeWindow(),
-                                          .native_display_handle = nullptr});
+    auto* context = Swift::CreateContext({
+        .width = window_size.x,
+        .height = window_size.y,
+        .native_window_handle = window.GetNativeWindow(),
+        .native_display_handle = nullptr,
+    });
 
     const Swift::TextureCreateInfo depth_tex_info{
         .width = window_size[0],
@@ -211,7 +212,7 @@ int main()
         command->TransitionImage(depth_texture, Swift::ResourceState::eDepthWrite);
 
         command->BindShader(grass_shader);
-        Swift::ColorAttachmentInfo color_attachment_info{
+        Swift::RenderAttachmentInfo color_attachment_info{
             .render_target = render_target,
             .load_op = Swift::LoadOp::eClear,
             .clear_color = {0.392f, 0.584f, 0.929f, 1.0f},
