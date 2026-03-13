@@ -400,7 +400,7 @@ namespace Swift::D3D12
     {
         D3D12MA::ALLOCATOR_DESC desc
         {
-            .Flags = D3D12MA_RECOMMENDED_ALLOCATOR_FLAGS | D3D12MA::ALLOCATOR_FLAG_SINGLETHREADED,
+            .Flags = D3D12MA::ALLOCATOR_FLAG_SINGLETHREADED,
             .pDevice = m_device,
             .pAdapter = m_adapter,
         };

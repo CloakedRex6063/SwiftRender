@@ -90,10 +90,16 @@ void Swift::D3D12::Texture::CreateCommittedResource(const TextureCreateInfo& inf
     D3D12MA::ALLOCATION_DESC alloc_desc = {
         .HeapType = D3D12_HEAP_TYPE_DEFAULT,
     };
+
+    if (info.flags & TextureFlags::eRenderTarget || info.flags & TextureFlags::eDepthStencil)
+    {
+        alloc_desc.Flags = D3D12MA::ALLOCATION_FLAG_COMMITTED;
+    }
+
     auto* allocator = m_context->GetAllocator();
     allocator->CreateResource(&alloc_desc,
                               &resource_info,
-                              D3D12_RESOURCE_STATE_COPY_DEST,
+                              ToResourceState(GetState()),
                               p_clear_value,
                               &m_allocation,
                               IID_PPV_ARGS(&m_resource));
