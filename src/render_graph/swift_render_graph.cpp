@@ -51,7 +51,7 @@ void Swift::RG::RenderGraph::Execute()
                     }
 
                     std::optional<RenderAttachmentInfo> color_attachment_info{std::nullopt};
-                    if (std::holds_alternative<ITextureView*>(node.m_depth_stencil_handle.view))
+                    if (std::holds_alternative<ITextureView*>(node.m_render_target_handle.view))
                     {
                         m_command->TransitionImage(std::get<ITextureView*>(node.m_render_target_handle.view)->GetTexture(),
                                                    ResourceState::eRenderTarget);
