@@ -13,6 +13,9 @@
 #include "d3d12/d3d12_buffer_view.hpp"
 #include "d3d12/d3d12_sampler.hpp"
 
+extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION; }
+extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = SWIFT_D3D12_SDK_PATH; }
+
 namespace Swift::D3D12
 {
     Context::Context(const ContextCreateInfo& create_info) : IContext(create_info)

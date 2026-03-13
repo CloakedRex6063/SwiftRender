@@ -27,6 +27,12 @@ endif ()
 
 add_subdirectory(extern)
 
+set(SWIFT_D3D12_SDK_PATH ".\\D3D12\\" CACHE PATH "Path to the D3D12 SDK")
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+        SWIFT_D3D12_SDK_PATH="${SWIFT_D3D12_SDK_PATH}"
+)
+
 if(SWIFT_EXAMPLES)
     add_subdirectory(examples)
 endif ()

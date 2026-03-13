@@ -16,6 +16,20 @@ function(add_example EXAMPLE_NAME SOURCE_DIR)
     )
 
     add_custom_command(TARGET ${EXAMPLE_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${SOURCE_DIR}/extern/slang/bin/dxil.dll"
+            "${CMAKE_BINARY_DIR}/examples/${EXAMPLE_NAME}"
+            COMMENT "Copying dxil.dll"
+    )
+
+    add_custom_command(TARGET ${EXAMPLE_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${SOURCE_DIR}/extern/slang/bin/dxcompiler.dll"
+            "${CMAKE_BINARY_DIR}/examples/${EXAMPLE_NAME}"
+            COMMENT "Copying dxcompiler.dll"
+    )
+
+    add_custom_command(TARGET ${EXAMPLE_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${SOURCE_DIR}/${EXAMPLE_NAME}/shaders"
             "${CMAKE_BINARY_DIR}/examples/${EXAMPLE_NAME}"
