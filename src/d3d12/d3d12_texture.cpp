@@ -2,8 +2,7 @@
 
 #include "d3d12_helpers.hpp"
 
-Swift::D3D12::Texture::Texture(ID3D12Resource* resource, const TextureCreateInfo& info)
-    : ITexture(info), m_resource(resource)
+Swift::D3D12::Texture::Texture(ID3D12Resource* resource, const TextureCreateInfo& info) : ITexture(info), m_resource(resource)
 {
     m_format = info.format;
     m_size = {info.width, info.height};
@@ -11,20 +10,24 @@ Swift::D3D12::Texture::Texture(ID3D12Resource* resource, const TextureCreateInfo
     m_mip_levels = info.mip_levels;
 }
 
-Swift::D3D12::Texture::Texture(const Context* context, const TextureCreateInfo& info) : ITexture(info)
+Swift::D3D12::Texture::Texture(Context* context, const TextureCreateInfo& info) : ITexture(info), m_context(context)
 {
     m_format = info.format;
     m_size = {info.width, info.height};
     m_array_size = info.array_size;
     m_mip_levels = info.mip_levels;
 
-    m_resource = CreateCommittedResource(static_cast<ID3D12Device14*>(context->GetDevice()), info);
+    CreateCommittedResource(info);
     const auto name = std::wstring{info.name.begin(), info.name.end()};
     m_resource->SetName(name.c_str());
 }
 
 Swift::D3D12::Texture::~Texture()
 {
+    if (m_allocation)
+    {
+        m_allocation->Release();
+    }
     m_resource->Release();
 }
 
@@ -46,7 +49,7 @@ D3D12_RESOURCE_DESC Swift::D3D12::Texture::GetResourceDesc(const TextureCreateIn
     const auto sample_desc = info.msaa ? DXGI_SAMPLE_DESC{info.msaa->samples, info.msaa->quality} : DXGI_SAMPLE_DESC{1, 0};
     return {
         .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-        .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+        .Alignment = 0,
         .Width = info.width,
         .Height = info.height,
         .DepthOrArraySize = info.array_size,
@@ -58,15 +61,10 @@ D3D12_RESOURCE_DESC Swift::D3D12::Texture::GetResourceDesc(const TextureCreateIn
     };
 }
 
-ID3D12Resource* Swift::D3D12::Texture::CreateCommittedResource(ID3D12Device14* device, const TextureCreateInfo& info)
+void Swift::D3D12::Texture::CreateCommittedResource(const TextureCreateInfo& info)
 {
     const auto resource_info = GetResourceDesc(info);
 
-    constexpr D3D12_HEAP_PROPERTIES heap_properties = {
-        .Type = D3D12_HEAP_TYPE_DEFAULT,
-        .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-        .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
-    };
     D3D12_CLEAR_VALUE clear_value = {
         .Format = ToDXGIFormat(info.format),
     };
@@ -89,12 +87,14 @@ ID3D12Resource* Swift::D3D12::Texture::CreateCommittedResource(ID3D12Device14* d
         p_clear_value = nullptr;
     }
 
-    ID3D12Resource* resource = nullptr;
-    device->CreateCommittedResource(&heap_properties,
-                                    D3D12_HEAP_FLAG_NONE,
-                                    &resource_info,
-                                    D3D12_RESOURCE_STATE_COMMON,
-                                    p_clear_value,
-                                    IID_PPV_ARGS(&resource));
-    return resource;
+    D3D12MA::ALLOCATION_DESC alloc_desc = {
+        .HeapType = D3D12_HEAP_TYPE_DEFAULT,
+    };
+    auto* allocator = m_context->GetAllocator();
+    allocator->CreateResource(&alloc_desc,
+                              &resource_info,
+                              D3D12_RESOURCE_STATE_COPY_DEST,
+                              p_clear_value,
+                              &m_allocation,
+                              IID_PPV_ARGS(&m_resource));
 }

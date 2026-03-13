@@ -22,7 +22,7 @@ namespace Swift
 
     protected:
         explicit ITexture(const TextureCreateInfo& create_info) : m_create_info(create_info), m_format(create_info.format) {}
-        ResourceState m_state = ResourceState::eCommon;
+        ResourceState m_state = ResourceState::eCopyDest;
         TextureCreateInfo m_create_info;
         void* m_data = nullptr;
         bool m_mapped = false;

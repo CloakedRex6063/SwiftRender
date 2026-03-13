@@ -4,6 +4,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include "directx/d3d12.h"
+#include "D3D12MemAlloc.h"
 #include "d3d12_queue.hpp"
 #include "dxgi1_6.h"
 #include "d3d12_descriptor.hpp"
@@ -27,6 +28,7 @@ namespace Swift::D3D12
         [[nodiscard]] DescriptorHeap* GetDSVHeap() const { return m_dsv_heap.get(); }
         [[nodiscard]] DescriptorHeap* GetCBVSRVUAVHeap() const { return m_cbv_srv_uav_heap.get(); }
         [[nodiscard]] DescriptorHeap* GetSamplerHeap() const { return m_sampler_heap.get(); }
+        [[nodiscard]] D3D12MA::Allocator* GetAllocator() const { return m_allocator; }
 
         ICommand* CreateCommand(IQueue* queue, std::string_view debug_name = "") override;
         IQueue* CreateQueue(const QueueCreateInfo& info) override;
@@ -59,6 +61,7 @@ namespace Swift::D3D12
     private:
         void CreateBackend();
         void CreateDevice();
+        void CreateAllocator();
         void CreateDescriptorHeaps(const ContextCreateInfo& create_info);
         void CreateFrameData();
         void CreateQueues();
@@ -80,5 +83,6 @@ namespace Swift::D3D12
         DXGI_ADAPTER_DESC3 m_adapter_desc{};
         ID3D12RootSignature* m_root_signature = nullptr;
         ISampler* m_mipmap_sampler = nullptr;
+        D3D12MA::Allocator* m_allocator;
     };
 }  // namespace Swift::D3D12

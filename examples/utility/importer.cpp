@@ -169,7 +169,6 @@ std::tuple<std::vector<meshopt_Meshlet>, std::vector<uint32_t>, std::vector<uint
     mesh_vertices.resize(vertex_offset + vertex_count);
     mesh_triangles.resize(triangle_offset + (triangle_count * 3 + 3 & ~3));
     meshlets.resize(meshlet_count);
-    meshopt_optimizeMeshlet(mesh_vertices.data(), mesh_triangles.data(), mesh_triangles.size(), mesh_vertices.size());
     return {meshlets, mesh_vertices, mesh_triangles};
 }
 

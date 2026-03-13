@@ -22,6 +22,7 @@ namespace Swift::D3D12
     {
         CreateBackend();
         CreateDevice();
+        CreateAllocator();
         CreateDescriptorHeaps(create_info);
         CreateRootSignature();
         CreateQueues();
@@ -78,6 +79,7 @@ namespace Swift::D3D12
         m_dsv_heap.reset();
         m_cbv_srv_uav_heap.reset();
 
+        m_allocator->Release();
         m_factory->Release();
         m_adapter->Release();
 
@@ -392,6 +394,17 @@ namespace Swift::D3D12
             nullptr,
             &callback_cookie);
 #endif
+    }
+
+    void Context::CreateAllocator()
+    {
+        D3D12MA::ALLOCATOR_DESC desc
+        {
+            .Flags = D3D12MA_RECOMMENDED_ALLOCATOR_FLAGS | D3D12MA::ALLOCATOR_FLAG_SINGLETHREADED,
+            .pDevice = m_device,
+            .pAdapter = m_adapter,
+        };
+        D3D12MA::CreateAllocator(&desc, &m_allocator);
     }
 
     void Context::CreateDescriptorHeaps(const ContextCreateInfo& create_info)

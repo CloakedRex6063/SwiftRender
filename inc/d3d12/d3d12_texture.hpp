@@ -8,7 +8,7 @@ namespace Swift::D3D12
     {
     public:
         Texture(ID3D12Resource* resource, const TextureCreateInfo& info);
-        Texture(const Context* context, const TextureCreateInfo& info);
+        Texture(Context* context, const TextureCreateInfo& info);
         ~Texture() override;
         SWIFT_NO_COPY(Texture);
         SWIFT_NO_MOVE(Texture);
@@ -17,7 +17,9 @@ namespace Swift::D3D12
 
     private:
         static D3D12_RESOURCE_DESC GetResourceDesc(const TextureCreateInfo& info);
-        static ID3D12Resource* CreateCommittedResource(ID3D12Device14* device, const TextureCreateInfo& info);
+        void CreateCommittedResource(const TextureCreateInfo& info);
         ID3D12Resource* m_resource = nullptr;
+        D3D12MA::Allocation* m_allocation = nullptr;
+        Context* m_context;
     };
 }  // namespace Swift::D3D12

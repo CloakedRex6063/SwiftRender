@@ -4,7 +4,7 @@ Swift::D3D12::Buffer::Buffer(Context* context, const BufferCreateInfo& info) : m
 {
     m_size = info.size;
 
-    m_resource = CreateCommittedResource(static_cast<ID3D12Device14*>(context->GetDevice()), info);
+    CreateCommittedResource(info);
     const auto name = std::wstring{info.name.begin(), info.name.end()};
     m_resource->SetName(name.c_str());
 
@@ -18,6 +18,10 @@ Swift::D3D12::Buffer::Buffer(Context* context, const BufferCreateInfo& info) : m
 
 Swift::D3D12::Buffer::~Buffer()
 {
+    if (m_allocation)
+    {
+        m_allocation->Release();
+    }
     m_resource->Release();
 }
 
@@ -57,7 +61,7 @@ D3D12_RESOURCE_DESC Swift::D3D12::Buffer::GetResourceDesc(const BufferCreateInfo
 {
     return {
         .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
-        .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+        .Alignment = 0,
         .Width = info.size,
         .Height = 1,
         .DepthOrArraySize = 1,
@@ -69,34 +73,18 @@ D3D12_RESOURCE_DESC Swift::D3D12::Buffer::GetResourceDesc(const BufferCreateInfo
     };
 }
 
-ID3D12Resource* Swift::D3D12::Buffer::CreateCommittedResource(ID3D12Device14* device, const BufferCreateInfo& info)
+void Swift::D3D12::Buffer::CreateCommittedResource(const BufferCreateInfo& info)
 {
     const auto resource_info = GetResourceDesc(info);
-    D3D12_HEAP_PROPERTIES heap_properties = {
-        .Type = D3D12_HEAP_TYPE_GPU_UPLOAD,
-        .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-        .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+
+    D3D12MA::ALLOCATION_DESC alloc_desc = {
+        .HeapType = D3D12_HEAP_TYPE_GPU_UPLOAD,
     };
-
-    auto resource_state = D3D12_RESOURCE_STATE_COMMON;
-    if (info.type == BufferType::eReadback)
-    {
-        heap_properties.Type = D3D12_HEAP_TYPE_READBACK;
-        resource_state = D3D12_RESOURCE_STATE_COPY_DEST;
-    }
-
-    if (info.type == BufferType::eUpload)
-    {
-        heap_properties.Type = D3D12_HEAP_TYPE_UPLOAD;
-        resource_state = D3D12_RESOURCE_STATE_GENERIC_READ;
-    }
-
-    ID3D12Resource* resource = nullptr;
-    device->CreateCommittedResource(&heap_properties,
-                                    D3D12_HEAP_FLAG_NONE,
-                                    &resource_info,
-                                    resource_state,
-                                    nullptr,
-                                    IID_PPV_ARGS(&resource));
-    return resource;
+    auto* allocator = m_context->GetAllocator();
+    allocator->CreateResource(&alloc_desc,
+                              &resource_info,
+                              D3D12_RESOURCE_STATE_COMMON,
+                              nullptr,
+                              &m_allocation,
+                              IID_PPV_ARGS(&m_resource));
 }
