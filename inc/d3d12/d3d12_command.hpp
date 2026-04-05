@@ -30,6 +30,12 @@ namespace Swift::D3D12
         void PushConstants(const void* data, uint32_t size, uint32_t offset) override;
         void BindShader(IShader* shader) override;
         void DispatchMesh(uint32_t group_x, uint32_t group_y, uint32_t group_z) override;
+        void DispatchMeshIndirect(ICommandSignature* signature,
+                                  uint32_t max_commands,
+                                  IBuffer* argument_buffer,
+                                  uint32_t argument_offset,
+                                  IBuffer* count_buffer,
+                                  uint32_t count_offset) override;
         void DispatchCompute(uint32_t group_x, uint32_t group_y, uint32_t group_z) override;
         void CopyBufferToTexture(IBuffer* buffer, ITexture* texture, uint16_t mip_levels = 1, uint16_t array_size = 1) override;
         void CopyTextureToTexture(ITexture* src, ITexture* dst, const TextureCopyRegion& copy_region) override;

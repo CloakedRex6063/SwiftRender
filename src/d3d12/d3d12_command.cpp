@@ -101,6 +101,22 @@ void Swift::D3D12::Command::DispatchMesh(const uint32_t group_x, const uint32_t 
 {
     m_list->DispatchMesh(group_x, group_y, group_z);
 }
+void Swift::D3D12::Command::DispatchMeshIndirect(ICommandSignature* signature,
+                                                 const uint32_t max_commands,
+                                                 IBuffer* argument_buffer,
+                                                 const uint32_t argument_offset,
+                                                 IBuffer* count_buffer,
+                                                 const uint32_t count_offset)
+{
+    auto* arg_buffer = static_cast<ID3D12Resource*>(argument_buffer->GetResource());
+    ID3D12Resource* co_buffer = nullptr;
+    if (count_buffer)
+    {
+        co_buffer = static_cast<ID3D12Resource*>(count_buffer->GetResource());
+    }
+    auto* sig = static_cast<ID3D12CommandSignature*>(signature->GetSignature());
+    m_list->ExecuteIndirect(sig, max_commands, arg_buffer, argument_offset, co_buffer, count_offset);
+}
 
 void Swift::D3D12::Command::DispatchCompute(const uint32_t group_x, const uint32_t group_y, const uint32_t group_z)
 {

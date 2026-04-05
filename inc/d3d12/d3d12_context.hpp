@@ -12,6 +12,19 @@
 namespace Swift::D3D12
 {
     class Swapchain;
+    class CommandSignature : public ICommandSignature
+    {
+    public:
+        explicit CommandSignature(ID3D12Device14* device, ID3D12RootSignature* root_signature, std::span<IndirectArgument> indirect_arguments);
+        ~CommandSignature() override;
+        SWIFT_NO_COPY(CommandSignature);
+        SWIFT_NO_MOVE(CommandSignature);
+
+        void* GetSignature() override { return m_command_signature; }
+
+    private:
+        ID3D12CommandSignature* m_command_signature = nullptr;
+    };
     class Context final : public IContext
     {
     public:
@@ -39,6 +52,7 @@ namespace Swift::D3D12
         IShader* CreateShader(const ComputeShaderCreateInfo& info) override;
         ITextureView* CreateTextureView(ITexture* texture, const TextureViewCreateInfo& info) override;
         IBufferView* CreateBufferView(IBuffer* buffer, const BufferViewCreateInfo& info) override;
+        ICommandSignature* CreateCommandSignature(std::span<IndirectArgument> indirect_arguments) override;
 
         void DestroyCommand(ICommand* command) override;
         void DestroyQueue(IQueue* queue) override;
@@ -48,6 +62,7 @@ namespace Swift::D3D12
         void DestroyTextureView(ITextureView* texture_view) override;
         void DestroyBufferView(IBufferView* buffer_view) override;
         void DestroySampler(ISampler* sampler) override;
+        void DestroyCommandSignature(ICommandSignature* signature) override;
 
         void NewFrame() override;
         void Present(bool vsync) override;

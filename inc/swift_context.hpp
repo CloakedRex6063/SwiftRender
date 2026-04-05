@@ -10,11 +10,20 @@
 #include "swift_buffer_view.hpp"
 #include "swift_sampler.hpp"
 #include "swift_buffer.hpp"
-#include "swift_texture.hpp"
 #include "vector"
 
 namespace Swift
 {
+    class ICommandSignature
+    {
+    public:
+        SWIFT_DESTRUCT(ICommandSignature);
+        SWIFT_NO_COPY(ICommandSignature);
+        SWIFT_NO_MOVE(ICommandSignature);
+
+        explicit ICommandSignature(std::span<IndirectArgument> indirect_arguments) {};
+        [[nodiscard]] virtual void* GetSignature() = 0;
+    };
     class IContext
     {
     public:
@@ -37,6 +46,7 @@ namespace Swift
         [[nodiscard]] virtual ITextureView* CreateTextureView(ITexture* texture, const TextureViewCreateInfo& info) = 0;
         [[nodiscard]] virtual IBufferView* CreateBufferView(IBuffer* buffer, const BufferViewCreateInfo& info) = 0;
         [[nodiscard]] virtual ISampler* CreateSampler(const SamplerCreateInfo& info) = 0;
+        [[nodiscard]] virtual ICommandSignature* CreateCommandSignature(std::span<IndirectArgument> indirect_arguments) = 0;
 
         virtual void DestroyCommand(ICommand* command) = 0;
         virtual void DestroyQueue(IQueue* queue) = 0;
@@ -46,6 +56,7 @@ namespace Swift
         virtual void DestroyTextureView(ITextureView* texture_view) = 0;
         virtual void DestroyBufferView(IBufferView* buffer_view) = 0;
         virtual void DestroySampler(ISampler* sampler) = 0;
+        virtual void DestroyCommandSignature(ICommandSignature* signature) = 0;
 
         virtual void NewFrame() = 0;
         virtual void Present(bool vsync) = 0;
@@ -91,6 +102,8 @@ namespace Swift
         std::vector<uint32_t> m_free_texture_views;
         std::vector<IBufferView*> m_buffer_views;
         std::vector<uint32_t> m_free_buffer_views;
+        std::vector<ICommandSignature*> m_command_sigs;
+        std::vector<uint32_t> m_free_command_sigs;
         std::vector<ISampler*> m_samplers;
         std::vector<uint32_t> m_free_samplers;
     };

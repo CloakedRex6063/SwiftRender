@@ -424,4 +424,17 @@ namespace Swift
         float clear_depth;
         uint8_t clear_stencil;
     };
+
+    enum class IndirectArgumentType
+    {
+        ePushConstant,
+        eMeshDispatch,
+    };
+
+    struct IndirectArgument
+    {
+        IndirectArgumentType type;
+        uint32_t size;
+        uint32_t offset;
+    };
 }  // namespace Swift

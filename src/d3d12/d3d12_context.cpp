@@ -13,11 +13,59 @@
 #include "d3d12/d3d12_buffer_view.hpp"
 #include "d3d12/d3d12_sampler.hpp"
 
-extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION; }
-extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = SWIFT_D3D12_SDK_PATH; }
+extern "C"
+{
+    __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION;
+}
+extern "C"
+{
+    __declspec(dllexport) extern const char* D3D12SDKPath = SWIFT_D3D12_SDK_PATH;
+}
 
 namespace Swift::D3D12
 {
+    CommandSignature::CommandSignature(ID3D12Device14* device,
+                                       ID3D12RootSignature* root_signature,
+                                       const std::span<IndirectArgument> indirect_arguments)
+        : ICommandSignature(indirect_arguments)
+    {
+        std::vector<D3D12_INDIRECT_ARGUMENT_DESC> args;
+        uint32_t total_size = 0;
+        for (const auto& arg : indirect_arguments)
+        {
+            switch (arg.type)
+            {
+                case IndirectArgumentType::ePushConstant:
+                {
+                    D3D12_INDIRECT_ARGUMENT_DESC new_arg{};
+                    new_arg.Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT;
+                    new_arg.Constant.RootParameterIndex = 0;
+                    new_arg.Constant.DestOffsetIn32BitValues = arg.offset;
+                    new_arg.Constant.Num32BitValuesToSet = arg.size / sizeof(uint32_t);
+                    args.emplace_back(new_arg);
+                    total_size += arg.size;
+                }
+                break;
+                case IndirectArgumentType::eMeshDispatch:
+                {
+                    D3D12_INDIRECT_ARGUMENT_DESC new_arg{};
+                    new_arg.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH;
+                    total_size += sizeof(D3D12_DISPATCH_MESH_ARGUMENTS);
+                    args.emplace_back(new_arg);
+                }
+                break;
+            }
+        }
+        D3D12_COMMAND_SIGNATURE_DESC sigDesc = {};
+        sigDesc.ByteStride = total_size;
+        sigDesc.NumArgumentDescs = args.size();
+        sigDesc.pArgumentDescs = args.data();
+        sigDesc.NodeMask = 0;
+        device->CreateCommandSignature(&sigDesc, root_signature, IID_PPV_ARGS(&m_command_signature));
+    }
+
+    CommandSignature::~CommandSignature() { m_command_signature->Release(); }
+
     Context::Context(const ContextCreateInfo& create_info) : IContext(create_info)
     {
         CreateBackend();
@@ -257,6 +305,12 @@ namespace Swift::D3D12
     {
         return CreateObject([&] { return new BufferView(this, buffer, info); }, m_buffer_views, m_free_buffer_views);
     }
+    ICommandSignature* Context::CreateCommandSignature(const std::span<IndirectArgument> indirect_arguments)
+    {
+        return CreateObject([&] { return new CommandSignature(m_device, m_root_signature, indirect_arguments); },
+                            m_command_sigs,
+                            m_free_command_sigs);
+    }
 
     void Context::DestroyCommand(ICommand* command) { DestroyObject(command, m_commands, m_free_commands); }
     void Context::DestroyQueue(IQueue* queue) { DestroyObject(queue, m_queues, m_free_queues); }
@@ -272,6 +326,10 @@ namespace Swift::D3D12
         DestroyObject(buffer_view, m_buffer_views, m_free_buffer_views);
     }
     void Context::DestroySampler(ISampler* sampler) { DestroyObject(sampler, m_samplers, m_free_samplers); }
+    void Context::DestroyCommandSignature(ICommandSignature* signature)
+    {
+        DestroyObject(signature, m_command_sigs, m_free_command_sigs);
+    }
 
     void Context::NewFrame() { m_graphics_queue->Wait(GetFrameData().fence_value); }
 
@@ -398,8 +456,7 @@ namespace Swift::D3D12
 
     void Context::CreateAllocator()
     {
-        D3D12MA::ALLOCATOR_DESC desc
-        {
+        D3D12MA::ALLOCATOR_DESC desc{
             .Flags = D3D12MA::ALLOCATOR_FLAG_SINGLETHREADED,
             .pDevice = m_device,
             .pAdapter = m_adapter,
