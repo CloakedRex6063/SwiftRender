@@ -50,6 +50,24 @@ void Swift::RG::RenderGraph::Execute()
                             input.view);
                     }
 
+                    for (auto& output : node.m_output_resources)
+                    {
+                        std::visit(
+                            [&](auto&& view)
+                            {
+                                using T = std::decay_t<decltype(view)>;
+                                if constexpr (std::is_same_v<T, ITextureView*>)
+                                {
+                                    m_command->TransitionImage(T(view)->GetTexture(), ResourceState::eUnorderedAccess);
+                                }
+                                else if constexpr (std::is_same_v<T, IBufferView*>)
+                                {
+                                    m_command->TransitionBuffer(T(view)->GetBuffer(), ResourceState::eUnorderedAccess);
+                                }
+                            },
+                            output.view);
+                    }
+
                     std::optional<RenderAttachmentInfo> color_attachment_info{std::nullopt};
                     if (std::holds_alternative<ITextureView*>(node.m_render_target_handle.view))
                     {
@@ -79,6 +97,48 @@ void Swift::RG::RenderGraph::Execute()
                     m_command->BeginRender(color_attachment_info, depth_attachment_info);
                     node.m_execute(m_command);
                     m_command->EndRender();
+                },
+                [&](ComputeNode& node)
+                {
+                    m_command->BindShader(node.m_shader);
+
+                    for (auto& input : node.m_input_resources)
+                    {
+                        std::visit(
+                            [&](auto&& view)
+                            {
+                                using T = std::decay_t<decltype(view)>;
+                                if constexpr (std::is_same_v<T, ITextureView*>)
+                                {
+                                    m_command->TransitionImage(T(view)->GetTexture(), ResourceState::eShaderResource);
+                                }
+                                else if constexpr (std::is_same_v<T, IBufferView*>)
+                                {
+                                    m_command->TransitionBuffer(T(view)->GetBuffer(), ResourceState::eShaderResource);
+                                }
+                            },
+                            input.view);
+                    }
+
+                    for (auto& output : node.m_output_resources)
+                    {
+                        std::visit(
+                            [&](auto&& view)
+                            {
+                                using T = std::decay_t<decltype(view)>;
+                                if constexpr (std::is_same_v<T, ITextureView*>)
+                                {
+                                    m_command->TransitionImage(T(view)->GetTexture(), ResourceState::eUnorderedAccess);
+                                }
+                                else if constexpr (std::is_same_v<T, IBufferView*>)
+                                {
+                                    m_command->TransitionBuffer(T(view)->GetBuffer(), ResourceState::eUnorderedAccess);
+                                }
+                            },
+                            output.view);
+                    }
+
+                    node.m_execute(m_command);
                 },
                 [&](CopyNode& node)
                 {

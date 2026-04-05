@@ -22,7 +22,7 @@ namespace Swift::RG
     class RenderNode
     {
     public:
-        RenderNode() = default;
+        SWIFT_CONSTRUCT(RenderNode);
         RenderNode(IShader* shader, ICommand* command) : m_shader(shader), m_command(command) {}
         RenderNode& WriteRenderTarget(const ResourceHandle& resource_handle)
         {
@@ -121,6 +121,36 @@ namespace Swift::RG
         ResourceHandle m_depth_stencil_handle{};
     };
 
+    class ComputeNode
+    {
+    public:
+        SWIFT_CONSTRUCT(ComputeNode);
+        ComputeNode(IShader* shader, ICommand* command) : m_shader(shader), m_command(command) {}
+        ComputeNode& Read(ResourceHandle resource_handle)
+        {
+            m_input_resources.emplace_back(resource_handle);
+            return *this;
+        }
+        ComputeNode& Write(ResourceHandle resource_handle)
+        {
+            m_output_resources.emplace_back(resource_handle);
+            return *this;
+        }
+        ComputeNode& SetExecute(const std::function<void(ICommand*)>& execute)
+        {
+            m_execute = execute;
+            return *this;
+        }
+
+    private:
+        friend class RenderGraph;
+        std::function<void(ICommand*)> m_execute;
+        IShader* m_shader;
+        ICommand* m_command;
+        std::vector<ResourceHandle> m_input_resources;
+        std::vector<ResourceHandle> m_output_resources;
+    };
+
     class CopyNode
     {
     public:
@@ -196,7 +226,6 @@ namespace Swift::RG
             return *this;
         }
 
-
     private:
         friend class RenderGraph;
         std::variant<ITexture*, IBuffer*> m_src_resource;
@@ -222,10 +251,15 @@ namespace Swift::RG
             m_command = command;
             m_nodes.clear();
         }
-        RenderNode& AddPass(const std::string& name, IShader* shader)
+        RenderNode& AddRenderPass(const std::string& name, IShader* shader)
         {
             m_nodes[name] = RenderNode(shader, m_command);
             return std::get<RenderNode>(m_nodes[name]);
+        }
+        ComputeNode& AddComputePass(const std::string& name, IShader* shader)
+        {
+            m_nodes[name] = ComputeNode(shader, m_command);
+            return std::get<ComputeNode>(m_nodes[name]);
         }
         CopyNode& AddCopyPass(const std::string& name)
         {
@@ -235,7 +269,7 @@ namespace Swift::RG
         void Execute();
 
     private:
-        std::unordered_map<std::string, std::variant<RenderNode, CopyNode>> m_nodes;
+        std::unordered_map<std::string, std::variant<RenderNode, ComputeNode, CopyNode>> m_nodes;
         std::vector<ITextureView*> m_render_targets;
         ICommand* m_command = nullptr;
     };

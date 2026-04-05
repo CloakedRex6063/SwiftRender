@@ -170,7 +170,7 @@ int main()
         command->BindConstantBuffer(constant_buffer, 1);
         window_size = window.GetSize();
 
-        render_graph.AddPass("PBR Pass", shader)
+        render_graph.AddRenderPass("PBR Pass", shader)
             .WriteRenderTarget(render_target)
             .WriteDepthStencil(depth_stencil)
             .SetRenderExtents(Swift::Float2(window_size.x, window_size.y))
