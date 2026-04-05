@@ -320,6 +320,9 @@ namespace Swift::D3D12
                 return D3D12_RESOURCE_STATE_COMMON;
             case ResourceState::eConstant:
                 return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+            case ResourceState::eIndirectArgument:
+                return D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+                break;
         }
         return D3D12_RESOURCE_STATE_COMMON;
     }

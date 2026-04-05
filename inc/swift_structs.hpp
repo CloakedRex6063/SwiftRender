@@ -270,6 +270,7 @@ namespace Swift
         ePresent,
         eCopyDest,
         eCopySource,
+        eIndirectArgument,
     };
 
     enum class ShaderType
