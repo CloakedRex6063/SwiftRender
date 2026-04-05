@@ -75,9 +75,14 @@ D3D12_RESOURCE_DESC Swift::D3D12::Buffer::GetResourceDesc(const BufferCreateInfo
 
 void Swift::D3D12::Buffer::CreateCommittedResource(const BufferCreateInfo& info)
 {
-    const auto resource_info = GetResourceDesc(info);
+    auto resource_info = GetResourceDesc(info);
 
-    D3D12MA::ALLOCATION_DESC alloc_desc = {
+    if (info.flags & BufferFlags::eUnorderedAccess)
+    {
+        resource_info.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    }
+
+    constexpr D3D12MA::ALLOCATION_DESC alloc_desc = {
         .HeapType = D3D12_HEAP_TYPE_GPU_UPLOAD,
     };
     auto* allocator = m_context->GetAllocator();

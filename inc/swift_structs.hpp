@@ -317,6 +317,13 @@ namespace Swift
         eUnorderedAccess = 1 << 4,
     };
 
+    enum class BufferFlags
+    {
+        eNone = 0,
+        eShaderResource = 1 << 1,
+        eUnorderedAccess = 1 << 2,
+    };
+
     struct TextureCreateInfo
     {
         uint32_t width = 0;
@@ -336,6 +343,7 @@ namespace Swift
         uint32_t size = 0;
         const void* data = nullptr;
         BufferType type = BufferType::eDefault;
+        EnumFlags<BufferFlags> flags = BufferFlags::eNone;
         std::string_view name;
     };
 

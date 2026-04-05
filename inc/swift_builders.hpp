@@ -410,6 +410,12 @@ namespace Swift
             return *this;
         }
 
+        BufferBuilder& SetBufferFlags(const EnumFlags<BufferFlags> buffer_flags)
+        {
+            m_buffer_flags = buffer_flags;
+            return *this;
+        }
+
         BufferBuilder& SetName(const std::string_view name)
         {
             m_name = name;
@@ -418,7 +424,11 @@ namespace Swift
 
         BufferCreateInfo GetBuildInfo() const
         {
-            return {.size = m_size, .data = m_data, .type = m_buffer_type, .name = m_name};
+            return {.size = m_size,
+                    .data = m_data,
+                    .type = m_buffer_type,
+                    .flags = BufferFlags::eUnorderedAccess,
+                    .name = m_name};
         }
 
         IBuffer* Build() const { return m_context->CreateBuffer(GetBuildInfo()); }
@@ -428,6 +438,7 @@ namespace Swift
         uint32_t m_size = 0;
         const void* m_data = nullptr;
         BufferType m_buffer_type = BufferType::eDefault;
+        EnumFlags<BufferFlags> m_buffer_flags = BufferFlags::eNone;
         std::string_view m_name;
     };
 
