@@ -37,7 +37,7 @@ namespace Swift
                                          uint16_t array_size = 1) = 0;
         virtual void CopyTextureToTexture(ITexture* src, ITexture* dst, const TextureCopyRegion& copy_region) = 0;
         virtual void CopyBufferToBuffer(IBuffer* src, IBuffer* dst, const BufferCopyRegion& region) = 0;
-        virtual void BindConstantBuffer(IBuffer* buffer, uint32_t slot) = 0;
+        virtual void BindConstantBuffer(IBuffer* buffer, uint32_t slot, uint32_t offset = 0) = 0;
         virtual void BeginRender(std::span<const RenderAttachmentInfo> color_attachments,
                                  const std::optional<const DepthAttachmentInfo>& depth_attachment) = 0;
         void BeginRender(const std::optional<RenderAttachmentInfo>& color_attachment,

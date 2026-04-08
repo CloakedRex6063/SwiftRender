@@ -195,10 +195,10 @@ void Swift::D3D12::Command::CopyBufferToBuffer(IBuffer* src, IBuffer* dst, const
     m_list->CopyBufferRegion(dst_resource, region.dst_offset, src_resource, region.src_offset, region.size);
 }
 
-void Swift::D3D12::Command::BindConstantBuffer(IBuffer* buffer, const uint32_t slot)
+void Swift::D3D12::Command::BindConstantBuffer(IBuffer* buffer, const uint32_t slot, const uint32_t offset)
 {
-    m_list->SetGraphicsRootConstantBufferView(slot, buffer->GetVirtualAddress());
-    m_list->SetComputeRootConstantBufferView(slot, buffer->GetVirtualAddress());
+    m_list->SetGraphicsRootConstantBufferView(slot, buffer->GetVirtualAddress() + offset);
+    m_list->SetComputeRootConstantBufferView(slot, buffer->GetVirtualAddress() + offset);
 }
 
 void Swift::D3D12::Command::BeginRender(const std::span<const RenderAttachmentInfo> color_attachments,

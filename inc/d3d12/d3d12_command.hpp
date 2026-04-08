@@ -40,7 +40,7 @@ namespace Swift::D3D12
         void CopyBufferToTexture(IBuffer* buffer, ITexture* texture, uint16_t mip_levels = 1, uint16_t array_size = 1) override;
         void CopyTextureToTexture(ITexture* src, ITexture* dst, const TextureCopyRegion& copy_region) override;
         void CopyBufferToBuffer(IBuffer* src, IBuffer* dst, const BufferCopyRegion& region) override;
-        void BindConstantBuffer(IBuffer* buffer, uint32_t slot) override;
+        void BindConstantBuffer(IBuffer* buffer, uint32_t slot, uint32_t offset = 0) override;
         void BeginRender(std::span<const RenderAttachmentInfo> color_attachments,
                          const std::optional<const DepthAttachmentInfo>& depth_attachment) override;
         void EndRender() override;
