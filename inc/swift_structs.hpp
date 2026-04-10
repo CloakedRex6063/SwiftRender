@@ -23,20 +23,20 @@ namespace Swift
         uint32_t y = 0;
         uint32_t z = 0;
     };
-    
+
     struct Float2
     {
         float x = 0;
         float y = 0;
     };
-    
+
     struct Float3
     {
         float x = 0;
         float y = 0;
         float z = 0;
     };
-    
+
     struct Float4
     {
         float x = 0;
@@ -217,9 +217,75 @@ namespace Swift
         bool depth_clip_enable = false;
     };
 
+    enum class BlendFactor
+    {
+        eZero,
+        eOne,
+        eSrcColor,
+        eInvSrcColor,
+        eSrcAlpha,
+        eInvSrcAlpha,
+        eDestColor,
+        eInvDestColor,
+        eDestAlpha,
+        eInvDestAlpha,
+        eSrcAlphaSat,
+        eBlendFactor,
+        eInvBlendFactor,
+        eSrc1Color,
+        eInvSrc1Color,
+        eSrc1Alpha,
+        eInvSrc1Alpha,
+        eAlphaFactor,
+        eInvAlphaFactor
+    };
+
+    enum class BlendOp
+    {
+        eAdd,
+        eSubtract,
+        eRevSubtract,
+        eMin,
+        eMax,
+    };
+
+    enum class LogicOp
+    {
+        eClear,
+        eAnd,
+        eAndReverse,
+        eCopy,
+        eAndInverted,
+        eNoOp,
+        eXor,
+        eOr,
+        eNor,
+        eEquivalent,
+        eInvert,
+        eOrReverse,
+        eCopyInverted,
+        eOrInverted,
+        eNand,
+        eSet
+    };
+
+    struct BlendInfo
+    {
+        bool blend_enable = false;
+        bool logic_op_enable = false;
+        BlendFactor src_color_factor;
+        BlendFactor dst_color_factor;
+        BlendFactor src_alpha_factor;
+        BlendFactor dst_alpha_factor;
+        BlendOp color_blend_op;
+        BlendOp alpha_blend_op;
+        LogicOp logic_op;
+    };
+
     struct GraphicsShaderCreateInfo
     {
         std::span<const Format> rtv_formats;
+        std::span<const BlendInfo> blend_infos;
         std::optional<Format> dsv_format;
         std::span<const uint8_t> amplify_code;
         std::span<const uint8_t> mesh_code;
@@ -375,12 +441,6 @@ namespace Swift
         eCompileError,
     };
 
-    enum class AlphaMode : uint32_t
-    {
-        eOpaque,
-        eTransparent,
-    };
-
     struct AdapterDescription
     {
         std::string name;
@@ -404,13 +464,13 @@ namespace Swift
         uint32_t mip_count = 1;
         uint32_t layer_count = 1;
     };
-    
+
     enum class LoadOp
     {
         eLoad,
         eClear
     };
-    
+
     enum class StoreOp
     {
         eStore,

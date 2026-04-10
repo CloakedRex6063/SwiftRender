@@ -646,4 +646,108 @@ namespace Swift::D3D12
                                       &total_size);
         return {footprints, num_rows, row_sizes, total_size};
     }
+
+    constexpr D3D12_BLEND ToBlend(const BlendFactor factor) noexcept
+    {
+        switch (factor)
+        {
+            case BlendFactor::eZero:
+                return D3D12_BLEND_ZERO;
+            case BlendFactor::eOne:
+                return D3D12_BLEND_ONE;
+            case BlendFactor::eSrcColor:
+                return D3D12_BLEND_SRC_COLOR;
+            case BlendFactor::eInvSrcColor:
+                return D3D12_BLEND_INV_SRC_COLOR;
+            case BlendFactor::eSrcAlpha:
+                return D3D12_BLEND_SRC_ALPHA;
+            case BlendFactor::eInvSrcAlpha:
+                return D3D12_BLEND_INV_SRC_ALPHA;
+            case BlendFactor::eDestColor:
+                return D3D12_BLEND_DEST_COLOR;
+            case BlendFactor::eInvDestColor:
+                return D3D12_BLEND_INV_DEST_COLOR;
+            case BlendFactor::eDestAlpha:
+                return D3D12_BLEND_DEST_ALPHA;
+            case BlendFactor::eInvDestAlpha:
+                return D3D12_BLEND_INV_DEST_ALPHA;
+            case BlendFactor::eSrcAlphaSat:
+                return D3D12_BLEND_SRC_ALPHA_SAT;
+            case BlendFactor::eBlendFactor:
+                return D3D12_BLEND_BLEND_FACTOR;
+            case BlendFactor::eInvBlendFactor:
+                return D3D12_BLEND_INV_BLEND_FACTOR;
+            case BlendFactor::eSrc1Color:
+                return D3D12_BLEND_SRC1_COLOR;
+            case BlendFactor::eInvSrc1Color:
+                return D3D12_BLEND_INV_SRC1_COLOR;
+            case BlendFactor::eSrc1Alpha:
+                return D3D12_BLEND_SRC1_ALPHA;
+            case BlendFactor::eInvSrc1Alpha:
+                return D3D12_BLEND_INV_SRC1_ALPHA;
+            case BlendFactor::eAlphaFactor:
+                return D3D12_BLEND_ALPHA_FACTOR;
+            case BlendFactor::eInvAlphaFactor:
+                return D3D12_BLEND_INV_ALPHA_FACTOR;
+        }
+        return D3D12_BLEND_ONE;
+    }
+
+    constexpr D3D12_BLEND_OP ToBlendOp(const BlendOp op) noexcept
+    {
+        switch (op)
+        {
+            case BlendOp::eAdd:
+                return D3D12_BLEND_OP_ADD;
+            case BlendOp::eSubtract:
+                return D3D12_BLEND_OP_SUBTRACT;
+            case BlendOp::eRevSubtract:
+                return D3D12_BLEND_OP_REV_SUBTRACT;
+            case BlendOp::eMin:
+                return D3D12_BLEND_OP_MIN;
+            case BlendOp::eMax:
+                return D3D12_BLEND_OP_MAX;
+        }
+        return D3D12_BLEND_OP_ADD;
+    }
+
+    constexpr D3D12_LOGIC_OP ToLogicOp(const LogicOp op) noexcept
+    {
+        switch (op)
+        {
+            case LogicOp::eClear:
+                return D3D12_LOGIC_OP_CLEAR;
+            case LogicOp::eAnd:
+                return D3D12_LOGIC_OP_AND;
+            case LogicOp::eAndReverse:
+                return D3D12_LOGIC_OP_AND_REVERSE;
+            case LogicOp::eCopy:
+                return D3D12_LOGIC_OP_COPY;
+            case LogicOp::eAndInverted:
+                return D3D12_LOGIC_OP_AND_INVERTED;
+            case LogicOp::eNoOp:
+                return D3D12_LOGIC_OP_NOOP;
+            case LogicOp::eXor:
+                return D3D12_LOGIC_OP_XOR;
+            case LogicOp::eOr:
+                return D3D12_LOGIC_OP_OR;
+            case LogicOp::eNor:
+                return D3D12_LOGIC_OP_NOR;
+            case LogicOp::eEquivalent:
+                return D3D12_LOGIC_OP_EQUIV;
+            case LogicOp::eInvert:
+                return D3D12_LOGIC_OP_INVERT;
+            case LogicOp::eOrReverse:
+                return D3D12_LOGIC_OP_OR_REVERSE;
+            case LogicOp::eCopyInverted:
+                return D3D12_LOGIC_OP_COPY_INVERTED;
+            case LogicOp::eOrInverted:
+                return D3D12_LOGIC_OP_OR_INVERTED;
+            case LogicOp::eNand:
+                return D3D12_LOGIC_OP_NAND;
+            case LogicOp::eSet:
+                return D3D12_LOGIC_OP_SET;
+        }
+        return D3D12_LOGIC_OP_NOOP;
+    }
 }  // namespace Swift::D3D12

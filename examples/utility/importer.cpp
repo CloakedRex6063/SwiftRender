@@ -392,10 +392,10 @@ Material Importer::LoadMaterial(const tinygltf::Material& material)
                            [](const double d) { return static_cast<float>(d); });
     std::array<float, 3> emissive{};
     std::ranges::transform(material.emissiveFactor, emissive.begin(), [](const double d) { return static_cast<float>(d); });
-    Swift::AlphaMode alpha_mode = Swift::AlphaMode::eOpaque;
+    AlphaMode alpha_mode = AlphaMode::eOpaque;
     if (material.alphaMode == "TRANSPARENT")
     {
-        alpha_mode = Swift::AlphaMode::eTransparent;
+        alpha_mode = AlphaMode::eMask;
     }
 
     int albedo_index = -1;

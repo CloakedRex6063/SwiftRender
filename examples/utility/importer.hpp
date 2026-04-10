@@ -26,6 +26,13 @@ struct Mesh
     int material_index;
 };
 
+enum class AlphaMode : uint32_t
+{
+    eOpaque,
+    eBlend,
+    eMask,
+};
+
 struct Material
 {
     std::array<float, 4> albedo;
@@ -41,7 +48,7 @@ struct Material
     int normal_index;
     int occlusion_index;
     float alpha_cutoff;
-    Swift::AlphaMode alpha_mode;
+    AlphaMode alpha_mode;
 };
 
 struct Texture

@@ -77,17 +77,14 @@ float4 pixel_main(OutVertex input) : SV_TARGET
     float3 world_pos = input.world_pos;
     float3 n = normalize(input.normal);
     float3 t = normalize(input.tangent.xyz);
-    float  sign = input.tangent.w;
+    float sign = input.tangent.w;
     float3 b = normalize(cross(n, t)) * sign;
     if (material.normal_index != -1)
     {
-        float3 normal_sample =
-            g_textures[material.normal_index]
-            .Sample(g_samplers[PushConstants.sampler_index], input.uv)
-            .xyz;
+        float3 normal_sample = g_textures[material.normal_index].Sample(g_samplers[PushConstants.sampler_index], input.uv).xyz;
         normal_sample = normal_sample * 2.0 - 1.0;
 
-        float3x3 TBN = float3x3(t, b, n);
+        float3x3 TBN = { t.x, b.x, n.x, t.y, b.y, n.y, t.z, b.z, n.z };
 
         n = normalize(mul(normal_sample, TBN));
     }

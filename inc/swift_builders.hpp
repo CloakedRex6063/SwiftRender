@@ -240,6 +240,21 @@ namespace Swift
             m_rtv_formats = rtv_formats;
             return *this;
         }
+        GraphicsShaderBuilder& SetBlendInfos(const std::vector<BlendInfo>& blend_infos)
+        {
+            m_blend_infos = blend_infos;
+            return *this;
+        }
+        GraphicsShaderBuilder& AddRTVFormat(const Format rtv_format)
+        {
+            m_rtv_formats.emplace_back(rtv_format);
+            return *this;
+        }
+        GraphicsShaderBuilder& AddBlendInfo(const BlendInfo& blend_info)
+        {
+            m_blend_infos.emplace_back(blend_info);
+            return *this;
+        }
         GraphicsShaderBuilder& SetDSVFormat(const Format& dsv_format)
         {
             m_dsv_format = dsv_format;
@@ -330,6 +345,7 @@ namespace Swift
         {
             const GraphicsShaderCreateInfo shader_create_info{
                 .rtv_formats = m_rtv_formats,
+                .blend_infos = m_blend_infos,
                 .dsv_format = m_dsv_format,
                 .amplify_code = m_amplify_code,
                 .mesh_code = m_mesh_code,
@@ -344,6 +360,7 @@ namespace Swift
     private:
         IContext* m_context;
         std::vector<Format> m_rtv_formats{};
+        std::vector<BlendInfo> m_blend_infos{};
         std::optional<Format> m_dsv_format = std::nullopt;
         std::span<const uint8_t> m_amplify_code;
         std::span<const uint8_t> m_mesh_code;

@@ -51,10 +51,28 @@ Swift::D3D12::Shader::Shader(ID3D12Device14* device,
         .SampleDesc = {1, 0},
     };
 
+    std::vector blend_infos(create_info.blend_infos.begin(), create_info.blend_infos.end());
+    if (create_info.blend_infos.empty())
+    {
+        for (int i = 0; i < create_info.rtv_formats.size(); ++i)
+        {
+            blend_infos.emplace_back();
+        }
+    }
+
     for (int i = 0; i < create_info.rtv_formats.size(); ++i)
     {
         mesh_desc.RTVFormats[i] = ToDXGIFormat(create_info.rtv_formats[i]);
         mesh_desc.BlendState.RenderTarget[i] = {
+            .BlendEnable = blend_infos.at(i).blend_enable,
+            .LogicOpEnable = blend_infos.at(i).logic_op_enable,
+            .SrcBlend = ToBlend(blend_infos.at(i).src_color_factor),
+            .DestBlend = ToBlend(blend_infos.at(i).dst_color_factor),
+            .BlendOp = ToBlendOp(blend_infos.at(i).color_blend_op),
+            .SrcBlendAlpha = ToBlend(blend_infos.at(i).src_alpha_factor),
+            .DestBlendAlpha = ToBlend(blend_infos.at(i).dst_alpha_factor),
+            .BlendOpAlpha = ToBlendOp(blend_infos.at(i).alpha_blend_op),
+            .LogicOp = ToLogicOp(blend_infos.at(i).logic_op),
             .RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL,
         };
     }
