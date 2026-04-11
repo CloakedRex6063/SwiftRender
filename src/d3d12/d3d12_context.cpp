@@ -46,6 +46,14 @@ namespace Swift::D3D12
                     total_size += arg.size;
                 }
                 break;
+                case IndirectArgumentType::eDispatch:
+                {
+                    D3D12_INDIRECT_ARGUMENT_DESC new_arg{};
+                    new_arg.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
+                    total_size += sizeof(D3D12_DISPATCH_ARGUMENTS);
+                    args.emplace_back(new_arg);
+                }
+                break;
                 case IndirectArgumentType::eMeshDispatch:
                 {
                     D3D12_INDIRECT_ARGUMENT_DESC new_arg{};

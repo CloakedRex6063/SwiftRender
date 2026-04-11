@@ -101,7 +101,7 @@ void Swift::D3D12::Command::DispatchMesh(const uint32_t group_x, const uint32_t 
 {
     m_list->DispatchMesh(group_x, group_y, group_z);
 }
-void Swift::D3D12::Command::DispatchMeshIndirect(ICommandSignature* signature,
+void Swift::D3D12::Command::ExecuteIndirect(ICommandSignature* signature,
                                                  const uint32_t max_commands,
                                                  IBuffer* argument_buffer,
                                                  const uint32_t argument_offset,

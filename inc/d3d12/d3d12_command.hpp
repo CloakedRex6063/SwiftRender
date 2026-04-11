@@ -30,7 +30,7 @@ namespace Swift::D3D12
         void PushConstants(const void* data, uint32_t size, uint32_t offset) override;
         void BindShader(IShader* shader) override;
         void DispatchMesh(uint32_t group_x, uint32_t group_y, uint32_t group_z) override;
-        void DispatchMeshIndirect(ICommandSignature* signature,
+        void ExecuteIndirect(ICommandSignature* signature,
                                   uint32_t max_commands,
                                   IBuffer* argument_buffer,
                                   uint32_t argument_offset,

@@ -497,6 +497,7 @@ namespace Swift
     enum class IndirectArgumentType
     {
         ePushConstant,
+        eDispatch,
         eMeshDispatch,
     };
 

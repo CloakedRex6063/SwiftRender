@@ -24,12 +24,12 @@ namespace Swift
         virtual void PushConstants(const void* data, uint32_t size, uint32_t offset = 0) = 0;
         virtual void BindShader(IShader* shader) = 0;
         virtual void DispatchMesh(uint32_t group_x, uint32_t group_y, uint32_t group_z) = 0;
-        virtual void DispatchMeshIndirect(ICommandSignature* signature,
-                                          uint32_t max_commands,
-                                          IBuffer* argument_buffer,
-                                          uint32_t argument_offset,
-                                          IBuffer* count_buffer,
-                                          uint32_t count_offset) = 0;
+        virtual void ExecuteIndirect(ICommandSignature* signature,
+                                     uint32_t max_commands,
+                                     IBuffer* argument_buffer,
+                                     uint32_t argument_offset,
+                                     IBuffer* count_buffer,
+                                     uint32_t count_offset) = 0;
         virtual void DispatchCompute(uint32_t group_x, uint32_t group_y, uint32_t group_z) = 0;
         virtual void CopyBufferToTexture(IBuffer* buffer,
                                          ITexture* texture,
