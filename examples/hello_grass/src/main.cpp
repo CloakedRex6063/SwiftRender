@@ -52,6 +52,20 @@ struct Frustum
 Plane CreatePlane(const glm::vec3& position, const glm::vec3& normal);
 Frustum CreateFrustum(const Camera& camera, float near_plane, float far_plane);
 
+static constexpr uint32_t k_max_grass_patches = 10'000'000;
+struct ConstantBufferInfo
+{
+    glm::mat4 view_proj;
+
+    glm::float3 cam_pos;
+    uint32_t frustum_buffer_index;
+
+    uint32_t grass_buffer_index;
+    uint32_t grass_patch_count;
+    glm::float2 padding;
+};
+static constexpr uint32_t k_constant_buffer_aligned_size = (sizeof(ConstantBufferInfo) + 255) & ~255;
+
 int main()
 {
     auto window = Window();
@@ -100,39 +114,33 @@ int main()
     };
     auto* grass_shader = context->CreateShader(grass_shader_create_info);
 
-    struct ConstantBufferInfo
-    {
-        glm::mat4 view_proj;
-
-        glm::float3 cam_pos;
-        uint32_t frustum_buffer_index;
-
-        uint32_t grass_buffer_index;
-        uint32_t grass_patch_count;
-        glm::float2 padding;
-    };
     constexpr Swift::BufferCreateInfo constant_create_info{
-        .size = 65536,
+        .size = k_constant_buffer_aligned_size * 3,
     };
     auto* const constant_buffer = context->CreateBuffer(constant_create_info);
 
     constexpr Swift::BufferCreateInfo frustum_create_info{
-        .size = sizeof(Frustum),
+        .size = sizeof(Frustum) * 3,
     };
     auto* frustum_buffer = context->CreateBuffer(frustum_create_info);
-    auto* frustum_buffer_srv = context->CreateBufferView(frustum_buffer,
-                                                         Swift::BufferViewCreateInfo{
-                                                             .num_elements = 1,
-                                                             .element_size = sizeof(Frustum),
-                                                         });
+    std::array<Swift::IBufferView*, 3> frustum_buffer_srvs;
+    for (uint32_t i = 0; i < 3; i++)
+    {
+        frustum_buffer_srvs[i] = context->CreateBufferView(frustum_buffer,
+                                                           {
+                                                               .first_element = i,
+                                                               .num_elements = 1,
+                                                               .element_size = sizeof(Frustum),
+                                                           });
+    }
 
     constexpr Swift::BufferCreateInfo grass_info{
-        .size = 1'000'000 * sizeof(GrassPatch),
+        .size = k_max_grass_patches * sizeof(GrassPatch),
     };
     auto* grass_buffer = context->CreateBuffer(grass_info);
     auto* grass_buffer_srv = context->CreateBufferView(grass_buffer,
                                                        Swift::BufferViewCreateInfo{
-                                                           .num_elements = 1'000'000,
+                                                           .num_elements = k_max_grass_patches,
                                                            .element_size = sizeof(GrassPatch),
                                                        });
     GrassSettings grass_settings{};
@@ -191,22 +199,23 @@ int main()
 
         camera.Tick(window, input, delta_time);
 
+        const uint32_t frame_index = context->GetFrameIndex();
         Frustum frustum = CreateFrustum(camera, near_plane, far_plane);
-        frustum_buffer->Write(&frustum, 0, sizeof(Frustum));
+        frustum_buffer->Write(&frustum, frame_index * sizeof(Frustum), sizeof(Frustum));
 
         const ConstantBufferInfo scene_buffer_data{
             .view_proj = camera.m_proj_matrix * camera.m_view_matrix,
             .cam_pos = camera.m_position,
-            .frustum_buffer_index = frustum_buffer_srv->GetDescriptorIndex(),
+            .frustum_buffer_index = frustum_buffer_srvs[frame_index]->GetDescriptorIndex(),
             .grass_buffer_index = grass_buffer_srv->GetDescriptorIndex(),
             .grass_patch_count = grass_count,
         };
-        constant_buffer->Write(&scene_buffer_data, 0, sizeof(ConstantBufferInfo));
+        constant_buffer->Write(&scene_buffer_data, k_constant_buffer_aligned_size * frame_index, sizeof(ConstantBufferInfo));
 
         command->Begin();
         command->SetViewport(Swift::Viewport{.dimensions = Swift::Float2(window_size.x, window_size.y)});
         command->SetScissor(Swift::Scissor{.dimensions = {window_size.x, window_size.y}});
-        command->BindConstantBuffer(constant_buffer, 1);
+        command->BindConstantBuffer(constant_buffer, 1, k_constant_buffer_aligned_size * frame_index);
 
         command->TransitionImage(render_target->GetTexture(), Swift::ResourceState::eRenderTarget);
         command->TransitionImage(depth_texture, Swift::ResourceState::eDepthWrite);
@@ -310,7 +319,10 @@ int main()
     context->DestroyBuffer(grass_buffer);
     context->DestroyBuffer(frustum_buffer);
     context->DestroyBufferView(grass_buffer_srv);
-    context->DestroyBufferView(frustum_buffer_srv);
+    for (auto& frustum : frustum_buffer_srvs)
+    {
+        context->DestroyBufferView(frustum);
+    }
 
     imgui.Destroy();
 

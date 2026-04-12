@@ -13,6 +13,22 @@
 #include "lights.hpp"
 #include "render_graph/swift_render_graph.hpp"
 
+struct ConstantBufferInfo
+{
+    glm::mat4 view_proj;
+    glm::float3 cam_pos;
+    uint32_t material_buffer_index;
+
+    uint32_t transform_buffer_index;
+    uint32_t point_light_buffer_index;
+    uint32_t dir_light_buffer_index;
+    uint32_t point_light_count;
+
+    uint32_t dir_light_count;
+    glm::float3 padding;
+};
+static constexpr uint32_t k_constant_buffer_aligned_size = (sizeof(ConstantBufferInfo) + 255) & ~255;
+
 int main()
 {
     auto window = Window();
@@ -67,21 +83,7 @@ int main()
 
     const auto textures = CreateTextures(context, helmet.textures, helmet.materials);
 
-    struct ConstantBufferInfo
-    {
-        glm::mat4 view_proj;
-        glm::float3 cam_pos;
-        uint32_t material_buffer_index;
-
-        uint32_t transform_buffer_index;
-        uint32_t point_light_buffer_index;
-        uint32_t dir_light_buffer_index;
-        uint32_t point_light_count;
-
-        uint32_t dir_light_count;
-        glm::float3 padding;
-    };
-    auto* const constant_buffer = Swift::BufferBuilder(context, sizeof(ConstantBufferInfo)).Build();
+    auto* const constant_buffer = Swift::BufferBuilder(context, k_constant_buffer_aligned_size * 3).Build();
 
     auto* const material_buffer =
         Swift::BufferBuilder(context, sizeof(Material) * helmet.materials.size()).SetData(helmet.materials.data()).Build();
@@ -167,7 +169,8 @@ int main()
         }
 
         command->Begin();
-        command->BindConstantBuffer(constant_buffer, 1);
+        const uint32_t frame_index = context->GetFrameIndex();
+        command->BindConstantBuffer(constant_buffer, 1, k_constant_buffer_aligned_size * frame_index);
         window_size = window.GetSize();
 
         render_graph.AddRenderPass("PBR Pass", shader)
